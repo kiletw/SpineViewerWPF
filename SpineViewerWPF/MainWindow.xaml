@@ -1,0 +1,36 @@
+﻿<Window x:Class="SpineViewerWPF.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SpineViewerWPF"
+        mc:Ignorable="d"
+        Title="SpineViewerWPF" Height="640" Width="800" MinWidth="450" MinHeight="400" SizeChanged="Window_SizeChanged"   >
+    <Grid>
+        <ContentControl Name="Player" HorizontalAlignment="Left" VerticalAlignment="Top" Width="600" Height="600" Margin="190,0,0,0"  />
+        <CheckBox Name="chb_Alpha" Content="SpineUseAlpha" HorizontalAlignment="Left" Margin="9,107,0,0" VerticalAlignment="Top" IsChecked="True" />
+        <CheckBox Name="chb_IsLoop" Content="IsLoop" HorizontalAlignment="Left" Margin="9,128,0,0" VerticalAlignment="Top" IsChecked="True" Click="chb_IsLoop_Click"/>
+        <CheckBox Name="chb_PreMultiplyAlpha" Content="PreMultiplyAlpha" HorizontalAlignment="Left" Margin="8,86,0,0" VerticalAlignment="Top" IsChecked="True" Click="chb_PreMultiplyAlpha_Click"/>
+        <Label Content="Spine Version：" HorizontalAlignment="Left" Margin="4,32,0,0" VerticalAlignment="Top"/>
+        <ComboBox Name="cb_Version" HorizontalAlignment="Left" Margin="9,57,0,0" VerticalAlignment="Top" Width="120">
+            <ComboBoxItem Content="3.4.02"></ComboBoxItem>
+            <ComboBoxItem Content="3.5.51"></ComboBoxItem>
+            <ComboBoxItem Content="3.6.32"></ComboBoxItem>
+            <ComboBoxItem Content="3.6.39"></ComboBoxItem>
+        </ComboBox>
+        <Button Name="btn_Open" Content="Open" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="75" Click="btn_Open_Click"/>
+        <ComboBox Name="cb_AnimeList" SelectionChanged="cb_AnimeList_SelectionChanged" HorizontalAlignment="Left" Margin="10,220,0,0" VerticalAlignment="Top" Width="120"/>
+        <Label Content="Skin：" HorizontalAlignment="Left" Margin="7,146,0,0" VerticalAlignment="Top"/>
+        <ComboBox Name="cb_SkinList" HorizontalAlignment="Left" Margin="10,169,0,0" VerticalAlignment="Top" Width="120" SelectionChanged="cb_SkinList_SelectionChanged"/>
+        <Label Content="Anime：" HorizontalAlignment="Left" Margin="7,196,0,0" VerticalAlignment="Top"/>
+        <Label Content="FPS：" HorizontalAlignment="Left" Margin="8,246,0,0" VerticalAlignment="Top"/>
+        <TextBox Name="tb_Fps" HorizontalAlignment="Left" Height="23" Margin="10,270,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" TextChanged="tb_Fps_TextChanged"/>
+        <Label Content="Scale：" HorizontalAlignment="Left" Margin="10,302,0,0" VerticalAlignment="Top"/>
+        <Label Name="lb_Scale" Content="" HorizontalAlignment="Left" Margin="58,302,0,0" VerticalAlignment="Top"/>
+        <Label Content="FrameWidth：" HorizontalAlignment="Left" Margin="10,326,0,0" VerticalAlignment="Top"/>
+        <Label Name="lb_Width" Content="" HorizontalAlignment="Left" Margin="107,326,0,0" VerticalAlignment="Top"/>
+        <Label Content="FrameHeight：" HorizontalAlignment="Left" Margin="10,352,0,0" VerticalAlignment="Top"/>
+        <Label Name="lb_Height" Content="" HorizontalAlignment="Left" Margin="107,352,0,0" VerticalAlignment="Top"/>
+        
+    </Grid>
+</Window>
