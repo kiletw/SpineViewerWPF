@@ -1,7 +1,12 @@
 # SpineViewerWPF
 a tool can view spine files with different version and export gif or png file.
 
+## Suppot Spine Version
 
+3.4.02
+3.5.51
+3.6.32
+3.6.39
 
 ## Usage
 
