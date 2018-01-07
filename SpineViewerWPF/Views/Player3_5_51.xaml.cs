@@ -44,6 +44,7 @@ namespace SpineViewerWPF.Views
 
             Frame.Children.Add(XC);
 
+           
         }
 
         private void Initialize()
@@ -138,6 +139,7 @@ namespace SpineViewerWPF.Views
 
         private void Update(GameTime gameTime)
         {
+
             if (isRecoding && gifList != null)
             {
                 gifList.Add(TakeScreenshot());
@@ -146,7 +148,12 @@ namespace SpineViewerWPF.Views
 
         private void Draw()
         {
-      
+            if (App.GV.SpineVersion != "3.5.51")
+            {
+                XC = null;
+                return;
+            }
+
             _graphicsDevice.Clear(Color.Transparent);
             state.Update(App.GV.Speed / 1000f);
             state.Apply(skeleton);

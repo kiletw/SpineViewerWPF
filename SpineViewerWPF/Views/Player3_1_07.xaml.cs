@@ -147,6 +147,11 @@ namespace SpineViewerWPF.Views
 
         private void Draw()
         {
+            if (App.GV.SpineVersion != "3.1.07")
+            {
+                XC = null;
+                return;
+            }
 
             _graphicsDevice.Clear(Color.Transparent);
             state.Update(App.GV.Speed / 1000f);

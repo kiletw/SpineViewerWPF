@@ -147,9 +147,12 @@ namespace SpineViewerWPF.Views
 
         private void Draw()
         {
-  
+            if (App.GV.SpineVersion != "3.6.32")
+            {
+                XC = null;
+                return;
+            }
             _graphicsDevice.Clear(Color.Transparent);
-
             state.Update(App.GV.Speed / 1000f);
             state.Apply(skeleton);
             state.TimeScale = App.GV.TimeScale;
