@@ -6,13 +6,16 @@
         xmlns:local="clr-namespace:SpineViewerWPF"
         mc:Ignorable="d"
         Title="SpineViewerWPF" Height="640" Width="800" MinWidth="450" MinHeight="400" SizeChanged="Window_SizeChanged"   >
-    <Grid>
+    <Grid Name="MasterGrid">
         <ContentControl Name="Player" HorizontalAlignment="Left" VerticalAlignment="Top" Width="600" Height="600" Margin="190,0,0,0"  />
         <CheckBox Name="chb_Alpha" Content="SpineUseAlpha" HorizontalAlignment="Left" Margin="9,107,0,0" VerticalAlignment="Top" IsChecked="True" />
         <CheckBox Name="chb_IsLoop" Content="IsLoop" HorizontalAlignment="Left" Margin="9,128,0,0" VerticalAlignment="Top" IsChecked="True" Click="chb_IsLoop_Click"/>
         <CheckBox Name="chb_PreMultiplyAlpha" Content="PreMultiplyAlpha" HorizontalAlignment="Left" Margin="8,86,0,0" VerticalAlignment="Top" IsChecked="True" Click="chb_PreMultiplyAlpha_Click"/>
         <Label Content="Spine Version：" HorizontalAlignment="Left" Margin="4,32,0,0" VerticalAlignment="Top"/>
         <ComboBox Name="cb_Version" HorizontalAlignment="Left" Margin="9,57,0,0" VerticalAlignment="Top" Width="120">
+            <ComboBoxItem Content="2.1.08"></ComboBoxItem>
+            <ComboBoxItem Content="2.1.25"></ComboBoxItem>
+            <ComboBoxItem Content="3.1.07"></ComboBoxItem>
             <ComboBoxItem Content="3.4.02"></ComboBoxItem>
             <ComboBoxItem Content="3.5.51"></ComboBoxItem>
             <ComboBoxItem Content="3.6.32"></ComboBoxItem>

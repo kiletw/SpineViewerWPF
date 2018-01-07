@@ -2,7 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
-using Spine3_5_51;
+using Spine2_1_25;
 using System.Collections.Generic;
 using System.IO;
 using System.Windows;
@@ -10,12 +10,13 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using WpfXnaControl;
 
+
 namespace SpineViewerWPF.Views
 {
     /// <summary>
-    /// Player3_5_51.xaml 的互動邏輯
+    /// Player.xaml 的互動邏輯
     /// </summary>
-    public partial class Player3_5_51 : UserControl
+    public partial class Player2_1_25 : UserControl
     {
         private SpriteBatch _spriteBatch;
         private GraphicsDevice _graphicsDevice;
@@ -30,7 +31,7 @@ namespace SpineViewerWPF.Views
         private bool isRecoding = false;
         List<Texture2D> gifList;
 
-        public Player3_5_51()
+        public Player2_1_25()
         {
             InitializeComponent();
 
@@ -88,7 +89,7 @@ namespace SpineViewerWPF.Views
 
 
             List<string> AnimationNames = new List<string>();
-            ExposedList<Animation> LA = state.Data.skeletonData.Animations;
+            List<Animation> LA = state.Data.skeletonData.Animations;
             foreach (Animation An in LA)
             {
                 AnimationNames.Add(An.name);
@@ -96,7 +97,7 @@ namespace SpineViewerWPF.Views
             App.GV.AnimeList = AnimationNames;
 
             List<string> SkinNames = new List<string>();
-            ExposedList<Skin> LS = state.Data.skeletonData.Skins;
+            List<Skin> LS = state.Data.skeletonData.Skins;
             foreach (Skin Sk in LS)
             {
                 SkinNames.Add(Sk.name);
@@ -109,7 +110,7 @@ namespace SpineViewerWPF.Views
             }
             else
             {
-                state.SetAnimation(0, state.Data.skeletonData.animations.Items[0].name, App.GV.IsLoop);
+                state.SetAnimation(0, state.Data.skeletonData.animations[0].name, App.GV.IsLoop);
             }
 
             if (isNew)
@@ -120,7 +121,7 @@ namespace SpineViewerWPF.Views
 
         }
 
-        private void State_Complete(TrackEntry entry)
+        private void State_Complete(AnimationState state, int trackIndex, int loopCount)
         {
             isRecoding = false;
 
@@ -146,7 +147,7 @@ namespace SpineViewerWPF.Views
 
         private void Draw()
         {
-      
+
             _graphicsDevice.Clear(Color.Transparent);
             state.Update(App.GV.Speed / 1000f);
             state.Apply(skeleton);
@@ -170,7 +171,7 @@ namespace SpineViewerWPF.Views
             skeletonRenderer.End();
         }
 
-        private void State_Start(TrackEntry entry)
+        private void State_Start(AnimationState state, int trackIndex)
         {
             gifList = new List<Texture2D>();
         }
@@ -221,10 +222,6 @@ namespace SpineViewerWPF.Views
         private void btn_Capture_Click(object sender, RoutedEventArgs e)
         {
             bool IsPause = false;
-            SaveFileDialog saveFileDialog = new SaveFileDialog();
-            saveFileDialog.Filter = "Png Image|*.png";
-            saveFileDialog.Title = "Save a Png File";
-
             if (App.GV.TimeScale == 0)
             {
                 IsPause = true;
@@ -233,19 +230,11 @@ namespace SpineViewerWPF.Views
             {
                 App.GV.TimeScale = 0;
             }
-
-            saveFileDialog.ShowDialog();
-
-            if (saveFileDialog.FileName != "")
+            using (Texture2D t2d = TakeScreenshot())
             {
-                using (var fs = (System.IO.FileStream)saveFileDialog.OpenFile())
-                {
-                    using (Texture2D t2d = TakeScreenshot())
-                    {
-                        t2d.SaveAsPng(fs, t2d.Width, t2d.Height);
-                    }
-                }
+                Common.SaveToPng(t2d);
             }
+
             if (!IsPause)
             {
                 App.GV.TimeScale = 1;

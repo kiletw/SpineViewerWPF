@@ -24,6 +24,9 @@ namespace SpineViewerWPF
     {
         public static MainWindow MasterMain;
         public static ContentControl MasterControl;
+        public static Player2_1_08 UC_Player2_1_08;
+        public static Player2_1_25 UC_Player2_1_25;
+        public static Player3_1_07 UC_Player3_1_07;
         public static Player3_4_02 UC_Player3_4_02;
         public static Player3_5_51 UC_Player3_5_51;
         public static Player3_6_32 UC_Player3_6_32;
@@ -68,6 +71,15 @@ namespace SpineViewerWPF
         {
             switch (App.GV.SpineVersion)
             {
+                case "2.1.08":
+                    UC_Player2_1_08.ChangeSet();
+                    break;
+                case "2.1.25":
+                    UC_Player2_1_25.ChangeSet();
+                    break;
+                case "3.1.07":
+                    UC_Player3_1_07.ChangeSet();
+                    break;
                 case "3.4.02":
                     UC_Player3_4_02.ChangeSet();
                     break;
@@ -119,6 +131,9 @@ namespace SpineViewerWPF
                 if (Player.Content != null)
                 {
                     Player.Content = null;
+                    UC_Player2_1_08 = null;
+                    UC_Player2_1_25 = null;
+                    UC_Player3_1_07 = null;
                     UC_Player3_4_02 = null;
                     UC_Player3_5_51 = null;
                     UC_Player3_6_32 = null;
@@ -127,6 +142,18 @@ namespace SpineViewerWPF
                 App.GV.SpineVersion = cb_Version.SelectionBoxItem.ToString();
                 switch (App.GV.SpineVersion)
                 {
+                    case "2.1.08":
+                        UC_Player2_1_08 = new Player2_1_08();
+                        Player.Content = UC_Player2_1_08;
+                        break;
+                    case "2.1.25":
+                        UC_Player2_1_25 = new Player2_1_25();
+                        Player.Content = UC_Player2_1_25;
+                        break;
+                    case "3.1.07":
+                        UC_Player3_1_07 = new Player3_1_07();
+                        Player.Content = UC_Player3_1_07;
+                        break;
                     case "3.4.02":
                         UC_Player3_4_02 = new Player3_4_02();
                         Player.Content = UC_Player3_4_02;

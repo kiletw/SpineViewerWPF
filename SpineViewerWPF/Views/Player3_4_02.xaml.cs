@@ -143,6 +143,7 @@ namespace SpineViewerWPF.Views
             {
                 gifList.Add(TakeScreenshot());
             }
+
         }
 
         private void Draw()
@@ -164,8 +165,6 @@ namespace SpineViewerWPF.Views
                 state.SetAnimation(0, App.GV.SelectAnimeName, App.GV.IsLoop);
                 App.GV.SetAnime = false;
             }
-            skeleton.RootBone.scaleX = App.GV.Scale;
-            skeleton.RootBone.scaleY = App.GV.Scale;
             skeleton.UpdateWorldTransform();
             skeletonRenderer.PremultipliedAlpha = App.GV.Alpha;
             skeletonRenderer.Begin();
@@ -204,6 +203,7 @@ namespace SpineViewerWPF.Views
         {
             XC.LoadContent.Invoke(XC.ContentManager);
         }
+
 
         private void Frame_MouseUp(object sender, MouseButtonEventArgs e)
         {
@@ -266,6 +266,22 @@ namespace SpineViewerWPF.Views
                     App.GV.Scale -= 0.02f;
                 }
             }
+            Atlas atlas = new Atlas(App.GV.SelectFile, new XnaTextureLoader(_graphicsDevice));
+            SkeletonData skeletonData;
+            if (Common.IsBinaryData(App.GV.SelectFile))
+            {
+                SkeletonBinary binary = new SkeletonBinary(atlas);
+                binary.Scale = App.GV.Scale;
+                skeletonData = binary.ReadSkeletonData(Common.GetSkelPath(App.GV.SelectFile));
+            }
+            else
+            {
+                SkeletonJson json = new SkeletonJson(atlas);
+                json.Scale = App.GV.Scale;
+                skeletonData = json.ReadSkeletonData(Common.GetJsonPath(App.GV.SelectFile));
+            }
+
+            skeleton = new Skeleton(skeletonData);
         }
 
         private void UserControl_SizeChanged(object sender, SizeChangedEventArgs e)

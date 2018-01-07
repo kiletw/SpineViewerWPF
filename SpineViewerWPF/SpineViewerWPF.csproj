@@ -68,6 +68,111 @@
     <Compile Include="PublicFunction\Common.cs" />
     <Compile Include="PublicFunction\GlobalValue.cs" />
     <Compile Include="PublicFunction\NewTextureLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Animation.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\AnimationState.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\AnimationStateData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Atlas.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Attachments\AtlasAttachmentLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Attachments\Attachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Attachments\AttachmentLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Attachments\AttachmentType.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Attachments\BoundingBoxAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Attachments\MeshAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Attachments\RegionAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Attachments\SkinnedMeshAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Bone.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\BoneData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Event.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\EventData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\IkConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\IkConstraintData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Json.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Skeleton.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\SkeletonBounds.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\SkeletonData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\SkeletonJson.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Skin.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Slot.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\SlotData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\XnaLoader\MeshBatcher.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\XnaLoader\RegionBatcher.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\XnaLoader\SkeletonMeshRenderer.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\XnaLoader\SkeletonRegionRenderer.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\XnaLoader\Util.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\XnaLoader\XnaTextureLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Animation.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\AnimationState.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\AnimationStateData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Atlas.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Attachments\AtlasAttachmentLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Attachments\Attachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Attachments\AttachmentLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Attachments\AttachmentType.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Attachments\BoundingBoxAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Attachments\MeshAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Attachments\RegionAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Attachments\SkinnedMeshAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Bone.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\BoneData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Event.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\EventData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\IkConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\IkConstraintData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Json.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Skeleton.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\SkeletonBinary.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\SkeletonBounds.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\SkeletonData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\SkeletonJson.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Skin.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Slot.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\SlotData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\XnaLoader\MeshBatcher.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\XnaLoader\RegionBatcher.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\XnaLoader\SkeletonMeshRenderer.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\XnaLoader\SkeletonRegionRenderer.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\XnaLoader\Util.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\XnaLoader\XnaTextureLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Animation.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\AnimationState.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\AnimationStateData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Atlas.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Attachments\AtlasAttachmentLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Attachments\Attachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Attachments\AttachmentLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Attachments\AttachmentType.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Attachments\BoundingBoxAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Attachments\IFfdAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Attachments\MeshAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Attachments\RegionAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Attachments\WeightedMeshAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\BlendMode.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Bone.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\BoneData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Event.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\EventData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\ExposedList.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\IkConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\IkConstraintData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\IUpdatable.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Json.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\MathUtils.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Skeleton.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\SkeletonBinary.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\SkeletonBounds.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\SkeletonData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\SkeletonJson.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Skin.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Slot.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\SlotData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\TransformConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\TransformConstraintData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\XnaLoader\MeshBatcher.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\XnaLoader\RegionBatcher.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\XnaLoader\SkeletonMeshRenderer.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\XnaLoader\SkeletonRegionRenderer.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\XnaLoader\Util.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\XnaLoader\XnaTextureLoader.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.4.02\Animation.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.4.02\AnimationState.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.4.02\AnimationStateData.cs" />
@@ -244,6 +349,15 @@
     <Compile Include="SpineLibrary\spine-runtimes-3.6.39\XnaLoader\SkeletonRenderer.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.39\XnaLoader\Util.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.39\XnaLoader\XnaTextureLoader.cs" />
+    <Compile Include="Views\Player2_1_08.xaml.cs">
+      <DependentUpon>Player2_1_08.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\Player2_1_25.xaml.cs">
+      <DependentUpon>Player2_1_25.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\Player3_1_07.xaml.cs">
+      <DependentUpon>Player3_1_07.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Views\Player3_6_39.xaml.cs">
       <DependentUpon>Player3_6_39.xaml</DependentUpon>
     </Compile>
@@ -268,6 +382,18 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="Views\Player2_1_08.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\Player2_1_25.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\Player3_1_07.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Views\Player3_6_39.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
