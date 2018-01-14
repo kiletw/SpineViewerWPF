@@ -26,6 +26,7 @@ public class GlobalValue : INotifyPropertyChanged
     private bool _PreMultiplyAlpha;
     private bool _SetSkin = false;
     private bool _SetAnime = false;
+    private string _FileHash = "";
 
     public string SelectFile
     {
@@ -300,6 +301,22 @@ public class GlobalValue : INotifyPropertyChanged
             {
                 _SetAnime = value;
                 OnPropertyChanged("SetAnime");
+            }
+        }
+    }
+
+    public string FileHash
+    {
+        get
+        {
+            return _FileHash;
+        }
+        set
+        {
+            if (_FileHash != value)
+            {
+                _FileHash = value;
+                OnPropertyChanged("FileHash");
             }
         }
     }

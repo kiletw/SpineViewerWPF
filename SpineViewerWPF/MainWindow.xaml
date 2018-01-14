@@ -34,6 +34,9 @@
         <Label Name="lb_Width" Content="" HorizontalAlignment="Left" Margin="107,326,0,0" VerticalAlignment="Top"/>
         <Label Content="FrameHeight：" HorizontalAlignment="Left" Margin="10,352,0,0" VerticalAlignment="Top"/>
         <Label Name="lb_Height" Content="" HorizontalAlignment="Left" Margin="107,352,0,0" VerticalAlignment="Top"/>
-        
+        <Label Content="PosX：" HorizontalAlignment="Left" Margin="10,375,0,0" VerticalAlignment="Top"/>
+        <Label Content="PosY：" HorizontalAlignment="Left" Margin="10,394,0,0" VerticalAlignment="Top"/>
+        <Label Name="lb_PosX" Content="" HorizontalAlignment="Left" Margin="58,375,0,0" VerticalAlignment="Top"/>
+        <Label Name="lb_PosY" Content="" HorizontalAlignment="Left" Margin="58,394,0,0" VerticalAlignment="Top"/>
     </Grid>
 </Window>

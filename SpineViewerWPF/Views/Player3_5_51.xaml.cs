@@ -23,7 +23,6 @@ namespace SpineViewerWPF.Views
         AnimationState state;
         SkeletonBounds bounds = new SkeletonBounds();
         SkeletonMeshRenderer skeletonRenderer;
-        private XnaControl XC;
         private System.Windows.Point MouseP;
         private bool isPress = false;
         private bool isNew = true;
@@ -33,23 +32,21 @@ namespace SpineViewerWPF.Views
         public Player3_5_51()
         {
             InitializeComponent();
+            App.AppXC.Initialize += Initialize;
+            App.AppXC.Update += Update;
+            App.AppXC.LoadContent += LoadContent;
+            App.AppXC.Draw += Draw;
+            App.AppXC.Width = App.GV.FrameWidth;
+            App.AppXC.Height = App.GV.FrameHeight;
 
-            XC = new XnaControl();
-            XC.Initialize += Initialize;
-            XC.Update += Update;
-            XC.LoadContent += LoadContent;
-            XC.Draw += Draw;
-            XC.Width = App.GV.FrameWidth;
-            XC.Height = App.GV.FrameHeight;
-
-            Frame.Children.Add(XC);
+            Frame.Children.Add(App.AppXC);
 
            
         }
 
         private void Initialize()
         {
-            _graphicsDevice = XC.GraphicsDevice;
+            _graphicsDevice = App.AppXC.GraphicsDevice;
             _graphicsDevice.PresentationParameters.BackBufferWidth = (int)App.GV.FrameWidth;
             _graphicsDevice.PresentationParameters.BackBufferHeight = (int)App.GV.FrameHeight;
             _spriteBatch = new SpriteBatch(_graphicsDevice);
@@ -76,6 +73,10 @@ namespace SpineViewerWPF.Views
             }
 
             skeleton = new Skeleton(skeletonData);
+
+            App.GV.PosX = skeleton.Data.Width;
+            App.GV.PosY = skeleton.Data.Height;
+            App.GV.FileHash = skeleton.Data.Hash;
 
             AnimationStateData stateData = new AnimationStateData(skeleton.Data);
 
@@ -148,12 +149,13 @@ namespace SpineViewerWPF.Views
 
         private void Draw()
         {
-            if (App.GV.SpineVersion != "3.5.51")
+            if (App.GV.SpineVersion != "3.5.51" || App.GV.FileHash != skeleton.Data.Hash)
             {
-                XC = null;
+                state = null;
+                
+                skeletonRenderer = null;
                 return;
             }
-
             _graphicsDevice.Clear(Color.Transparent);
             state.Update(App.GV.Speed / 1000f);
             state.Apply(skeleton);
@@ -167,6 +169,7 @@ namespace SpineViewerWPF.Views
             }
             if (App.GV.SelectAnimeName != "" && App.GV.SetAnime)
             {
+                state.ClearTracks();
                 state.SetAnimation(0, App.GV.SelectAnimeName, App.GV.IsLoop);
                 App.GV.SetAnime = false;
             }
@@ -206,7 +209,7 @@ namespace SpineViewerWPF.Views
 
         public void ChangeSet()
         {
-            XC.LoadContent.Invoke(XC.ContentManager);
+            App.AppXC.LoadContent.Invoke(App.AppXC.ContentManager);
         }
 
         private void Frame_MouseUp(object sender, MouseButtonEventArgs e)
@@ -216,7 +219,7 @@ namespace SpineViewerWPF.Views
 
         public Texture2D TakeScreenshot()
         {
-            RenderTarget2D screenshot = new RenderTarget2D(_graphicsDevice, (int)XC.Width, (int)XC.Height, false, SurfaceFormat.Color, DepthFormat.Depth24Stencil8);
+            RenderTarget2D screenshot = new RenderTarget2D(_graphicsDevice, (int)App.AppXC.Width, (int)App.AppXC.Height, false, SurfaceFormat.Color, DepthFormat.Depth24Stencil8);
             _graphicsDevice.SetRenderTarget(screenshot);
             Draw();
             _graphicsDevice.SetRenderTarget(null);
@@ -302,8 +305,8 @@ namespace SpineViewerWPF.Views
 
         private void UserControl_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            XC.Width = App.GV.FrameWidth;
-            XC.Height = App.GV.FrameHeight;
+            App.AppXC.Width = App.GV.FrameWidth;
+            App.AppXC.Height = App.GV.FrameHeight;
             if (_graphicsDevice != null)
             {
                 _graphicsDevice.PresentationParameters.BackBufferWidth = (int)App.GV.FrameWidth;

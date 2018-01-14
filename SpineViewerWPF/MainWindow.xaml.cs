@@ -14,6 +14,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using SpineViewerWPF.Views;
 using Microsoft.Win32;
+using WpfXnaControl;
 
 namespace SpineViewerWPF
 {
@@ -32,6 +33,7 @@ namespace SpineViewerWPF
         public static Player3_6_32 UC_Player3_6_32;
         public static Player3_6_39 UC_Player3_6_39;
 
+
         public MainWindow()
         {
             InitializeComponent();
@@ -49,6 +51,8 @@ namespace SpineViewerWPF
             lb_Scale.SetBinding(Label.ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Scale") });
             lb_Width.SetBinding(ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("FrameWidth") });
             lb_Height.SetBinding(ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("FrameHeight") });
+            lb_PosX.SetBinding(ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("PosX") });
+            lb_PosY.SetBinding(ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("PosY") });
             chb_Alpha.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Alpha") });
             chb_IsLoop.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("IsLoop") });
             chb_PreMultiplyAlpha.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("PreMultiplyAlpha") });
@@ -140,6 +144,7 @@ namespace SpineViewerWPF
                     UC_Player3_6_39 = null;
                 }
                 App.GV.SpineVersion = cb_Version.SelectionBoxItem.ToString();
+                App.AppXC = new XnaControl();
                 switch (App.GV.SpineVersion)
                 {
                     case "2.1.08":
