@@ -134,6 +134,7 @@ namespace SpineViewerWPF
                 MasterMain.cb_SkinList.Items.Clear();
                 if (Player.Content != null)
                 {
+                    App.AppXC.ContentManager.Dispose();
                     Player.Content = null;
                     UC_Player2_1_08 = null;
                     UC_Player2_1_25 = null;
@@ -196,8 +197,8 @@ namespace SpineViewerWPF
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
 
-            App.GV.FrameWidth = this.ActualWidth - 200;
-            App.GV.FrameHeight = this.ActualHeight - 40;
+            App.GV.FrameWidth = Math.Round(this.ActualWidth - 200,2);
+            App.GV.FrameHeight = Math.Round(this.ActualHeight - 40,2);
             Player.Width = App.GV.FrameWidth;
             Player.Height = App.GV.FrameHeight + 20;
 

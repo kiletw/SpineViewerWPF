@@ -62,20 +62,22 @@ namespace SpineViewerWPF.Views
             if (Common.IsBinaryData(App.GV.SelectFile))
             {
                 SkeletonBinary binary = new SkeletonBinary(atlas);
-                binary.Scale = 1;
+                binary.Scale = App.GV.Scale;
                 skeletonData = binary.ReadSkeletonData(Common.GetSkelPath(App.GV.SelectFile));
             }
             else
             {
                 SkeletonJson json = new SkeletonJson(atlas);
-                json.Scale = 1;
+                json.Scale = App.GV.Scale;
                 skeletonData = json.ReadSkeletonData(Common.GetJsonPath(App.GV.SelectFile));
             }
 
             skeleton = new Skeleton(skeletonData);
-
-            App.GV.PosX = skeleton.Data.Width;
-            App.GV.PosY = skeleton.Data.Height;
+            if(isNew)
+            {
+                App.GV.PosX = skeleton.Data.Width;
+                App.GV.PosY = skeleton.Data.Height;
+            }
             App.GV.FileHash = skeleton.Data.Hash;
 
             AnimationStateData stateData = new AnimationStateData(skeleton.Data);
@@ -136,6 +138,7 @@ namespace SpineViewerWPF.Views
             Common.SaveToGif(lms);
             gifList.Clear();
             ChangeSet();
+            
         }
 
         private void Update(GameTime gameTime)

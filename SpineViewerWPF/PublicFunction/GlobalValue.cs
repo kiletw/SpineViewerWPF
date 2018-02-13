@@ -83,7 +83,7 @@ public class GlobalValue : INotifyPropertyChanged
         {
             if (_Scale != value)
             {
-                _Scale = value;
+                _Scale = (float)Math.Round(value,2);
                 OnPropertyChanged("Scale");
             }
         }
@@ -116,7 +116,7 @@ public class GlobalValue : INotifyPropertyChanged
         {
             if (_PosX != value)
             {
-                _PosX = value;
+                _PosX = (float)Math.Round(value, 2);
                 OnPropertyChanged("PosX");
             }
         }
@@ -131,7 +131,7 @@ public class GlobalValue : INotifyPropertyChanged
         {
             if (_PosY != value)
             {
-                _PosY = value;
+                _PosY = (float)Math.Round(value, 2);
                 OnPropertyChanged("PosY");
             }
         }
