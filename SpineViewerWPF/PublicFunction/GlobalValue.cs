@@ -27,6 +27,7 @@ public class GlobalValue : INotifyPropertyChanged
     private bool _SetSkin = false;
     private bool _SetAnime = false;
     private string _FileHash = "";
+    private string _GifQuality = "Default";
 
     public string SelectFile
     {
@@ -317,6 +318,22 @@ public class GlobalValue : INotifyPropertyChanged
             {
                 _FileHash = value;
                 OnPropertyChanged("FileHash");
+            }
+        }
+    }
+
+    public string GifQuality
+    {
+        get
+        {
+            return _GifQuality;
+        }
+        set
+        {
+            if (_GifQuality != value)
+            {
+                _GifQuality = value;
+                OnPropertyChanged("GifQuality");
             }
         }
     }

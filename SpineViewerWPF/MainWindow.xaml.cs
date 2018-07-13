@@ -15,6 +15,7 @@ using System.Windows.Shapes;
 using SpineViewerWPF.Views;
 using Microsoft.Win32;
 using WpfXnaControl;
+using System.Text.RegularExpressions;
 
 namespace SpineViewerWPF
 {
@@ -45,7 +46,7 @@ namespace SpineViewerWPF
         {
             if (App.GV.Scale == 0)
                 App.GV.Scale = 1;
-            App.LastDir = App.root;
+            App.LastDir = App.RootDir;
 
             tb_Fps.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Speed") });
             lb_Scale.SetBinding(Label.ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Scale") });
@@ -56,6 +57,8 @@ namespace SpineViewerWPF
             chb_Alpha.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Alpha") });
             chb_IsLoop.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("IsLoop") });
             chb_PreMultiplyAlpha.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("PreMultiplyAlpha") });
+            TextCompositionManager.AddPreviewTextInputStartHandler(tb_Fps, tb_Fps_PreviewTextInput);
+
 
         }
 
@@ -99,7 +102,102 @@ namespace SpineViewerWPF
             }
         }
 
-        private void btn_Open_Click(object sender, RoutedEventArgs e)
+        public static void SetCBAnimeName()
+        {
+            for (int i = 0; i < App.GV.AnimeList.Count; i++)
+            {
+                MasterMain.cb_AnimeList.Items.Add(App.GV.AnimeList[i]);
+            }
+
+            for (int i = 0; i < App.GV.SkinList.Count; i++)
+            {
+                MasterMain.cb_SkinList.Items.Add(App.GV.SkinList[i]);
+            }
+        }
+
+        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+
+            App.GV.FrameWidth = Math.Round(this.ActualWidth - 200, 2);
+            App.GV.FrameHeight = Math.Round(this.ActualHeight - 60, 2);
+            Player.Width = App.GV.FrameWidth;
+            Player.Height = App.GV.FrameHeight +20;
+
+        }
+
+        private void tb_Fps_TextChanged(object sender, TextChangedEventArgs e)
+        {
+
+
+            TextBox textBox = sender as TextBox;
+
+            TextChange[] changesText = new TextChange[e.Changes.Count];
+            e.Changes.CopyTo(changesText, 0);
+            
+            int offset = changesText[0].Offset;
+            int totalCount = changesText[0].AddedLength;
+            
+            if (totalCount > 0)
+            {
+                char[] charArray = new char[textBox.Text.Length];
+                textBox.Text.CopyTo(0, charArray, 0, charArray.Length);
+                StringBuilder sbu = new StringBuilder(new string(charArray));
+                
+                for (int i = sbu.Length - 1; i >= offset; --i)
+                {
+                    if (charArray[i] < 48 || charArray[i] > 57)
+                    {
+                        sbu = sbu.Remove(i, 1);
+                    }
+                }
+                textBox.Text = sbu.ToString();
+                textBox.Select(offset + totalCount, 0);
+            }
+            if (int.TryParse(tb_Fps.Text.Trim(), out int fps))
+            {
+                App.GV.Speed = fps;
+            }
+            else
+            {
+                App.GV.Speed = 24;
+                tb_Fps.Text = "24";
+                MessageBox.Show("Error Number！");
+            }
+        }
+        private void cb_SkinList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (cb_SkinList.SelectedIndex != -1)
+            {
+                if (cb_SkinList.SelectedItem.ToString() != "")
+                {
+                    App.GV.SelectSkin = cb_SkinList.SelectedItem.ToString();
+                    App.GV.SetSkin = true;
+                }
+
+            }
+        }
+
+
+        private void chb_IsLoop_Click(object sender, RoutedEventArgs e)
+        {
+            App.GV.SetAnime = true;
+        }
+        private void chb_PreMultiplyAlpha_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateSpine();
+        }
+
+
+
+        private void tb_Fps_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            Regex regExp = new Regex(@"\d");
+            string singleValue = e.Text;
+            e.Handled = !regExp.Match(singleValue).Success;
+          
+        }
+
+        private void loadFileToolStripMenuItem_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.InitialDirectory = App.LastDir;
@@ -127,14 +225,18 @@ namespace SpineViewerWPF
                 if (App.GV.SkinList != null)
                     App.GV.SkinList.Clear();
 
- 
-                    
+
+
 
                 MasterMain.cb_AnimeList.Items.Clear();
                 MasterMain.cb_SkinList.Items.Clear();
                 if (Player.Content != null)
                 {
                     App.AppXC.ContentManager.Dispose();
+                    App.AppXC.Initialize = null;
+                    App.AppXC.Update = null;
+                    App.AppXC.LoadContent = null;
+                    App.AppXC.Draw = null;
                     Player.Content = null;
                     UC_Player2_1_08 = null;
                     UC_Player2_1_25 = null;
@@ -180,65 +282,15 @@ namespace SpineViewerWPF
             }
         }
 
-
-        public static void SetCBAnimeName()
+        private void cb_gif_q_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            for (int i = 0; i < App.GV.AnimeList.Count; i++)
+            if (cb_gif_q.SelectedIndex != -1)
             {
-                MasterMain.cb_AnimeList.Items.Add(App.GV.AnimeList[i]);
-            }
-
-            for (int i = 0; i < App.GV.SkinList.Count; i++)
-            {
-                MasterMain.cb_SkinList.Items.Add(App.GV.SkinList[i]);
-            }
-        }
-
-        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-
-            App.GV.FrameWidth = Math.Round(this.ActualWidth - 200,2);
-            App.GV.FrameHeight = Math.Round(this.ActualHeight - 40,2);
-            Player.Width = App.GV.FrameWidth;
-            Player.Height = App.GV.FrameHeight + 20;
-
-        }
-
-        private void tb_Fps_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (int.TryParse(tb_Fps.Text.Trim(), out int fps))
-            {
-                App.GV.Speed = fps;
-            }
-            else
-            {
-                App.GV.Speed = 24;
-                MessageBox.Show("Error Number！");
-            }
-        }
-
-        private void cb_SkinList_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (cb_SkinList.SelectedIndex != -1)
-            {
-                if (cb_SkinList.SelectedItem.ToString() != "")
+                if (cb_gif_q.SelectedItem.ToString() != "")
                 {
-                    App.GV.SelectSkin = cb_SkinList.SelectedItem.ToString();
-                    App.GV.SetSkin = true;
+                    App.GV.GifQuality = ((ComboBoxItem)cb_gif_q.SelectedItem).Content.ToString();
                 }
-                   
             }
         }
-
-
-        private void chb_IsLoop_Click(object sender, RoutedEventArgs e)
-        {
-            App.GV.SetAnime = true;
-        }
-        private void chb_PreMultiplyAlpha_Click(object sender, RoutedEventArgs e)
-        {
-            UpdateSpine();
-        }
-
     }
 }

@@ -5,9 +5,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SpineViewerWPF"
         mc:Ignorable="d"
-        Title="SpineViewerWPF" Height="640" Width="800" MinWidth="450" MinHeight="400" SizeChanged="Window_SizeChanged"   >
+        Title="SpineViewerWPF" Height="660" Width="800" MinWidth="450" MinHeight="400" SizeChanged="Window_SizeChanged"   >
     <Grid Name="MasterGrid">
-        <ContentControl Name="Player" HorizontalAlignment="Left" VerticalAlignment="Top" Width="600" Height="600" Margin="190,0,0,0"  />
+        <Menu Name="menuStrip1" DockPanel.Dock="Top" VerticalAlignment="Top"  Height="20"   >
+            <MenuItem Name="fileToolStripMenuItem" Header="File" >
+                <MenuItem Name="loadFileToolStripMenuItem" Header="Load Spine" Click="loadFileToolStripMenuItem_Click" >
+                </MenuItem>
+            </MenuItem>
+        </Menu>
+
+        <ContentControl Name="Player" HorizontalAlignment="Left" VerticalAlignment="Top" Width="600" Height="600" Margin="190,20,0,0"  />
         <CheckBox Name="chb_Alpha" Content="SpineUseAlpha" HorizontalAlignment="Left" Margin="9,107,0,0" VerticalAlignment="Top" IsChecked="True" />
         <CheckBox Name="chb_IsLoop" Content="IsLoop" HorizontalAlignment="Left" Margin="9,128,0,0" VerticalAlignment="Top" IsChecked="True" Click="chb_IsLoop_Click"/>
         <CheckBox Name="chb_PreMultiplyAlpha" Content="PreMultiplyAlpha" HorizontalAlignment="Left" Margin="8,86,0,0" VerticalAlignment="Top" IsChecked="True" Click="chb_PreMultiplyAlpha_Click"/>
@@ -21,13 +28,12 @@
             <ComboBoxItem Content="3.6.32"></ComboBoxItem>
             <ComboBoxItem Content="3.6.39"></ComboBoxItem>
         </ComboBox>
-        <Button Name="btn_Open" Content="Open" HorizontalAlignment="Left" Margin="10,5,0,0" VerticalAlignment="Top" Width="75" Click="btn_Open_Click"/>
         <ComboBox Name="cb_AnimeList" SelectionChanged="cb_AnimeList_SelectionChanged" HorizontalAlignment="Left" Margin="10,220,0,0" VerticalAlignment="Top" Width="120"/>
         <Label Content="Skin：" HorizontalAlignment="Left" Margin="7,146,0,0" VerticalAlignment="Top"/>
         <ComboBox Name="cb_SkinList" HorizontalAlignment="Left" Margin="10,169,0,0" VerticalAlignment="Top" Width="120" SelectionChanged="cb_SkinList_SelectionChanged"/>
         <Label Content="Anime：" HorizontalAlignment="Left" Margin="7,196,0,0" VerticalAlignment="Top"/>
         <Label Content="FPS：" HorizontalAlignment="Left" Margin="8,246,0,0" VerticalAlignment="Top"/>
-        <TextBox Name="tb_Fps" HorizontalAlignment="Left" Height="23" Margin="10,270,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" TextChanged="tb_Fps_TextChanged"/>
+        <TextBox Name="tb_Fps" HorizontalAlignment="Left" Height="23" Margin="10,270,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"  TextChanged="tb_Fps_TextChanged" InputMethod.IsInputMethodEnabled="False" MaxLength="3" />
         <Label Content="Scale：" HorizontalAlignment="Left" Margin="10,302,0,0" VerticalAlignment="Top"/>
         <Label Name="lb_Scale" Content="" HorizontalAlignment="Left" Margin="58,302,0,0" VerticalAlignment="Top"/>
         <Label Content="FrameWidth：" HorizontalAlignment="Left" Margin="10,326,0,0" VerticalAlignment="Top"/>
@@ -38,5 +44,13 @@
         <Label Content="PosY：" HorizontalAlignment="Left" Margin="10,394,0,0" VerticalAlignment="Top"/>
         <Label Name="lb_PosX" Content="" HorizontalAlignment="Left" Margin="58,375,0,0" VerticalAlignment="Top"/>
         <Label Name="lb_PosY" Content="" HorizontalAlignment="Left" Margin="58,394,0,0" VerticalAlignment="Top"/>
+        <GroupBox Header="Gif Quality" HorizontalAlignment="Left" Height="54" Margin="7,424,0,0" VerticalAlignment="Top" Width="119">
+            <ComboBox x:Name="cb_gif_q" HorizontalAlignment="Left" Margin="10,6,0,0" VerticalAlignment="Top" Width="94" SelectionChanged="cb_gif_q_SelectionChanged" >
+                <ComboBoxItem Content="Default" IsSelected="True"/>
+                <ComboBoxItem Content="Bit8"/>
+                <ComboBoxItem Content="Bit4"/>
+                <ComboBoxItem Content="Grayscale"/>
+            </ComboBox>
+        </GroupBox>
     </Grid>
 </Window>

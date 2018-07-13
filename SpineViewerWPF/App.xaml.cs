@@ -15,7 +15,7 @@ namespace SpineViewerWPF
     public partial class App : Application
     {
         public static GlobalValue GV = new GlobalValue();
-        public static string root = Environment.CurrentDirectory;
+        public static string RootDir = Environment.CurrentDirectory;
         public static string LastDir = "";
         public static XnaControl AppXC;
     }

@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Spine2_1_08;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Windows;
@@ -20,15 +21,21 @@ namespace SpineViewerWPF.Views
     {
         private SpriteBatch _spriteBatch;
         private GraphicsDevice _graphicsDevice;
-        Skeleton skeleton;
-        AnimationState state;
-        SkeletonBounds bounds = new SkeletonBounds();
-        SkeletonMeshRenderer skeletonRenderer;
+        private Skeleton skeleton;
+        private AnimationState state;
+        private SkeletonBounds bounds;
+        private SkeletonMeshRenderer skeletonRenderer;
         private System.Windows.Point MouseP;
         private bool isPress = false;
         private bool isNew = true;
         private bool isRecoding = false;
-        List<Texture2D> gifList;
+        private List<Animation> LA;
+        private List<Skin> LS;
+        private Atlas atlas;
+        private SkeletonData skeletonData;
+        private AnimationStateData stateData;
+        private SkeletonJson json;
+        private List<Texture2D> gifList;
 
         public Player2_1_08()
         {
@@ -57,24 +64,24 @@ namespace SpineViewerWPF.Views
             skeletonRenderer = new SkeletonMeshRenderer(_graphicsDevice);
             skeletonRenderer.PremultipliedAlpha = App.GV.Alpha;
 
-            Atlas atlas = new Atlas(App.GV.SelectFile, new XnaTextureLoader(_graphicsDevice));
-            SkeletonData skeletonData;
+            atlas = new Atlas(App.GV.SelectFile, new XnaTextureLoader(_graphicsDevice));
 
-            SkeletonJson json = new SkeletonJson(atlas);
+
+            json = new SkeletonJson(atlas);
             json.Scale = App.GV.Scale;
             skeletonData = json.ReadSkeletonData(Common.GetJsonPath(App.GV.SelectFile));
 
 
             skeleton = new Skeleton(skeletonData);
 
-            if(isNew)
+            if (isNew)
             {
                 App.GV.PosX = skeleton.Data.Width;
                 App.GV.PosY = skeleton.Data.Height;
             }
             App.GV.FileHash = skeleton.Data.Hash;
 
-            AnimationStateData stateData = new AnimationStateData(skeleton.Data);
+            stateData = new AnimationStateData(skeleton.Data);
 
             state = new AnimationState(stateData);
 
@@ -86,7 +93,7 @@ namespace SpineViewerWPF.Views
 
 
             List<string> AnimationNames = new List<string>();
-            List<Animation> LA = state.Data.skeletonData.Animations;
+            LA = state.Data.skeletonData.Animations;
             foreach (Animation An in LA)
             {
                 AnimationNames.Add(An.name);
@@ -94,7 +101,7 @@ namespace SpineViewerWPF.Views
             App.GV.AnimeList = AnimationNames;
 
             List<string> SkinNames = new List<string>();
-            List<Skin> LS = state.Data.skeletonData.Skins;
+            LS = state.Data.skeletonData.Skins;
             foreach (Skin Sk in LS)
             {
                 SkinNames.Add(Sk.name);
@@ -128,15 +135,18 @@ namespace SpineViewerWPF.Views
                 MemoryStream ms = new MemoryStream();
                 gifList[i].SaveAsPng(ms, gifList[i].Width, gifList[i].Height);
                 lms.Add(ms);
+                gifList[i].Dispose();
             }
             Common.SaveToGif(lms);
             gifList.Clear();
+            GC.Collect();
             ChangeSet();
-            
+
         }
 
         private void Update(GameTime gameTime)
         {
+
             if (isRecoding && gifList != null)
             {
                 gifList.Add(TakeScreenshot());
@@ -148,7 +158,7 @@ namespace SpineViewerWPF.Views
             if (App.GV.SpineVersion != "2.1.08" || App.GV.FileHash != skeleton.Data.Hash)
             {
                 state = null;
-                
+
                 skeletonRenderer = null;
                 return;
             }
@@ -205,6 +215,9 @@ namespace SpineViewerWPF.Views
 
         public void ChangeSet()
         {
+            App.AppXC.ContentManager.Dispose();
+            atlas.Dispose();
+            atlas = null;
             App.AppXC.LoadContent.Invoke(App.AppXC.ContentManager);
         }
 
@@ -220,7 +233,6 @@ namespace SpineViewerWPF.Views
             Draw();
             _graphicsDevice.SetRenderTarget(null);
             _graphicsDevice.Clear(new Microsoft.Xna.Framework.Color(0, 0, 0, 0));
-
             return screenshot;
         }
 
@@ -269,14 +281,10 @@ namespace SpineViewerWPF.Views
                     App.GV.Scale -= 0.02f;
                 }
             }
-            Atlas atlas = new Atlas(App.GV.SelectFile, new XnaTextureLoader(_graphicsDevice));
-            SkeletonData skeletonData;
-
-            SkeletonJson json = new SkeletonJson(atlas);
+            atlas = new Atlas(App.GV.SelectFile, new XnaTextureLoader(_graphicsDevice));
+            json = new SkeletonJson(atlas);
             json.Scale = App.GV.Scale;
             skeletonData = json.ReadSkeletonData(Common.GetJsonPath(App.GV.SelectFile));
-
-
             skeleton = new Skeleton(skeletonData);
         }
 

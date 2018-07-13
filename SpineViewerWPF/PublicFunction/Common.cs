@@ -46,6 +46,27 @@ public class Common
         saveFileDialog.Filter = "Gif Image|*.gif";
         saveFileDialog.Title = "Save a Gif File";
 
+        GifQuality GQ = new GifQuality();
+
+        switch(App.GV.GifQuality)
+        {
+            case "Default":
+                GQ = GifQuality.Default;
+                break;
+            case "Bit8":
+                GQ = GifQuality.Bit8;
+                break;
+            case "Bit4":
+                GQ = GifQuality.Bit4;
+                break;
+            case "Grayscale":
+                GQ = GifQuality.Grayscale;
+                break;
+            default:
+                GQ = GifQuality.Default;
+                break;
+        }
+
         string fileName = GetFileNameNoEx(App.GV.SelectFile);
         if (App.GV.SelectAnimeName != "")
             fileName += $"_{App.GV.SelectAnimeName}";
@@ -63,18 +84,20 @@ public class Common
                 {
                     using (img)
                     {
-                        gifCreator.AddFrame(Image.FromStream(img), GifQuality.Bit8);
+                        gifCreator.AddFrame(Image.FromStream(img), GQ);
+                        img.Dispose();
                     }
                 }
             }
-
+        }
+        else
+        {
             foreach (MemoryStream ms in lms)
             {
                 ms.Dispose();
             }
-            lms.Clear();
-
         }
+        lms.Clear();
     }
 
     public static void SaveToPng(Texture2D t2d)
