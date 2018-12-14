@@ -4,53 +4,228 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SpineViewerWPF"
+        xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         mc:Ignorable="d"
-        Title="SpineViewerWPF" Height="660" Width="800" MinWidth="450" MinHeight="400" SizeChanged="Window_SizeChanged"   >
-    <Grid Name="MasterGrid">
-        <Menu Name="menuStrip1" DockPanel.Dock="Top" VerticalAlignment="Top"  Height="20"   >
-            <MenuItem Name="fileToolStripMenuItem" Header="File" >
-                <MenuItem Name="loadFileToolStripMenuItem" Header="Load Spine" Click="loadFileToolStripMenuItem_Click" >
+        Title="SpineViewerWPF" Height="704.8" Width="800" MinWidth="450" MinHeight="400" SizeChanged="Window_SizeChanged"   >
+    <DockPanel Name="MasterGrid">
+        <Menu Name="mu_Header" DockPanel.Dock="Top" VerticalAlignment="Top"  Height="20"   >
+            <MenuItem Name="mi_File" Header="File" >
+                <MenuItem Name="mi_File_Load" Header="Load Spine" Click="loadFileToolStripMenuItem_Click" >
                 </MenuItem>
+            </MenuItem>
+            <MenuItem Name="mi_Version" Header="Use Version" >
+                <ComboBox Name="cb_Version" HorizontalAlignment="Left"  VerticalAlignment="Top" Width="120">
+                    <ComboBoxItem Content="2.1.08"></ComboBoxItem>
+                    <ComboBoxItem Content="2.1.25"></ComboBoxItem>
+                    <ComboBoxItem Content="3.1.07"></ComboBoxItem>
+                    <ComboBoxItem Content="3.4.02"></ComboBoxItem>
+                    <ComboBoxItem Content="3.5.51"></ComboBoxItem>
+                    <!--<ComboBoxItem Content="3.6.32"></ComboBoxItem>
+                    <ComboBoxItem Content="3.6.39"></ComboBoxItem>-->
+                </ComboBox>
             </MenuItem>
         </Menu>
 
-        <ContentControl Name="Player" HorizontalAlignment="Left" VerticalAlignment="Top" Width="600" Height="600" Margin="190,20,0,0"  />
-        <CheckBox Name="chb_Alpha" Content="SpineUseAlpha" HorizontalAlignment="Left" Margin="9,107,0,0" VerticalAlignment="Top" IsChecked="True" />
-        <CheckBox Name="chb_IsLoop" Content="IsLoop" HorizontalAlignment="Left" Margin="9,128,0,0" VerticalAlignment="Top" IsChecked="True" Click="chb_IsLoop_Click"/>
-        <CheckBox Name="chb_PreMultiplyAlpha" Content="PreMultiplyAlpha" HorizontalAlignment="Left" Margin="8,86,0,0" VerticalAlignment="Top" IsChecked="True" Click="chb_PreMultiplyAlpha_Click"/>
-        <Label Content="Spine Version：" HorizontalAlignment="Left" Margin="4,32,0,0" VerticalAlignment="Top"/>
-        <ComboBox Name="cb_Version" HorizontalAlignment="Left" Margin="9,57,0,0" VerticalAlignment="Top" Width="120">
-            <ComboBoxItem Content="2.1.08"></ComboBoxItem>
-            <ComboBoxItem Content="2.1.25"></ComboBoxItem>
-            <ComboBoxItem Content="3.1.07"></ComboBoxItem>
-            <ComboBoxItem Content="3.4.02"></ComboBoxItem>
-            <ComboBoxItem Content="3.5.51"></ComboBoxItem>
-            <ComboBoxItem Content="3.6.32"></ComboBoxItem>
-            <ComboBoxItem Content="3.6.39"></ComboBoxItem>
-        </ComboBox>
-        <ComboBox Name="cb_AnimeList" SelectionChanged="cb_AnimeList_SelectionChanged" HorizontalAlignment="Left" Margin="10,220,0,0" VerticalAlignment="Top" Width="120"/>
-        <Label Content="Skin：" HorizontalAlignment="Left" Margin="7,146,0,0" VerticalAlignment="Top"/>
-        <ComboBox Name="cb_SkinList" HorizontalAlignment="Left" Margin="10,169,0,0" VerticalAlignment="Top" Width="120" SelectionChanged="cb_SkinList_SelectionChanged"/>
-        <Label Content="Anime：" HorizontalAlignment="Left" Margin="7,196,0,0" VerticalAlignment="Top"/>
-        <Label Content="FPS：" HorizontalAlignment="Left" Margin="8,246,0,0" VerticalAlignment="Top"/>
-        <TextBox Name="tb_Fps" HorizontalAlignment="Left" Height="23" Margin="10,270,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"  TextChanged="tb_Fps_TextChanged" InputMethod.IsInputMethodEnabled="False" MaxLength="3" />
-        <Label Content="Scale：" HorizontalAlignment="Left" Margin="10,302,0,0" VerticalAlignment="Top"/>
-        <Label Name="lb_Scale" Content="" HorizontalAlignment="Left" Margin="58,302,0,0" VerticalAlignment="Top"/>
-        <Label Content="FrameWidth：" HorizontalAlignment="Left" Margin="10,326,0,0" VerticalAlignment="Top"/>
-        <Label Name="lb_Width" Content="" HorizontalAlignment="Left" Margin="107,326,0,0" VerticalAlignment="Top"/>
-        <Label Content="FrameHeight：" HorizontalAlignment="Left" Margin="10,352,0,0" VerticalAlignment="Top"/>
-        <Label Name="lb_Height" Content="" HorizontalAlignment="Left" Margin="107,352,0,0" VerticalAlignment="Top"/>
-        <Label Content="PosX：" HorizontalAlignment="Left" Margin="10,375,0,0" VerticalAlignment="Top"/>
-        <Label Content="PosY：" HorizontalAlignment="Left" Margin="10,394,0,0" VerticalAlignment="Top"/>
-        <Label Name="lb_PosX" Content="" HorizontalAlignment="Left" Margin="58,375,0,0" VerticalAlignment="Top"/>
-        <Label Name="lb_PosY" Content="" HorizontalAlignment="Left" Margin="58,394,0,0" VerticalAlignment="Top"/>
-        <GroupBox Header="Gif Quality" HorizontalAlignment="Left" Height="54" Margin="7,424,0,0" VerticalAlignment="Top" Width="119">
-            <ComboBox x:Name="cb_gif_q" HorizontalAlignment="Left" Margin="10,6,0,0" VerticalAlignment="Top" Width="94" SelectionChanged="cb_gif_q_SelectionChanged" >
-                <ComboBoxItem Content="Default" IsSelected="True"/>
-                <ComboBoxItem Content="Bit8"/>
-                <ComboBoxItem Content="Bit4"/>
-                <ComboBoxItem Content="Grayscale"/>
-            </ComboBox>
-        </GroupBox>
-    </Grid>
+
+        <Grid Name="MainContent">
+
+            <Grid Name="GridPlayer">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="60" ></ColumnDefinition>
+                    <ColumnDefinition Width="*" ></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"></RowDefinition>
+                    <RowDefinition Height="20"></RowDefinition>
+                </Grid.RowDefinitions>
+                <ContentControl Name="Player" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left" VerticalAlignment="Top"   />
+                <TextBox Name="tb_Scale" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right" Height="14" FontSize="8" Text="100%"  TextWrapping="NoWrap"  Visibility="Hidden" VerticalAlignment="Top" Width="26"/>
+                <Label Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Content="Playing Process："  VerticalAlignment="Top"  FontSize="8" Margin="0,0,0,0"  />
+                <Label Name="lb_Loading"  Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Content="100%"  VerticalAlignment="Top"  FontSize="8" Margin="65.6,0,0,0"  />
+                <Slider Name="sl_Loading" Grid.Row="1"  Grid.Column="1" HorizontalAlignment="Left" Width="300" Margin="100,0,0,0" Maximum="1" SmallChange="0.01" LargeChange="0.1"  />
+                <Button Name="btn_PlayControl" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Content="{iconPacks:Modern Kind=ControlPause ,Height=16,Width=16}" Width="32" Margin="402.6,0,0,0"  Click="btn_PlayControl_Click" />
+                <Button Name="btn_CaptureControl" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Content="{iconPacks:Modern Kind=Camera ,Height=16,Width=16}" Width="32" Margin="439.6,0,0,0" Height="20"  Click="btn_CaptureControl_Click"   />
+                <Button Name="btn_RecodeControl" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Content="{iconPacks:Modern Kind=Video ,Height=16,Width=16}" Width="32" Margin="476.6,0,0,0" Height="20" Click="btn_RecodeControl_Click" ></Button>
+
+
+
+            </Grid>
+            <Grid Name="GridAttributes" >
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="280" MinWidth="34"></ColumnDefinition>
+                    <ColumnDefinition Width="*" ></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+
+                <Rectangle Grid.Column="0" Grid.Row="0">
+                    <Rectangle.Fill>
+                        <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                            <GradientStop Color="#FF2B00FF" Offset="0"/>
+                            <GradientStop Color="White" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+
+                <TabControl Name="tc_Control" Grid.Row="0" Grid.Column="0" TabStripPlacement="Left" SelectionChanged="Tc_Control_SelectionChanged" >
+                    <TabControl.Resources>
+                        <Style TargetType="{x:Type TabItem}">
+                            <Setter Property="Padding" Value="2" />
+                            <Setter Property="MinHeight" Value="50" />
+                            <Setter Property="HeaderTemplate">
+                                <Setter.Value>
+                                    <DataTemplate>
+                                        <ContentPresenter Content="{TemplateBinding Property=ContentControl.Content}">
+                                            <ContentPresenter.LayoutTransform>
+                                                <RotateTransform Angle="-270" />
+                                            </ContentPresenter.LayoutTransform>
+                                        </ContentPresenter>
+                                    </DataTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </TabControl.Resources>
+
+                    <TabItem Name="ti_Attributes" >
+                        <TabItem.Header>
+                            <Label Content="Attributes"   HorizontalAlignment="Stretch"></Label>
+                        </TabItem.Header>
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition MinWidth="100" ></ColumnDefinition>
+                                    <ColumnDefinition MinWidth="20"  Width="*" ></ColumnDefinition>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                </Grid.RowDefinitions>
+                                <Label Content="SpineUseAlpha" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right" ></Label>
+                                <CheckBox Name="chb_Alpha" Grid.Row="0" Grid.Column="1"  HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="True"  />
+                                <Label Content="PreMultiplyAlpha" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right" ></Label>
+                                <CheckBox Name="chb_PreMultiplyAlpha" Grid.Row="1" Grid.Column="1"  HorizontalAlignment="Left"  VerticalAlignment="Center" IsChecked="True" Click="chb_PreMultiplyAlpha_Click" />
+                                <Label Content="IsLoop" Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right" ></Label>
+                                <CheckBox Name="chb_IsLoop" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left"  VerticalAlignment="Center" IsChecked="True" Click="chb_IsLoop_Click"/>
+                                <Label Content="Skin" Grid.Row="3" Grid.Column="0" HorizontalAlignment="Right" />
+                                <ComboBox Name="cb_SkinList" Grid.Row="3" Grid.Column="1"  HorizontalAlignment="Left"  MinWidth="100" VerticalAlignment="Center" Width="Auto" SelectionChanged="cb_SkinList_SelectionChanged"/>
+                                <Label Content="Anime" Grid.Row="4" Grid.Column="0" HorizontalAlignment="Right" ></Label>
+                                <ComboBox Name="cb_AnimeList" Grid.Row="4" Grid.Column="1"  SelectionChanged="cb_AnimeList_SelectionChanged" HorizontalAlignment="Left" MinWidth="100" VerticalAlignment="Center" Width="Auto"/>
+
+                                <Label Content="FPS" Grid.Row="5" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <TextBox Name="tb_Fps" Grid.Row="5" Grid.Column="1" HorizontalAlignment="Left" MinWidth="30"  TextWrapping="NoWrap" Text="" VerticalAlignment="Center"  Width="Auto"  MaxLength="3" />
+                                <Label Content="Scale" Grid.Row="6" Grid.Column="0"  HorizontalAlignment="Right"/>
+                                <TextBox Name="tb_Spine_Scale" Grid.Row="6" Grid.Column="1"   HorizontalAlignment="Left" MinWidth="30" VerticalAlignment="Center"/>
+                                <Label Content="PosX" Grid.Row="7" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <TextBox Name="tb_PosX"  Grid.Row="7" Grid.Column="1"  Text="" HorizontalAlignment="Left"  VerticalAlignment="Center" Width="60"/>
+                                <Label Content="PosY" Grid.Row="8" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <TextBox Name="tb_PosY" Grid.Row="8" Grid.Column="1" Text="" HorizontalAlignment="Left"  VerticalAlignment="Center" Width="60"/>
+                                <Label Content="FilpX" Grid.Row="9" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <CheckBox Name="chb_FilpX" Grid.Row="9" Grid.Column="1"  HorizontalAlignment="Left" VerticalAlignment="Center" />
+                                <Label Content="FilpY" Grid.Row="10" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <CheckBox Name="chb_FilpY" Grid.Row="10" Grid.Column="1"  HorizontalAlignment="Left" VerticalAlignment="Center" />
+                                <Label Content="Rotation" Grid.Row="11" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <TextBox Name="tb_Rotation"  Grid.Row="11" Grid.Column="1"  Text="" HorizontalAlignment="Left"  VerticalAlignment="Center" Width="60"/>
+                            </Grid>
+                        </ScrollViewer>
+                    </TabItem>
+                    <TabItem Name="ti_Info" >
+                        <TabItem.Header>
+                            <Label Content="Info"   HorizontalAlignment="Stretch"></Label>
+                        </TabItem.Header>
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition MinWidth="100" ></ColumnDefinition>
+                                    <ColumnDefinition MinWidth="20"  Width="*" ></ColumnDefinition>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                </Grid.RowDefinitions>
+                                <Label Content="FrameWidth" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <Label Name="lb_Width" Grid.Row="0" Grid.Column="1"  Content="" HorizontalAlignment="Left" />
+                                <Label Content="FrameHeight" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <Label Name="lb_Height" Grid.Row="1" Grid.Column="1"  Content="" HorizontalAlignment="Left" />
+                            </Grid>
+                        </ScrollViewer>
+                    </TabItem>
+                    <TabItem Name="ti_Background" >
+                        <TabItem.Header >
+                            <Label Content="Background"   HorizontalAlignment="Stretch"></Label>
+                        </TabItem.Header>
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition MinWidth="100" ></ColumnDefinition>
+                                    <ColumnDefinition MinWidth="20"  Width="*" ></ColumnDefinition>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                </Grid.RowDefinitions>
+                                <Label Content="Use BG" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <CheckBox Name="chb_UseBG" Grid.Row="0" Grid.Column="1"  HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="False"  />
+                                <Label Content="ImagePath" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <Label Name="lb_ImagePath" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left"/>
+                                <Button Name="btn_SelectBG" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" Padding="4" Margin="5,0,15,0" Width="28" Height="22" Content="…"  Click="Btn_SelectBG_Click" FontWeight="Bold" FontFamily="Arial Black" ></Button>
+                                <Label Content="PosX" Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <TextBox Name="tb_BG_PosX"  Grid.Row="2" Grid.Column="1"  Text="" HorizontalAlignment="Left"  VerticalAlignment="Center" Width="60"/>
+                                <Label Content="PosY" Grid.Row="3" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <TextBox Name="tb_BG_PosY" Grid.Row="3" Grid.Column="1" Text="" HorizontalAlignment="Left"  VerticalAlignment="Center" Width="60"/>
+                                <Label Content="ControlBG" Grid.Row="4" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <CheckBox Name="chb_ControlBG" Grid.Row="4" Grid.Column="1"  HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="false"  />
+                            </Grid>
+                        </ScrollViewer>
+                    </TabItem>
+                    <TabItem Name="ti_Export" >
+                        <TabItem.Header >
+                            <Label Content="Export"   HorizontalAlignment="Stretch"></Label>
+                        </TabItem.Header>
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition MinWidth="100" ></ColumnDefinition>
+                                    <ColumnDefinition MinWidth="20"  Width="*" ></ColumnDefinition>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="24"></RowDefinition>
+                                </Grid.RowDefinitions>
+                                <Label Content="Gif Quality" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <ComboBox x:Name="cb_gif_q" Grid.Row="0" Grid.Column="1"  HorizontalAlignment="Left"  VerticalAlignment="Top" Width="94" SelectionChanged="cb_gif_q_SelectionChanged" >
+                                    <ComboBoxItem Content="Default" IsSelected="True"/>
+                                    <ComboBoxItem Content="Bit8"/>
+                                    <ComboBoxItem Content="Bit4"/>
+                                    <ComboBoxItem Content="Grayscale"/>
+                                </ComboBox>
+                            </Grid>
+                        </ScrollViewer>
+
+                    </TabItem>
+                    <TabItem Name="ti_Hide" Visibility="Hidden" />
+                </TabControl>
+                <Button Name="btn_Exporer" Width="10" HorizontalAlignment="Right" Content="||" Click="Btn_Exporer_Click" />
+                <GridSplitter Name="gs_Control" Grid.Column="0" Width="3" Grid.RowSpan="2" DragCompleted="GridSplitter_DragCompleted" />
+
+            </Grid>
+
+
+
+        </Grid>
+
+
+
+    </DockPanel>
 </Window>

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework.Graphics;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -18,5 +19,6 @@ namespace SpineViewerWPF
         public static string RootDir = Environment.CurrentDirectory;
         public static string LastDir = "";
         public static XnaControl AppXC;
+        public static Texture2D TextureBG;
     }
 }

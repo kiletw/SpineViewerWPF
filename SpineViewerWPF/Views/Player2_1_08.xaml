@@ -8,16 +8,9 @@
              xmlns:xna="clr-namespace:WpfXnaControl;assembly=WpfXnaControl"
              d:DesignHeight="610" d:DesignWidth="800" SizeChanged="UserControl_SizeChanged" >
     <Grid Name="Panel">
-        <Canvas  Name="Frame" Background="{x:Null}"  MouseDown="Frame_MouseDown" MouseMove="Frame_MouseMove"  MouseUp="Frame_MouseUp" MouseWheel="Frame_MouseWheel" >
+        <Canvas  Name="Frame" Background="{x:Null}"  MouseDown="Frame_MouseDown" MouseMove="Frame_MouseMove"  MouseUp="Frame_MouseUp" MouseWheel="Frame_MouseWheel" MouseLeave="Frame_MouseLeave"  >
 
         </Canvas>
-        <Grid Name="BtnPanel" HorizontalAlignment="Left" VerticalAlignment="Bottom" Height="20" Width="auto">
-            <Button Name="btn_Capture" Content="Capture" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="0,0,0,0" Width="80" Click="btn_Capture_Click" />
-            <Button Name="btn_Recode" Content="Recode" HorizontalAlignment="Left" Margin="85,1,0,0" VerticalAlignment="Top" Width="75" Click="btn_Recode_Click"/>
-            <Button Name="btn_Pause" Content="Pause" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="179,0,-9,0" Width="60" Click="btn_Pause_Click" ></Button>
-            <Button Name="btn_Play" Content="Play" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="249,0,-79,0" Width="60" Click="btn_Play_Click" ></Button>
-
-        </Grid>
     </Grid>
 </UserControl>
 

@@ -33,6 +33,7 @@ namespace SpineViewerWPF
         public static Player3_5_51 UC_Player3_5_51;
         public static Player3_6_32 UC_Player3_6_32;
         public static Player3_6_39 UC_Player3_6_39;
+        private static MahApps.Metro.IconPacks.PackIconModern buttonStyle;
 
 
         public MainWindow()
@@ -40,6 +41,7 @@ namespace SpineViewerWPF
             InitializeComponent();
             MasterMain = this;
             LoadSetting();
+
         }
 
         private void LoadSetting()
@@ -49,17 +51,36 @@ namespace SpineViewerWPF
             App.LastDir = App.RootDir;
 
             tb_Fps.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Speed") });
-            lb_Scale.SetBinding(Label.ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Scale") });
+            tb_Spine_Scale.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Scale") });
+            tb_Scale.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Scale"), StringFormat = "{0}%" });
             lb_Width.SetBinding(ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("FrameWidth") });
             lb_Height.SetBinding(ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("FrameHeight") });
-            lb_PosX.SetBinding(ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("PosX") });
-            lb_PosY.SetBinding(ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("PosY") });
+            tb_PosX.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("PosX") });
+            tb_PosY.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("PosY") });
+            tb_Rotation.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Rotation") });
+
+            tb_BG_PosX.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("PosBGX") });
+            tb_BG_PosY.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("PosBGY") });
+            chb_UseBG.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("UseBG") });
+            lb_ImagePath.SetBinding(ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("SelectBG") });
+            chb_ControlBG.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("ControlBG") });
+
+
             chb_Alpha.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Alpha") });
             chb_IsLoop.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("IsLoop") });
             chb_PreMultiplyAlpha.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("PreMultiplyAlpha") });
+            chb_FilpX.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("FilpX") });
+            chb_FilpY.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("FilpY") });
+
+
             TextCompositionManager.AddPreviewTextInputStartHandler(tb_Fps, tb_Fps_PreviewTextInput);
+            sl_Loading.SetBinding(Slider.ValueProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Lock") });
+            lb_Loading.SetBinding(ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("LoadingProcess") });
+            GridAttributes.ColumnDefinitions[0].Width = new GridLength(34);
+            gs_Control.Visibility = Visibility.Hidden;
+            tc_Control.SelectedIndex = 4;
 
-
+            buttonStyle = (MahApps.Metro.IconPacks.PackIconModern)btn_PlayControl.Content;
         }
 
         private void cb_AnimeList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -118,52 +139,13 @@ namespace SpineViewerWPF
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
 
-            App.GV.FrameWidth = Math.Round(this.ActualWidth - 200, 2);
+            App.GV.FrameWidth = Math.Round(GridPlayer.ColumnDefinitions[1].ActualWidth + 60 - 2, 2);
             App.GV.FrameHeight = Math.Round(this.ActualHeight - 60, 2);
             Player.Width = App.GV.FrameWidth;
-            Player.Height = App.GV.FrameHeight +20;
+            Player.Height = App.GV.FrameHeight ;
 
         }
 
-        private void tb_Fps_TextChanged(object sender, TextChangedEventArgs e)
-        {
-
-
-            TextBox textBox = sender as TextBox;
-
-            TextChange[] changesText = new TextChange[e.Changes.Count];
-            e.Changes.CopyTo(changesText, 0);
-            
-            int offset = changesText[0].Offset;
-            int totalCount = changesText[0].AddedLength;
-            
-            if (totalCount > 0)
-            {
-                char[] charArray = new char[textBox.Text.Length];
-                textBox.Text.CopyTo(0, charArray, 0, charArray.Length);
-                StringBuilder sbu = new StringBuilder(new string(charArray));
-                
-                for (int i = sbu.Length - 1; i >= offset; --i)
-                {
-                    if (charArray[i] < 48 || charArray[i] > 57)
-                    {
-                        sbu = sbu.Remove(i, 1);
-                    }
-                }
-                textBox.Text = sbu.ToString();
-                textBox.Select(offset + totalCount, 0);
-            }
-            if (int.TryParse(tb_Fps.Text.Trim(), out int fps))
-            {
-                App.GV.Speed = fps;
-            }
-            else
-            {
-                App.GV.Speed = 24;
-                tb_Fps.Text = "24";
-                MessageBox.Show("Error Number！");
-            }
-        }
         private void cb_SkinList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (cb_SkinList.SelectedIndex != -1)
@@ -194,7 +176,7 @@ namespace SpineViewerWPF
             Regex regExp = new Regex(@"\d");
             string singleValue = e.Text;
             e.Handled = !regExp.Match(singleValue).Success;
-          
+
         }
 
         private void loadFileToolStripMenuItem_Click(object sender, RoutedEventArgs e)
@@ -211,21 +193,9 @@ namespace SpineViewerWPF
 
             if (openFileDialog.ShowDialog() == true)
             {
+                Common.Reset();
                 App.GV.SelectFile = openFileDialog.FileName;
-                App.GV.PosX = 0;
-                App.GV.PosY = 0;
-                App.GV.Scale = 1;
-                App.GV.SelectAnimeName = "";
-                App.GV.SelectSkin = "";
-                App.GV.SetSkin = false;
-                App.GV.SetAnime = false;
                 App.LastDir = Common.GetDirName(openFileDialog.FileName);
-                if (App.GV.AnimeList != null)
-                    App.GV.AnimeList.Clear();
-                if (App.GV.SkinList != null)
-                    App.GV.SkinList.Clear();
-
-
 
 
                 MasterMain.cb_AnimeList.Items.Clear();
@@ -237,6 +207,19 @@ namespace SpineViewerWPF
                     App.AppXC.Update = null;
                     App.AppXC.LoadContent = null;
                     App.AppXC.Draw = null;
+                    buttonStyle.Kind = MahApps.Metro.IconPacks.PackIconModernKind.ControlPause;
+                    btn_PlayControl.Content = buttonStyle;
+
+                    DependencyObject xnaParent = ((UserControl)Player.Content).Parent;
+                    if (xnaParent != null)
+                    {
+                        xnaParent.SetValue(ContentPresenter.ContentProperty, null);
+                    }
+                    Canvas oldCanvas = (Canvas)App.AppXC.Parent;
+                    if (oldCanvas != null)
+                    {
+                        oldCanvas.Children.Clear();
+                    }
                     Player.Content = null;
                     UC_Player2_1_08 = null;
                     UC_Player2_1_25 = null;
@@ -247,7 +230,15 @@ namespace SpineViewerWPF
                     UC_Player3_6_39 = null;
                 }
                 App.GV.SpineVersion = cb_Version.SelectionBoxItem.ToString();
-                App.AppXC = new XnaControl();
+                if (App.AppXC == null)
+                {
+                    App.AppXC = new XnaControl();
+                }
+                else
+                {
+                    App.AppXC.GraphicsDevice.Reset();
+                }
+
                 switch (App.GV.SpineVersion)
                 {
                     case "2.1.08":
@@ -291,6 +282,90 @@ namespace SpineViewerWPF
                     App.GV.GifQuality = ((ComboBoxItem)cb_gif_q.SelectedItem).Content.ToString();
                 }
             }
+        }
+
+        private void btn_PlayControl_Click(object sender, RoutedEventArgs e)
+        {
+            if (App.GV.TimeScale == 0)
+            {
+                App.GV.TimeScale = 1;
+                buttonStyle.Kind = MahApps.Metro.IconPacks.PackIconModernKind.ControlPause;
+                btn_PlayControl.Content = buttonStyle;
+            }
+            else if (App.GV.TimeScale == 1)
+            {
+                App.GV.TimeScale = 0;
+                buttonStyle.Kind = MahApps.Metro.IconPacks.PackIconModernKind.ControlPlay;
+                btn_PlayControl.Content = buttonStyle;
+            }
+        }
+
+        private void btn_CaptureControl_Click(object sender, RoutedEventArgs e)
+        {
+            Common.TakeScreenshot();
+        }
+
+        private void btn_RecodeControl_Click(object sender, RoutedEventArgs e)
+        {
+            if (!App.GV.IsRecoding)
+            {
+                App.GV.IsRecoding = true;
+                App.GV.SetAnime = true;
+                App.GV.SetSkin = true;
+            }
+        }
+
+        private void Btn_SelectBG_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.InitialDirectory = App.LastDir;
+            openFileDialog.Filter = "Png Files (*.png)|*.png|Jpeg Files (*.jpg)|*.jpg;";
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                App.TextureBG.Dispose();
+                App.GV.SelectBG = openFileDialog.FileName;
+                App.GV.PosBGX = 0;
+                App.GV.PosBGY = 0;
+                App.TextureBG = Common.SetBG(App.GV.SelectBG);
+            }
+
+        }
+
+
+        private void Tc_Control_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if(tc_Control.SelectedIndex != 4 && tc_Control.SelectedIndex != -1)
+            {
+                GridAttributes.ColumnDefinitions[0].Width = new GridLength(App.GV.RedcodePanelWidth);
+                gs_Control.Visibility = Visibility.Visible;
+                btn_Exporer.Visibility = Visibility.Visible;
+            }else if(tc_Control.SelectedIndex == 4)
+            {
+                gs_Control.Visibility = Visibility.Hidden;
+                btn_Exporer.Visibility = Visibility.Hidden;
+            }
+        }
+
+        private void Btn_Exporer_Click(object sender, RoutedEventArgs e)
+        {
+            if (Convert.ToInt32(GridAttributes.ColumnDefinitions[0].Width.Value) <= 34)
+            {
+                GridAttributes.ColumnDefinitions[0].Width = new GridLength(App.GV.RedcodePanelWidth);
+                gs_Control.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                GridAttributes.ColumnDefinitions[0].Width = new GridLength(34);
+                gs_Control.Visibility = Visibility.Hidden;
+                tc_Control.SelectedIndex = 4;
+            }
+
+        }
+
+        private void GridSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+        {
+            App.GV.RedcodePanelWidth = Convert.ToInt32(GridAttributes.ColumnDefinitions[0].Width.Value);
         }
     }
 }

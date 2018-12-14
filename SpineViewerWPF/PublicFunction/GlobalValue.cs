@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework.Graphics;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -15,6 +16,11 @@ public class GlobalValue : INotifyPropertyChanged
     private int _Speed = 24;
     private float _PosX = 0;
     private float _PosY = 0;
+    private float _PosBGX = 0;
+    private float _PosBGY = 0;
+    private bool _UseBG = false;
+    private string _SelectBG = "";
+    private bool _ControlBG = false;
     private bool _Alpha;
     private bool _IsLoop;
     private string _SelectAnimeName = "";
@@ -28,6 +34,16 @@ public class GlobalValue : INotifyPropertyChanged
     private bool _SetAnime = false;
     private string _FileHash = "";
     private string _GifQuality = "Default";
+    private string _LoadingProcess = "0%";
+    private float _Lock = 0f;
+    private bool _IsRecoding = false;
+    private bool _FilpX = false;
+    private bool _FilpY = false;
+    private float _RedcodePanelWidth = 280f;
+    private float _Rotation = 0;
+
+    private List<Texture2D> _GifList;
+
 
     public string SelectFile
     {
@@ -84,7 +100,7 @@ public class GlobalValue : INotifyPropertyChanged
         {
             if (_Scale != value)
             {
-                _Scale = (float)Math.Round(value,2);
+                _Scale = (float)Math.Round(value, 2);
                 OnPropertyChanged("Scale");
             }
         }
@@ -97,7 +113,7 @@ public class GlobalValue : INotifyPropertyChanged
         }
         set
         {
-            if(int.TryParse(value.ToString(),out _Speed))
+            if (int.TryParse(value.ToString(), out _Speed))
             {
                 if (_Speed != value)
                 {
@@ -137,6 +153,37 @@ public class GlobalValue : INotifyPropertyChanged
             }
         }
     }
+
+    public float PosBGX
+    {
+        get
+        {
+            return _PosBGX;
+        }
+        set
+        {
+            if (_PosBGX != value)
+            {
+                _PosBGX = (float)Math.Round(value, 2);
+                OnPropertyChanged("PosBGX");
+            }
+        }
+    }
+    public float PosBGY
+    {
+        get
+        {
+            return _PosBGY;
+        }
+        set
+        {
+            if (_PosBGY != value)
+            {
+                _PosBGY = (float)Math.Round(value, 2);
+                OnPropertyChanged("PosBGY");
+            }
+        }
+    }
     public bool Alpha
     {
         get
@@ -149,6 +196,36 @@ public class GlobalValue : INotifyPropertyChanged
             {
                 _Alpha = value;
                 OnPropertyChanged("Alpha");
+            }
+        }
+    }
+    public bool UseBG
+    {
+        get
+        {
+            return _UseBG;
+        }
+        set
+        {
+            if (_UseBG != value)
+            {
+                _UseBG = value;
+                OnPropertyChanged("UseBG");
+            }
+        }
+    }
+    public bool ControlBG
+    {
+        get
+        {
+            return _ControlBG;
+        }
+        set
+        {
+            if (_ControlBG != value)
+            {
+                _ControlBG = value;
+                OnPropertyChanged("ControlBG");
             }
         }
     }
@@ -197,6 +274,22 @@ public class GlobalValue : INotifyPropertyChanged
             }
         }
     }
+    public string SelectBG
+    {
+        get
+        {
+            return _SelectBG;
+        }
+        set
+        {
+            if (_SelectBG != value)
+            {
+                _SelectBG = value;
+                OnPropertyChanged("SelectBG");
+            }
+        }
+    }
+
     public float TimeScale
     {
         get
@@ -246,7 +339,7 @@ public class GlobalValue : INotifyPropertyChanged
     {
         get
         {
-            return _FrameHeight-20;
+            return _FrameHeight - 20;
         }
         set
         {
@@ -337,6 +430,148 @@ public class GlobalValue : INotifyPropertyChanged
             }
         }
     }
+    public string LoadingProcess
+    {
+        get
+        {
+            return _LoadingProcess;
+        }
+        set
+        {
+            if (_LoadingProcess != value)
+            {
+                _LoadingProcess = value;
+                OnPropertyChanged("LoadingProcess");
+            }
+
+        }
+    }
+
+    public float Lock
+    {
+        get
+        {
+            return _Lock;
+        }
+        set
+        {
+            if (float.TryParse(value.ToString(), out _Lock))
+            {
+                _Lock = (float)Math.Round(value, 2);
+                OnPropertyChanged("Lock");
+            }
+        }
+    }
+
+    public List<Texture2D> GifList
+    {
+
+        get
+        {
+            if (_GifList == null)
+                _GifList = new List<Texture2D>();
+
+
+            return _GifList;
+        }
+        set
+        {
+            if (_GifList != value)
+            {
+                _GifList = value;
+            }
+           
+
+        }
+    }
+
+    public bool IsRecoding
+    {
+        get
+        {
+            return _IsRecoding;
+        }
+        set
+        {
+            if (_IsRecoding != value)
+            {
+                _IsRecoding = value;
+                OnPropertyChanged("IsRecoding");
+            }
+        }
+    }
+
+    public bool FilpX
+    {
+        get
+        {
+            return _FilpX;
+        }
+        set
+        {
+            if (_FilpX != value)
+            {
+                _FilpX = value;
+                OnPropertyChanged("FilpX");
+            }
+        }
+    }
+
+    public bool FilpY
+    {
+        get
+        {
+            return _FilpY;
+        }
+        set
+        {
+            if (_FilpY != value)
+            {
+                _FilpY = value;
+                OnPropertyChanged("FilpY");
+            }
+        }
+    }
+
+    public float RedcodePanelWidth
+    {
+        get
+        {
+            return _RedcodePanelWidth;
+        }
+        set
+        {
+            if (float.TryParse(value.ToString(), out _RedcodePanelWidth))
+            {
+                if (_RedcodePanelWidth != value)
+                {
+                    _RedcodePanelWidth = value;
+                    OnPropertyChanged("RedcodePanelWidth");
+                }
+            }
+        }
+    }
+
+    public float Rotation
+    {
+        get
+        {
+            return _Rotation;
+        }
+        set
+        {
+            if (float.TryParse(value.ToString(), out _Rotation))
+            {
+                if (_Rotation != value)
+                {
+                    _Rotation = value;
+                    OnPropertyChanged("Rotation");
+                }
+            }
+        }
+    }
+
+
 
     public event PropertyChangedEventHandler PropertyChanged;
     public void OnPropertyChanged(string propertyName)
