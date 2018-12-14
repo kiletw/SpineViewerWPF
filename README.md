@@ -27,4 +27,4 @@ Requirements:
 - [Microsoft XNA Framework Redistributable 4.0](https://www.microsoft.com/en-us/download/details.aspx?id=20914)
 
 Issue:
-* 3.6.32 and 3.6.39 Librany Spine Runtimes Version Still Not Work. _(:3„Äç‚à†)_
+* 3.6.32 and 3.6.39 Librany Spine Runtimes Version Still Not Work. _(:3°v°Á)_
