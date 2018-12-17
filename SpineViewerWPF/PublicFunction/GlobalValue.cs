@@ -13,7 +13,7 @@ public class GlobalValue : INotifyPropertyChanged
     private List<string> _AnimeList;
     private List<string> _SkinList;
     private float _Scale;
-    private int _Speed = 24;
+    private int _Speed = 30;
     private float _PosX = 0;
     private float _PosY = 0;
     private float _PosBGX = 0;

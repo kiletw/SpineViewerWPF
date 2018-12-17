@@ -48,8 +48,15 @@ namespace SpineViewerWPF
         {
             if (App.GV.Scale == 0)
                 App.GV.Scale = 1;
-            App.LastDir = App.RootDir;
 
+            if (Properties.Settings.Default.LastSelectDir == "")
+            {
+                App.LastDir = App.RootDir;
+            }
+            else
+            {
+                App.LastDir = Properties.Settings.Default.LastSelectDir;
+            }
             tb_Fps.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Speed") });
             tb_Spine_Scale.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Scale") });
             tb_Scale.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Scale"), StringFormat = "{0}%" });
@@ -197,6 +204,12 @@ namespace SpineViewerWPF
                 App.GV.SelectFile = openFileDialog.FileName;
                 App.LastDir = Common.GetDirName(openFileDialog.FileName);
 
+                if (!Common.CheckSpineFile(App.GV.SelectFile))
+                {
+                    MessageBox.Show("Can not found Spine Json or Binary file！");
+                    return;
+                }
+
 
                 MasterMain.cb_AnimeList.Items.Clear();
                 MasterMain.cb_SkinList.Items.Clear();
@@ -323,7 +336,9 @@ namespace SpineViewerWPF
 
             if (openFileDialog.ShowDialog() == true)
             {
-                App.TextureBG.Dispose();
+                if(App.TextureBG != null)
+                    App.TextureBG.Dispose();
+
                 App.GV.SelectBG = openFileDialog.FileName;
                 App.GV.PosBGX = 0;
                 App.GV.PosBGY = 0;
@@ -366,6 +381,12 @@ namespace SpineViewerWPF
         private void GridSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
         {
             App.GV.RedcodePanelWidth = Convert.ToInt32(GridAttributes.ColumnDefinitions[0].Width.Value);
+        }
+
+        private void Window_Closed(object sender, EventArgs e)
+        {
+            Properties.Settings.Default.LastSelectDir = App.LastDir;
+            Properties.Settings.Default.Save();
         }
     }
 }

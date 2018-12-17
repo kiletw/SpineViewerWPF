@@ -63,7 +63,7 @@ namespace SpineViewerWPF.Views
             skeletonRenderer.PremultipliedAlpha = App.GV.Alpha;
 
             atlas = new Atlas(App.GV.SelectFile, new XnaTextureLoader(graphicsDevice));
-           
+
             if (Common.IsBinaryData(App.GV.SelectFile))
             {
                 binary = new SkeletonBinary(atlas);
@@ -77,11 +77,11 @@ namespace SpineViewerWPF.Views
                 skeletonData = json.ReadSkeletonData(Common.GetJsonPath(App.GV.SelectFile));
             }
             skeleton = new Skeleton(skeletonData);
-           
-            if(isNew)
+
+            if (isNew)
             {
-                App.GV.PosX = Convert.ToSingle(App.GV.FrameWidth/2f);
-                App.GV.PosY = Convert.ToSingle((skeleton.Data.Height+App.GV.FrameHeight) / 2f);
+                App.GV.PosX = Convert.ToSingle(App.GV.FrameWidth / 2f);
+                App.GV.PosY = Convert.ToSingle((skeleton.Data.Height + App.GV.FrameHeight) / 2f);
             }
             App.GV.FileHash = skeleton.Data.Hash;
 
@@ -122,7 +122,7 @@ namespace SpineViewerWPF.Views
 
         }
 
-            
+
 
         private void Update(GameTime gameTime)
         {
@@ -141,7 +141,7 @@ namespace SpineViewerWPF.Views
                 App.GV.SetSkin = false;
             }
 
-            
+
         }
 
         private void Draw()
@@ -160,7 +160,7 @@ namespace SpineViewerWPF.Views
                 spriteBatch.Draw(App.TextureBG, new Rectangle((int)App.GV.PosBGX, (int)App.GV.PosBGY, App.TextureBG.Width, App.TextureBG.Height), Color.White);
                 spriteBatch.End();
             }
-            
+
 
             state.Update(App.GV.Speed / 1000f);
             state.Apply(skeleton);
@@ -172,7 +172,7 @@ namespace SpineViewerWPF.Views
                     binary.Scale = App.GV.Scale;
                     skeletonData = binary.ReadSkeletonData(Common.GetSkelPath(App.GV.SelectFile));
                     skeleton = new Skeleton(skeletonData);
-            }
+                }
             }
             else if (json != null)
             {
@@ -181,63 +181,71 @@ namespace SpineViewerWPF.Views
                     json.Scale = App.GV.Scale;
                     skeletonData = json.ReadSkeletonData(Common.GetJsonPath(App.GV.SelectFile));
                     skeleton = new Skeleton(skeletonData);
-            }
+                }
             }
 
             skeleton.X = App.GV.PosX;
             skeleton.Y = App.GV.PosY;
             skeleton.FlipX = App.GV.FilpX;
             skeleton.FlipY = App.GV.FilpY;
-        
 
 
-            skeleton.RootBone.Rotation = App.GV.Rotation ;
+
+            skeleton.RootBone.Rotation = App.GV.Rotation;
             skeleton.UpdateWorldTransform();
             skeletonRenderer.PremultipliedAlpha = App.GV.Alpha;
+            if (skeletonRenderer.Effect is BasicEffect)
+            {
+                ((BasicEffect)skeletonRenderer.Effect).Projection = Matrix.CreateOrthographicOffCenter(0, graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height, 0, 1, 0);
+            }
+            else
+            {
+                skeletonRenderer.Effect.Parameters["Projection"].SetValue(Matrix.CreateOrthographicOffCenter(0, graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height, 0, 1, 0));
+            }
             skeletonRenderer.Begin();
             skeletonRenderer.Draw(skeleton);
             skeletonRenderer.End();
 
             if (state != null)
-        {
+            {
                 TrackEntry entry = state.GetCurrent(0);
                 if (entry != null)
-        {
+                {
                     if (App.GV.IsRecoding && App.GV.GifList != null && !entry.IsComplete)
-        {
+                    {
                         if (App.GV.GifList.Count == 0)
-            {
+                        {
                             TrackEntry te = state.GetCurrent(0);
                             te.trackTime = 0;
                             App.GV.TimeScale = 1;
                             App.GV.Lock = 0;
-            }
+                        }
 
                         App.GV.GifList.Add(Common.TakeRecodeScreenshot(graphicsDevice));
-        }
+                    }
 
                     if (App.GV.IsRecoding && entry.IsComplete)
-        {
+                    {
                         state.TimeScale = 0;
                         App.GV.IsRecoding = false;
                         Common.RecodingEnd(entry.AnimationEnd);
 
                         state.TimeScale = 1;
                         App.GV.TimeScale = 1;
-        }
+                    }
 
                     if (App.GV.TimeScale == 0)
-        {
+                    {
                         entry.TrackTime = entry.AnimationEnd * App.GV.Lock;
                         entry.TimeScale = 0;
-        }
+                    }
                     else
-        {
+                    {
                         App.GV.Lock = entry.AnimationTime / entry.AnimationEnd;
                         entry.TimeScale = 1;
                     }
                     App.GV.LoadingProcess = $"{ Math.Round(entry.AnimationTime / entry.AnimationEnd * 100, 2)}%";
-        }
+                }
             }
 
 
@@ -255,13 +263,13 @@ namespace SpineViewerWPF.Views
             {
                 System.Windows.Point position = Mouse.GetPosition(this.Frame);
                 if (App.GV.UseBG && App.GV.ControlBG)
-            {
+                {
                     Common.SetBGXY(position.X, position.Y, this.mouseLocation.X, this.mouseLocation.Y);
-            }
+                }
                 else
-            {
+                {
                     Common.SetXY(position.X, position.Y, this.mouseLocation.X, this.mouseLocation.Y);
-            }
+                }
                 mouseLocation = Mouse.GetPosition(this.Frame);
             }
         }

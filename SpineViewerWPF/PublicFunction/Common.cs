@@ -60,6 +60,17 @@ public class Common
             return false;
     }
 
+    public static bool CheckSpineFile(string path)
+    {
+        if (File.Exists(path.Replace(".atlas", ".skel")))
+            return true;
+        else if (File.Exists(path.Replace(".atlas", ".json")))
+            return true;
+        else
+            return false;
+    }
+
+
     public static string GetSkelPath(string path)
     {
         return path.Replace(".atlas", ".skel");

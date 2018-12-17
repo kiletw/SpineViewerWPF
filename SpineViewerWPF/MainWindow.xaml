@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:SpineViewerWPF"
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         mc:Ignorable="d"
-        Title="SpineViewerWPF" Height="704.8" Width="800" MinWidth="450" MinHeight="400" SizeChanged="Window_SizeChanged"   >
+        Title="SpineViewerWPF" Height="704.8" Width="800" MinWidth="450" MinHeight="400" SizeChanged="Window_SizeChanged" Closed="Window_Closed"   >
     <DockPanel Name="MasterGrid">
         <Menu Name="mu_Header" DockPanel.Dock="Top" VerticalAlignment="Top"  Height="20"   >
             <MenuItem Name="mi_File" Header="File" >
@@ -20,8 +20,8 @@
                     <ComboBoxItem Content="3.1.07"></ComboBoxItem>
                     <ComboBoxItem Content="3.4.02"></ComboBoxItem>
                     <ComboBoxItem Content="3.5.51"></ComboBoxItem>
-                    <!--<ComboBoxItem Content="3.6.32"></ComboBoxItem>
-                    <ComboBoxItem Content="3.6.39"></ComboBoxItem>-->
+                    <ComboBoxItem Content="3.6.32"></ComboBoxItem>
+                    <ComboBoxItem Content="3.6.39"></ComboBoxItem>
                 </ComboBox>
             </MenuItem>
         </Menu>
@@ -216,8 +216,8 @@
                     </TabItem>
                     <TabItem Name="ti_Hide" Visibility="Hidden" />
                 </TabControl>
-                <Button Name="btn_Exporer" Width="10" HorizontalAlignment="Right" Content="||" Click="Btn_Exporer_Click" />
-                <GridSplitter Name="gs_Control" Grid.Column="0" Width="3" Grid.RowSpan="2" DragCompleted="GridSplitter_DragCompleted" />
+                <Button Name="btn_Exporer" Width="10" HorizontalAlignment="Right" Height="70" Content="||" Click="Btn_Exporer_Click" />
+                <GridSplitter Name="gs_Control" Grid.Column="0" Width="3" Grid.RowSpan="2" DragCompleted="GridSplitter_DragCompleted" Background="#FFDFDFDF"  />
 
             </Grid>
 

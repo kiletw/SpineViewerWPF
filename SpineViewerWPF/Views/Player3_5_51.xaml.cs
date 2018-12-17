@@ -62,7 +62,7 @@ namespace SpineViewerWPF.Views
             skeletonRenderer.PremultipliedAlpha = App.GV.Alpha;
 
             atlas = new Atlas(App.GV.SelectFile, new XnaTextureLoader(graphicsDevice));
-
+            
             if (Common.IsBinaryData(App.GV.SelectFile))
             {
                 binary = new SkeletonBinary(atlas);
