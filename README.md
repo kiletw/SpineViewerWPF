@@ -10,6 +10,8 @@ a tool can view spine files with different spine-runtimes version and export gif
   * **3.5.51**
   * **3.6.32**
   * **3.6.39**
+  * **3.6.53**
+  * **3.7.83**
 * Export animation to gif or png file.
 * Can view Animation with different options.
 
@@ -21,7 +23,6 @@ Library:
 - [WpfXnaControl](https://github.com/erickeek/WpfXnaControl)
 - [MahApps.Metro.IconPacks.Modern](https://github.com/MahApps/MahApps.Metro.IconPacks)
 - [spine-runtimes](https://github.com/EsotericSoftware/spine-runtimes)
-- [WpfXnaControl](https://github.com/erickeek/WpfXnaControl)
 
 
 Requirements:

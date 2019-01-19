@@ -376,6 +376,99 @@
     <Compile Include="SpineLibrary\spine-runtimes-3.6.39\XnaLoader\SkeletonRenderer.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.39\XnaLoader\Util.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.39\XnaLoader\XnaTextureLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Animation.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\AnimationState.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\AnimationStateData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Atlas.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Attachments\AtlasAttachmentLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Attachments\Attachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Attachments\AttachmentLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Attachments\AttachmentType.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Attachments\BoundingBoxAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Attachments\ClippingAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Attachments\MeshAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Attachments\PathAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Attachments\PointAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Attachments\RegionAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Attachments\VertexAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\BlendMode.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Bone.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\BoneData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Event.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\EventData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\ExposedList.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\IConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\IkConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\IkConstraintData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\IUpdatable.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Json.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\MathUtils.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\PathConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\PathConstraintData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Skeleton.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\SkeletonBinary.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\SkeletonBounds.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\SkeletonClipping.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\SkeletonData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\SkeletonJson.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Skin.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Slot.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\SlotData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\TransformConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\TransformConstraintData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Triangulator.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\XnaLoader\MeshBatcher.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\XnaLoader\ShapeRenderer.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\XnaLoader\SkeletonRenderer.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\XnaLoader\Util.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\XnaLoader\XnaTextureLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Animation.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\AnimationState.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\AnimationStateData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Atlas.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Attachments\AtlasAttachmentLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Attachments\Attachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Attachments\AttachmentLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Attachments\AttachmentType.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Attachments\BoundingBoxAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Attachments\ClippingAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Attachments\MeshAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Attachments\PathAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Attachments\PointAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Attachments\RegionAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Attachments\VertexAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\BlendMode.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Bone.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\BoneData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Event.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\EventData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\ExposedList.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\IConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\IkConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\IkConstraintData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\IUpdatable.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Json.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\MathUtils.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\PathConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\PathConstraintData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Skeleton.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\SkeletonBinary.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\SkeletonBounds.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\SkeletonClipping.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\SkeletonData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\SkeletonJson.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Skin.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Slot.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\SlotData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\TransformConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\TransformConstraintData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Triangulator.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\MeshBatcher.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\ShapeRenderer.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\SkeletonRenderer.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\Util.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\VertexEffect.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\XnaTextureLoader.cs" />
     <Compile Include="Views\Player2_1_08.xaml.cs">
       <DependentUpon>Player2_1_08.xaml</DependentUpon>
     </Compile>
@@ -384,6 +477,12 @@
     </Compile>
     <Compile Include="Views\Player3_1_07.xaml.cs">
       <DependentUpon>Player3_1_07.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\Player3_7_83.xaml.cs">
+      <DependentUpon>Player3_7_83.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\Player3_6_53.xaml.cs">
+      <DependentUpon>Player3_6_53.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\Player3_6_39.xaml.cs">
       <DependentUpon>Player3_6_39.xaml</DependentUpon>
@@ -420,6 +519,14 @@
     <Page Include="Views\Player3_1_07.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\Player3_7_83.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\Player3_6_53.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\Player3_6_39.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -480,5 +587,6 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

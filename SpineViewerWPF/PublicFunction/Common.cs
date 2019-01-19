@@ -8,6 +8,7 @@ using System.Drawing;
 using System.IO;
 using System.Threading;
 using System.Windows;
+using System.Windows.Media.Imaging;
 
 public class Common
 {
@@ -33,7 +34,7 @@ public class Common
         App.GV.PosBGY = 0;
         if (App.TextureBG != null)
             App.TextureBG.Dispose();
-     
+
         if (App.GV.AnimeList != null)
             App.GV.AnimeList.Clear();
         if (App.GV.SkinList != null)
@@ -84,7 +85,7 @@ public class Common
 
     public static Texture2D SetBG(string path)
     {
-        using(FileStream fileStream = new FileStream(path,FileMode.Open))
+        using (FileStream fileStream = new FileStream(path, FileMode.Open))
         {
             using (Image image = Image.FromStream(fileStream))
             {
@@ -96,7 +97,7 @@ public class Common
                 }
             }
         }
- 
+
     }
 
     public static void SetXY(double MosX, double MosY, double oldX, double oldY)
@@ -143,7 +144,7 @@ public class Common
 
         GifQuality GQ = new GifQuality();
 
-        switch(App.GV.GifQuality)
+        switch (App.GV.GifQuality)
         {
             case "Default":
                 GQ = GifQuality.Default;
@@ -170,27 +171,28 @@ public class Common
         saveFileDialog.FileName = fileName;
         saveFileDialog.ShowDialog();
         int delay = 0;
-        if(time == 0)
+        if (time == 0)
         {
             delay = 1000 / App.GV.Speed;
         }
         else
         {
-            delay = (int)(time * 1000 / lms.Count );
+            delay = (int)(time * 1000 / lms.Count);
 
         }
 
         if (saveFileDialog.FileName != "")
         {
-            using (AnimatedGifCreator gifCreator = AnimatedGif.AnimatedGif.Create(saveFileDialog.FileName, delay,App.GV.IsLoop == true?0:1))
+            using (AnimatedGifCreator gifCreator = AnimatedGif.AnimatedGif.Create(saveFileDialog.FileName, delay, App.GV.IsLoop == true ? 0 : 1))
             {
-                foreach (MemoryStream img in lms)
+                foreach (MemoryStream msimg in lms)
                 {
-                    using (img)
+                    using (msimg)
                     {
-                        gifCreator.AddFrame(Image.FromStream(img),-1, GQ);
-                        
-                        img.Dispose();
+                        using(Image img = Image.FromStream(msimg))
+                        {
+                            gifCreator.AddFrame(img, -1, GQ);
+                        }
                     }
                 }
             }
@@ -204,8 +206,26 @@ public class Common
         }
         lms.Clear();
         GC.Collect();
+
     }
-    
+
+    public static BitmapSource SourceFrom(MemoryStream stream, int? size = null)
+    {
+
+        var bitmapImage = new BitmapImage();
+        bitmapImage.BeginInit();
+        bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+
+        if (size.HasValue)
+            bitmapImage.DecodePixelHeight = size.Value;
+
+        bitmapImage.StreamSource = stream;
+        bitmapImage.EndInit();
+        bitmapImage.Freeze(); 
+        return bitmapImage;
+
+    }
+
     public static void SaveToPng(Texture2D texture2D)
     {
         SaveFileDialog saveFileDialog = new SaveFileDialog();
@@ -247,7 +267,7 @@ public class Common
     {
         float bakTimeScale = App.GV.TimeScale;
 
-        if(App.AppXC.GraphicsDevice == null)
+        if (App.AppXC.GraphicsDevice == null)
         {
             MessageBox.Show("No Content！");
             return;
@@ -255,7 +275,7 @@ public class Common
 
         GraphicsDevice _graphicsDevice = App.AppXC.GraphicsDevice;
         App.GV.TimeScale = 0;
-        using(RenderTarget2D renderTarget = new RenderTarget2D(_graphicsDevice, _graphicsDevice.PresentationParameters.BackBufferWidth, _graphicsDevice.PresentationParameters.BackBufferHeight))
+        using (RenderTarget2D renderTarget = new RenderTarget2D(_graphicsDevice, _graphicsDevice.PresentationParameters.BackBufferWidth, _graphicsDevice.PresentationParameters.BackBufferHeight))
         {
             _graphicsDevice.SetRenderTarget(renderTarget);
             App.AppXC.Draw();

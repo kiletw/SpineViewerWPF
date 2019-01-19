@@ -22,6 +22,8 @@
                     <ComboBoxItem Content="3.5.51"></ComboBoxItem>
                     <ComboBoxItem Content="3.6.32"></ComboBoxItem>
                     <ComboBoxItem Content="3.6.39"></ComboBoxItem>
+                    <ComboBoxItem Content="3.6.53"></ComboBoxItem>
+                    <ComboBoxItem Content="3.7.83"></ComboBoxItem>
                 </ComboBox>
             </MenuItem>
         </Menu>

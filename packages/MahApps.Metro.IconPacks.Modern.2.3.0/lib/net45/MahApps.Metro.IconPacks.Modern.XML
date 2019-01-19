@@ -1,0 +1,182 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>MahApps.Metro.IconPacks.Modern</name>
+    </assembly>
+    <members>
+        <member name="T:MahApps.Metro.IconPacks.Converter.FlipToScaleXValueConverter">
+            <summary>
+            ValueConverter which converts the PackIconFlipOrientation enumeration value to ScaleX value of a ScaleTransformation.
+            </summary>
+            <seealso cref="T:MahApps.Metro.IconPacks.Converter.MarkupConverter" />
+        </member>
+        <member name="T:MahApps.Metro.IconPacks.Converter.FlipToScaleYValueConverter">
+            <summary>
+            ValueConverter which converts the PackIconFlipOrientation enumeration value to ScaleY value of a ScaleTransformation.
+            </summary>
+            <seealso cref="T:MahApps.Metro.IconPacks.Converter.MarkupConverter" />
+        </member>
+        <member name="T:MahApps.Metro.IconPacks.Converter.MarkupConverter">
+            <summary>
+            MarkupConverter is a MarkupExtension which can be used for ValueConverter.
+            </summary>
+            <seealso cref="T:System.Windows.Markup.MarkupExtension" />
+            <seealso cref="T:System.Windows.Data.IValueConverter" />
+        </member>
+        <member name="M:MahApps.Metro.IconPacks.Converter.MarkupConverter.Convert(System.Object,System.Type,System.Object,System.Globalization.CultureInfo)">
+            <summary>
+            Converts a value.
+            </summary>
+            <param name="value">The value produced by the binding source.</param>
+            <param name="targetType">The type of the binding target property.</param>
+            <param name="parameter">The converter parameter to use.</param>
+            <param name="culture">The culture to use in the converter.</param>
+            <returns>A converted value. If the method returns null, the valid null value is used.</returns>
+        </member>
+        <member name="M:MahApps.Metro.IconPacks.Converter.MarkupConverter.ConvertBack(System.Object,System.Type,System.Object,System.Globalization.CultureInfo)">
+            <summary>
+            Converts a value.
+            </summary>
+            <param name="value">The value that is produced by the binding target.</param>
+            <param name="targetType">The type to convert to.</param>
+            <param name="parameter">The converter parameter to use.</param>
+            <param name="culture">The culture to use in the converter.</param>
+            <returns>A converted value. If the method returns null, the valid null value is used.</returns>
+        </member>
+        <member name="T:MahApps.Metro.IconPacks.PackIconFlipOrientation">
+            <summary>
+            Enum PackIconFlipOrientation for the Flip property of any PackIcon control.
+            </summary>
+        </member>
+        <member name="F:MahApps.Metro.IconPacks.PackIconFlipOrientation.Normal">
+            <summary>
+            No flip
+            </summary>
+        </member>
+        <member name="F:MahApps.Metro.IconPacks.PackIconFlipOrientation.Horizontal">
+            <summary>
+            Flip the icon horizontal
+            </summary>
+        </member>
+        <member name="F:MahApps.Metro.IconPacks.PackIconFlipOrientation.Vertical">
+            <summary>
+            Flip the icon vertical
+            </summary>
+        </member>
+        <member name="F:MahApps.Metro.IconPacks.PackIconFlipOrientation.Both">
+            <summary>
+            Flip the icon vertical and horizontal
+            </summary>
+        </member>
+        <member name="T:MahApps.Metro.IconPacks.PackIconControl`1">
+            <summary>
+            Class PackIconControl which is the custom base class for any PackIcon control.
+            </summary>
+            <typeparam name="TKind">The type of the enum kind.</typeparam>
+            <seealso cref="T:ControlzEx.PackIconBase`1" />
+        </member>
+        <member name="F:MahApps.Metro.IconPacks.PackIconControl`1.FlipProperty">
+            <summary>
+            Identifies the Flip dependency property.
+            </summary>
+        </member>
+        <member name="P:MahApps.Metro.IconPacks.PackIconControl`1.Flip">
+            <summary>
+            Gets or sets the flip orientation.
+            </summary>
+        </member>
+        <member name="F:MahApps.Metro.IconPacks.PackIconControl`1.RotationProperty">
+            <summary>
+            Identifies the Rotation dependency property.
+            </summary>
+        </member>
+        <member name="P:MahApps.Metro.IconPacks.PackIconControl`1.Rotation">
+            <summary>
+            Gets or sets the rotation (angle).
+            </summary>
+            <value>The rotation.</value>
+        </member>
+        <member name="F:MahApps.Metro.IconPacks.PackIconControl`1.SpinProperty">
+            <summary>
+            Identifies the Spin dependency property.
+            </summary>
+        </member>
+        <member name="P:MahApps.Metro.IconPacks.PackIconControl`1.Spin">
+            <summary>
+            Gets or sets a value indicating whether the inner icon is spinning.
+            </summary>
+            <value><c>true</c> if spin; otherwise, <c>false</c>.</value>
+        </member>
+        <member name="F:MahApps.Metro.IconPacks.PackIconControl`1.SpinDurationProperty">
+            <summary>
+            Identifies the SpinDuration dependency property.
+            </summary>
+        </member>
+        <member name="P:MahApps.Metro.IconPacks.PackIconControl`1.SpinDuration">
+            <summary>
+            Gets or sets the duration of the spinning animation (in seconds). This will also restart the spin animation.
+            </summary>
+            <value>The duration of the spin in seconds.</value>
+        </member>
+        <member name="F:MahApps.Metro.IconPacks.PackIconControl`1.SpinEasingFunctionProperty">
+            <summary>
+            Identifies the SpinEasingFunction dependency property.
+            </summary>
+        </member>
+        <member name="P:MahApps.Metro.IconPacks.PackIconControl`1.SpinEasingFunction">
+            <summary>
+            Gets or sets the EasingFunction of the spinning animation. This will also restart the spin animation.
+            </summary>
+            <value>The spin easing function.</value>
+        </member>
+        <member name="F:MahApps.Metro.IconPacks.PackIconControl`1.SpinAutoReverseProperty">
+            <summary>
+            Identifies the SpinAutoReverse dependency property.
+            </summary>
+        </member>
+        <member name="P:MahApps.Metro.IconPacks.PackIconControl`1.SpinAutoReverse">
+            <summary>
+            Gets or sets the AutoReverse of the spinning animation. This will also restart the spin animation.
+            </summary>
+            <value><c>true</c> if [spin automatic reverse]; otherwise, <c>false</c>.</value>
+        </member>
+        <member name="T:MahApps.Metro.IconPacks.PackIconModern">
+            <summary>
+            Icons from the Modern UI Icons project, <see><cref>http://modernuiicons.com</cref></see>.
+            </summary>
+        </member>
+        <member name="T:MahApps.Metro.IconPacks.PackIconModernDataFactory">
+            ******************************************
+            This code is auto generated. Do not amend.
+            ******************************************
+        </member>
+        <member name="T:MahApps.Metro.IconPacks.PackIconModernKind">
+            ******************************************
+            This code is auto generated. Do not amend.
+            ******************************************
+            <summary>
+            List of available icons for use with <see cref="T:MahApps.Metro.IconPacks.PackIconModern" />.
+            </summary>
+            <remarks>
+            All icons sourced from Modern UI Icons Font - <see><cref>http://modernuiicons.com</cref></see> - in accordance of
+            <see><cref>https://github.com/Templarian/WindowsIcons/blob/master/WindowsPhone/license.txt</cref></see>.
+            </remarks>
+        </member>
+        <member name="T:MahApps.Metro.IconPacks.Modern.Properties.Resources">
+            <summary>
+              A strongly-typed resource class, for looking up localized strings, etc.
+            </summary>
+        </member>
+        <member name="P:MahApps.Metro.IconPacks.Modern.Properties.Resources.ResourceManager">
+            <summary>
+              Returns the cached ResourceManager instance used by this class.
+            </summary>
+        </member>
+        <member name="P:MahApps.Metro.IconPacks.Modern.Properties.Resources.Culture">
+            <summary>
+              Overrides the current thread's CurrentUICulture property for all
+              resource lookups using this strongly typed resource class.
+            </summary>
+        </member>
+    </members>
+</doc>

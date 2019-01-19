@@ -33,6 +33,9 @@ namespace SpineViewerWPF
         public static Player3_5_51 UC_Player3_5_51;
         public static Player3_6_32 UC_Player3_6_32;
         public static Player3_6_39 UC_Player3_6_39;
+        public static Player3_6_53 UC_Player3_6_53;
+        public static Player3_7_83 UC_Player3_7_83;
+
         private static MahApps.Metro.IconPacks.PackIconModern buttonStyle;
 
 
@@ -127,6 +130,12 @@ namespace SpineViewerWPF
                 case "3.6.39":
                     UC_Player3_6_39.ChangeSet();
                     break;
+                case "3.6.53":
+                    UC_Player3_6_53.ChangeSet();
+                    break;
+                case "3.7.83":
+                    UC_Player3_7_83.ChangeSet();
+                    break;
             }
         }
 
@@ -162,7 +171,6 @@ namespace SpineViewerWPF
                     App.GV.SelectSkin = cb_SkinList.SelectedItem.ToString();
                     App.GV.SetSkin = true;
                 }
-
             }
         }
 
@@ -183,7 +191,6 @@ namespace SpineViewerWPF
             Regex regExp = new Regex(@"\d");
             string singleValue = e.Text;
             e.Handled = !regExp.Match(singleValue).Success;
-
         }
 
         private void loadFileToolStripMenuItem_Click(object sender, RoutedEventArgs e)
@@ -241,6 +248,8 @@ namespace SpineViewerWPF
                     UC_Player3_5_51 = null;
                     UC_Player3_6_32 = null;
                     UC_Player3_6_39 = null;
+                    UC_Player3_6_53 = null;
+                    UC_Player3_7_83 = null;
                 }
                 App.GV.SpineVersion = cb_Version.SelectionBoxItem.ToString();
                 if (App.AppXC == null)
@@ -281,6 +290,14 @@ namespace SpineViewerWPF
                     case "3.6.39":
                         UC_Player3_6_39 = new Player3_6_39();
                         Player.Content = UC_Player3_6_39;
+                        break;
+                    case "3.6.53":
+                        UC_Player3_6_53 = new Player3_6_53();
+                        Player.Content = UC_Player3_6_53;
+                        break;
+                    case "3.7.83":
+                        UC_Player3_7_83 = new Player3_7_83();
+                        Player.Content = UC_Player3_7_83;
                         break;
                 }
             }
