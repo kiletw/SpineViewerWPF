@@ -180,7 +180,7 @@ public class Common
             delay = (int)(time * 1000 / lms.Count);
 
         }
-
+        
         if (saveFileDialog.FileName != "")
         {
             using (AnimatedGifCreator gifCreator = AnimatedGif.AnimatedGif.Create(saveFileDialog.FileName, delay, App.GV.IsLoop == true ? 0 : 1))

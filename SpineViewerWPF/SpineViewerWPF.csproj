@@ -95,6 +95,7 @@
     <Compile Include="PublicFunction\Common.cs" />
     <Compile Include="PublicFunction\GlobalValue.cs" />
     <Compile Include="PublicFunction\NewTextureLoader.cs" />
+    <Compile Include="PublicFunction\Player.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Animation.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.08\AnimationState.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.08\AnimationStateData.cs" />

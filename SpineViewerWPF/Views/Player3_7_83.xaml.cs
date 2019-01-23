@@ -47,14 +47,7 @@ namespace SpineViewerWPF.Views
 
         private void Initialize()
         {
-            PresentationParameters pp = new PresentationParameters();
-            pp.BackBufferWidth = (int)App.GV.FrameWidth;
-            pp.BackBufferHeight = (int)App.GV.FrameHeight;
-            App.AppXC.RenderSize = new Size(pp.BackBufferWidth, pp.BackBufferHeight);
-            graphicsDevice = App.AppXC.GraphicsDevice;
-            graphicsDevice.PresentationParameters.BackBufferWidth = (int)App.GV.FrameWidth;
-            graphicsDevice.PresentationParameters.BackBufferHeight = (int)App.GV.FrameHeight;
-            spriteBatch = new SpriteBatch(graphicsDevice);
+            Player.Initialize(ref graphicsDevice,ref spriteBatch);
         }
 
         private void LoadContent(ContentManager contentManager)
@@ -154,12 +147,7 @@ namespace SpineViewerWPF.Views
             }
             graphicsDevice.Clear(Color.Transparent);
 
-            if (App.GV.UseBG && App.TextureBG != null)
-            {
-                spriteBatch.Begin(SpriteSortMode.Texture, BlendState.AlphaBlend);
-                spriteBatch.Draw(App.TextureBG, new Rectangle((int)App.GV.PosBGX, (int)App.GV.PosBGY, App.TextureBG.Width, App.TextureBG.Height), Color.White);
-                spriteBatch.End();
-            }
+            Player.DrawBG(ref spriteBatch);
 
 
             state.Update(App.GV.Speed / 1000f);
@@ -288,30 +276,12 @@ namespace SpineViewerWPF.Views
 
         private void Frame_MouseWheel(object sender, MouseWheelEventArgs e)
         {
-            if (e.Delta > 0)
-            {
-                App.GV.Scale += 0.02f;
-            }
-            else
-            {
-                if (App.GV.Scale > 0.04f)
-                {
-                    App.GV.Scale -= 0.02f;
-                }
-            }
-
+            Player.Frame_MouseWheel(e);
         }
 
         private void UserControl_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            App.AppXC.Width = App.GV.FrameWidth;
-            App.AppXC.Height = App.GV.FrameHeight;
-            if (graphicsDevice != null)
-            {
-                graphicsDevice.PresentationParameters.BackBufferWidth = (int)App.GV.FrameWidth;
-                graphicsDevice.PresentationParameters.BackBufferHeight = (int)App.GV.FrameHeight;
-            }
-
+            Player.UserControl_SizeChanged(ref graphicsDevice);
         }
 
         private void Frame_MouseLeave(object sender, MouseEventArgs e)
