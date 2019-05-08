@@ -92,10 +92,12 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="PublicFunction\BlendXna.cs" />
     <Compile Include="PublicFunction\Common.cs" />
     <Compile Include="PublicFunction\GlobalValue.cs" />
     <Compile Include="PublicFunction\NewTextureLoader.cs" />
     <Compile Include="PublicFunction\Player.cs" />
+    <Compile Include="PublicFunction\XnaLoader\Util.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Animation.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.08\AnimationState.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.08\AnimationStateData.cs" />
@@ -126,7 +128,6 @@
     <Compile Include="SpineLibrary\spine-runtimes-2.1.08\XnaLoader\RegionBatcher.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.08\XnaLoader\SkeletonMeshRenderer.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.08\XnaLoader\SkeletonRegionRenderer.cs" />
-    <Compile Include="SpineLibrary\spine-runtimes-2.1.08\XnaLoader\Util.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.08\XnaLoader\XnaTextureLoader.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.25\Animation.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.25\AnimationState.cs" />
@@ -159,7 +160,6 @@
     <Compile Include="SpineLibrary\spine-runtimes-2.1.25\XnaLoader\RegionBatcher.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.25\XnaLoader\SkeletonMeshRenderer.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.25\XnaLoader\SkeletonRegionRenderer.cs" />
-    <Compile Include="SpineLibrary\spine-runtimes-2.1.25\XnaLoader\Util.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.25\XnaLoader\XnaTextureLoader.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.1.07\Animation.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.1.07\AnimationState.cs" />
@@ -199,7 +199,6 @@
     <Compile Include="SpineLibrary\spine-runtimes-3.1.07\XnaLoader\RegionBatcher.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.1.07\XnaLoader\SkeletonMeshRenderer.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.1.07\XnaLoader\SkeletonRegionRenderer.cs" />
-    <Compile Include="SpineLibrary\spine-runtimes-3.1.07\XnaLoader\Util.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.1.07\XnaLoader\XnaTextureLoader.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.4.02\Animation.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.4.02\AnimationState.cs" />
@@ -241,7 +240,6 @@
     <Compile Include="SpineLibrary\spine-runtimes-3.4.02\XnaLoader\RegionBatcher.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.4.02\XnaLoader\SkeletonMeshRenderer.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.4.02\XnaLoader\SkeletonRegionRenderer.cs" />
-    <Compile Include="SpineLibrary\spine-runtimes-3.4.02\XnaLoader\Util.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.4.02\XnaLoader\XnaTextureLoader.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.5.51\Animation.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.5.51\AnimationState.cs" />
@@ -284,7 +282,6 @@
     <Compile Include="SpineLibrary\spine-runtimes-3.5.51\XnaLoader\RegionBatcher.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.5.51\XnaLoader\SkeletonMeshRenderer.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.5.51\XnaLoader\SkeletonRegionRenderer.cs" />
-    <Compile Include="SpineLibrary\spine-runtimes-3.5.51\XnaLoader\Util.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.5.51\XnaLoader\XnaTextureLoader.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.32\Animation.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.32\AnimationState.cs" />
@@ -329,7 +326,6 @@
     <Compile Include="SpineLibrary\spine-runtimes-3.6.32\Triangulator.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.32\XnaLoader\MeshBatcher.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.32\XnaLoader\SkeletonRenderer.cs" />
-    <Compile Include="SpineLibrary\spine-runtimes-3.6.32\XnaLoader\Util.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.32\XnaLoader\XnaTextureLoader.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.39\Animation.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.39\AnimationState.cs" />
@@ -375,7 +371,6 @@
     <Compile Include="SpineLibrary\spine-runtimes-3.6.39\XnaLoader\MeshBatcher.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.39\XnaLoader\ShapeRenderer.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.39\XnaLoader\SkeletonRenderer.cs" />
-    <Compile Include="SpineLibrary\spine-runtimes-3.6.39\XnaLoader\Util.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.39\XnaLoader\XnaTextureLoader.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.53\Animation.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.53\AnimationState.cs" />
@@ -421,7 +416,6 @@
     <Compile Include="SpineLibrary\spine-runtimes-3.6.53\XnaLoader\MeshBatcher.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.53\XnaLoader\ShapeRenderer.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.53\XnaLoader\SkeletonRenderer.cs" />
-    <Compile Include="SpineLibrary\spine-runtimes-3.6.53\XnaLoader\Util.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.6.53\XnaLoader\XnaTextureLoader.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.7.83\Animation.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.7.83\AnimationState.cs" />
@@ -467,7 +461,6 @@
     <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\MeshBatcher.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\ShapeRenderer.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\SkeletonRenderer.cs" />
-    <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\Util.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\VertexEffect.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\XnaTextureLoader.cs" />
     <Compile Include="Views\Player2_1_08.xaml.cs">

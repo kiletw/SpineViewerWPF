@@ -158,7 +158,7 @@ namespace SpineViewerWPF
             App.GV.FrameWidth = Math.Round(GridPlayer.ColumnDefinitions[1].ActualWidth + 60 - 2, 2);
             App.GV.FrameHeight = Math.Round(this.ActualHeight - 60, 2);
             Player.Width = App.GV.FrameWidth;
-            Player.Height = App.GV.FrameHeight ;
+            Player.Height = App.GV.FrameHeight;
 
         }
 
@@ -353,7 +353,7 @@ namespace SpineViewerWPF
 
             if (openFileDialog.ShowDialog() == true)
             {
-                if(App.TextureBG != null)
+                if (App.TextureBG != null)
                     App.TextureBG.Dispose();
 
                 App.GV.SelectBG = openFileDialog.FileName;
@@ -367,12 +367,13 @@ namespace SpineViewerWPF
 
         private void Tc_Control_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if(tc_Control.SelectedIndex != 4 && tc_Control.SelectedIndex != -1)
+            if (tc_Control.SelectedIndex != 4 && tc_Control.SelectedIndex != -1)
             {
                 GridAttributes.ColumnDefinitions[0].Width = new GridLength(App.GV.RedcodePanelWidth);
                 gs_Control.Visibility = Visibility.Visible;
                 btn_Exporer.Visibility = Visibility.Visible;
-            }else if(tc_Control.SelectedIndex == 4)
+            }
+            else if (tc_Control.SelectedIndex == 4)
             {
                 gs_Control.Visibility = Visibility.Hidden;
                 btn_Exporer.Visibility = Visibility.Hidden;
@@ -405,5 +406,6 @@ namespace SpineViewerWPF
             Properties.Settings.Default.LastSelectDir = App.LastDir;
             Properties.Settings.Default.Save();
         }
+
     }
 }

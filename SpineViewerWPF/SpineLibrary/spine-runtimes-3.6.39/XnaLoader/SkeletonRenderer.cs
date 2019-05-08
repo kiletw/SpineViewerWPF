@@ -139,15 +139,66 @@ namespace Spine3_6_39 {
 					continue;
 				}
 
-				// set blend state
-				BlendState blend = slot.Data.BlendMode == BlendMode.Additive ? BlendState.Additive : defaultBlendState;
-				if (device.BlendState != blend) {
-					//End();
-					//device.BlendState = blend;
-				}
+                // set blend state
+                BlendState blendState = new BlendState();
+                Blend blendSrc;
+                Blend blendDst;
+                if (premultipliedAlpha)
+                {
+                    blendState.AlphaBlendFunction = BlendState.AlphaBlend.AlphaBlendFunction;
+                    blendState.BlendFactor = BlendState.AlphaBlend.BlendFactor;
+                    blendState.ColorBlendFunction = BlendState.AlphaBlend.ColorBlendFunction;
+                    blendState.ColorWriteChannels = BlendState.AlphaBlend.ColorWriteChannels;
+                    blendState.ColorWriteChannels1 = BlendState.AlphaBlend.ColorWriteChannels1;
+                    blendState.ColorWriteChannels2 = BlendState.AlphaBlend.ColorWriteChannels2;
+                    blendState.ColorWriteChannels3 = BlendState.AlphaBlend.ColorWriteChannels3;
+                    blendState.MultiSampleMask = BlendState.AlphaBlend.MultiSampleMask;
+                }
+                else
+                {
+                    blendState.AlphaBlendFunction = BlendState.NonPremultiplied.AlphaBlendFunction;
+                    blendState.BlendFactor = BlendState.NonPremultiplied.BlendFactor;
+                    blendState.ColorBlendFunction = BlendState.NonPremultiplied.ColorBlendFunction;
+                    blendState.ColorWriteChannels = BlendState.NonPremultiplied.ColorWriteChannels;
+                    blendState.ColorWriteChannels1 = BlendState.NonPremultiplied.ColorWriteChannels1;
+                    blendState.ColorWriteChannels2 = BlendState.NonPremultiplied.ColorWriteChannels2;
+                    blendState.ColorWriteChannels3 = BlendState.NonPremultiplied.ColorWriteChannels3;
+                    blendState.MultiSampleMask = BlendState.NonPremultiplied.MultiSampleMask;
+                }
+                switch (slot.Data.BlendMode)
+                {
+                    case BlendMode.Additive:
+                        blendState = BlendState.Additive;
+                        break;
+                    case BlendMode.Multiply:
+                        blendSrc = BlendXna.GetXNABlend(BlendXna.GL_DST_COLOR);
+                        blendDst = BlendXna.GetXNABlend(BlendXna.GL_ONE_MINUS_SRC_ALPHA);
+                        blendState.ColorSourceBlend = blendSrc;
+                        blendState.AlphaSourceBlend = blendSrc;
+                        blendState.ColorDestinationBlend = blendDst;
+                        blendState.AlphaDestinationBlend = blendDst;
+                        break;
+                    case BlendMode.Screen:
+                        blendSrc = BlendXna.GetXNABlend(premultipliedAlpha ? BlendXna.GL_ONE : BlendXna.GL_SRC_ALPHA);
+                        blendDst = BlendXna.GetXNABlend(BlendXna.GL_ONE_MINUS_SRC_COLOR);
+                        blendState.ColorSourceBlend = blendSrc;
+                        blendState.AlphaSourceBlend = blendSrc;
+                        blendState.ColorDestinationBlend = blendDst;
+                        blendState.AlphaDestinationBlend = blendDst;
+                        break;
+                    default:
+                        blendState = defaultBlendState;
+                        break;
+                }
 
-				// calculate color
-				float a = skeletonA * slot.A * attachmentColorA;
+                if (device.BlendState != blendState)
+                {
+                    End();
+                    device.BlendState = blendState;
+                }
+
+                // calculate color
+                float a = skeletonA * slot.A * attachmentColorA;
 				if (premultipliedAlpha) {
 					color = new Color(
 							skeletonR * slot.R * attachmentColorR * a,
