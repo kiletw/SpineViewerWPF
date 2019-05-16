@@ -16,6 +16,7 @@ using SpineViewerWPF.Views;
 using Microsoft.Win32;
 using WpfXnaControl;
 using System.Text.RegularExpressions;
+using System.IO;
 
 namespace SpineViewerWPF
 {
@@ -26,18 +27,7 @@ namespace SpineViewerWPF
     {
         public static MainWindow MasterMain;
         public static ContentControl MasterControl;
-        public static Player2_1_08 UC_Player2_1_08;
-        public static Player2_1_25 UC_Player2_1_25;
-        public static Player3_1_07 UC_Player3_1_07;
-        public static Player3_4_02 UC_Player3_4_02;
-        public static Player3_5_51 UC_Player3_5_51;
-        public static Player3_6_32 UC_Player3_6_32;
-        public static Player3_6_39 UC_Player3_6_39;
-        public static Player3_6_53 UC_Player3_6_53;
-        public static Player3_7_83 UC_Player3_7_83;
-
-        private static MahApps.Metro.IconPacks.PackIconModern buttonStyle;
-
+        public static UCPlayer UC_Player;
 
         public MainWindow()
         {
@@ -90,7 +80,6 @@ namespace SpineViewerWPF
             gs_Control.Visibility = Visibility.Hidden;
             tc_Control.SelectedIndex = 4;
 
-            buttonStyle = (MahApps.Metro.IconPacks.PackIconModern)btn_PlayControl.Content;
         }
 
         private void cb_AnimeList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -107,35 +96,9 @@ namespace SpineViewerWPF
 
         public void UpdateSpine()
         {
-            switch (App.GV.SpineVersion)
+            if(UC_Player != null)
             {
-                case "2.1.08":
-                    UC_Player2_1_08.ChangeSet();
-                    break;
-                case "2.1.25":
-                    UC_Player2_1_25.ChangeSet();
-                    break;
-                case "3.1.07":
-                    UC_Player3_1_07.ChangeSet();
-                    break;
-                case "3.4.02":
-                    UC_Player3_4_02.ChangeSet();
-                    break;
-                case "3.5.51":
-                    UC_Player3_5_51.ChangeSet();
-                    break;
-                case "3.6.32":
-                    UC_Player3_6_32.ChangeSet();
-                    break;
-                case "3.6.39":
-                    UC_Player3_6_39.ChangeSet();
-                    break;
-                case "3.6.53":
-                    UC_Player3_6_53.ChangeSet();
-                    break;
-                case "3.7.83":
-                    UC_Player3_7_83.ChangeSet();
-                    break;
+                UC_Player.ChangeSet();
             }
         }
 
@@ -196,7 +159,16 @@ namespace SpineViewerWPF
         private void loadFileToolStripMenuItem_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.InitialDirectory = App.LastDir;
+
+            if (Directory.Exists(App.LastDir))
+            {
+                openFileDialog.InitialDirectory = App.LastDir;
+            }
+            else
+            {
+                openFileDialog.InitialDirectory = Environment.CurrentDirectory;
+            }
+           
             openFileDialog.Filter = "Spine Altas Files (*.atlas)|*.atlas;";
 
             if (cb_Version.SelectedIndex == -1)
@@ -222,13 +194,13 @@ namespace SpineViewerWPF
                 MasterMain.cb_SkinList.Items.Clear();
                 if (Player.Content != null)
                 {
+                    App.isNew = true;
                     App.AppXC.ContentManager.Dispose();
                     App.AppXC.Initialize = null;
                     App.AppXC.Update = null;
                     App.AppXC.LoadContent = null;
                     App.AppXC.Draw = null;
-                    buttonStyle.Kind = MahApps.Metro.IconPacks.PackIconModernKind.ControlPause;
-                    btn_PlayControl.Content = buttonStyle;
+                    btn_PlayControl.Content = this.FindResource("img_pause");
 
                     DependencyObject xnaParent = ((UserControl)Player.Content).Parent;
                     if (xnaParent != null)
@@ -241,65 +213,12 @@ namespace SpineViewerWPF
                         oldCanvas.Children.Clear();
                     }
                     Player.Content = null;
-                    UC_Player2_1_08 = null;
-                    UC_Player2_1_25 = null;
-                    UC_Player3_1_07 = null;
-                    UC_Player3_4_02 = null;
-                    UC_Player3_5_51 = null;
-                    UC_Player3_6_32 = null;
-                    UC_Player3_6_39 = null;
-                    UC_Player3_6_53 = null;
-                    UC_Player3_7_83 = null;
+                    UC_Player = null;
                 }
                 App.GV.SpineVersion = cb_Version.SelectionBoxItem.ToString();
-                if (App.AppXC == null)
-                {
-                    App.AppXC = new XnaControl();
-                }
-                else
-                {
-                    App.AppXC.GraphicsDevice.Reset();
-                }
+                UC_Player = new UCPlayer();
+                Player.Content = UC_Player;
 
-                switch (App.GV.SpineVersion)
-                {
-                    case "2.1.08":
-                        UC_Player2_1_08 = new Player2_1_08();
-                        Player.Content = UC_Player2_1_08;
-                        break;
-                    case "2.1.25":
-                        UC_Player2_1_25 = new Player2_1_25();
-                        Player.Content = UC_Player2_1_25;
-                        break;
-                    case "3.1.07":
-                        UC_Player3_1_07 = new Player3_1_07();
-                        Player.Content = UC_Player3_1_07;
-                        break;
-                    case "3.4.02":
-                        UC_Player3_4_02 = new Player3_4_02();
-                        Player.Content = UC_Player3_4_02;
-                        break;
-                    case "3.5.51":
-                        UC_Player3_5_51 = new Player3_5_51();
-                        Player.Content = UC_Player3_5_51;
-                        break;
-                    case "3.6.32":
-                        UC_Player3_6_32 = new Player3_6_32();
-                        Player.Content = UC_Player3_6_32;
-                        break;
-                    case "3.6.39":
-                        UC_Player3_6_39 = new Player3_6_39();
-                        Player.Content = UC_Player3_6_39;
-                        break;
-                    case "3.6.53":
-                        UC_Player3_6_53 = new Player3_6_53();
-                        Player.Content = UC_Player3_6_53;
-                        break;
-                    case "3.7.83":
-                        UC_Player3_7_83 = new Player3_7_83();
-                        Player.Content = UC_Player3_7_83;
-                        break;
-                }
             }
         }
 
@@ -319,14 +238,12 @@ namespace SpineViewerWPF
             if (App.GV.TimeScale == 0)
             {
                 App.GV.TimeScale = 1;
-                buttonStyle.Kind = MahApps.Metro.IconPacks.PackIconModernKind.ControlPause;
-                btn_PlayControl.Content = buttonStyle;
+                btn_PlayControl.Content = this.FindResource("img_pause"); 
             }
             else if (App.GV.TimeScale == 1)
             {
                 App.GV.TimeScale = 0;
-                buttonStyle.Kind = MahApps.Metro.IconPacks.PackIconModernKind.ControlPlay;
-                btn_PlayControl.Content = buttonStyle;
+                btn_PlayControl.Content = this.FindResource("img_next"); 
             }
         }
 
@@ -354,7 +271,11 @@ namespace SpineViewerWPF
             if (openFileDialog.ShowDialog() == true)
             {
                 if (App.TextureBG != null)
+                {
                     App.TextureBG.Dispose();
+                    App.TextureBG = null;
+                }
+                   
 
                 App.GV.SelectBG = openFileDialog.FileName;
                 App.GV.PosBGX = 0;

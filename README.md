@@ -21,7 +21,6 @@ a tool can view spine files with different spine-runtimes version and export gif
 Library:
 - [AnimatedGif](https://github.com/mrousavy/AnimatedGif)
 - [WpfXnaControl](https://github.com/erickeek/WpfXnaControl)
-- [MahApps.Metro.IconPacks.Modern](https://github.com/MahApps/MahApps.Metro.IconPacks)
 - [spine-runtimes](https://github.com/EsotericSoftware/spine-runtimes)
 
 

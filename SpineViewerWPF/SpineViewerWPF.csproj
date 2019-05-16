@@ -56,9 +56,6 @@
     <Reference Include="ControlzEx, Version=3.0.2.4, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\ControlzEx.3.0.2.4\lib\net462\ControlzEx.dll</HintPath>
     </Reference>
-    <Reference Include="MahApps.Metro.IconPacks.Modern, Version=2.3.0.4, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\MahApps.Metro.IconPacks.Modern.2.3.0\lib\net46\MahApps.Metro.IconPacks.Modern.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Xna.Framework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=842cf8be1de50553, processorArchitecture=x86" />
     <Reference Include="Microsoft.Xna.Framework.Game, Version=4.0.0.0, Culture=neutral, PublicKeyToken=842cf8be1de50553, processorArchitecture=x86" />
     <Reference Include="Microsoft.Xna.Framework.Graphics, Version=4.0.0.0, Culture=neutral, PublicKeyToken=842cf8be1de50553, processorArchitecture=x86" />
@@ -68,6 +65,7 @@
     <Reference Include="System.Drawing.Common, Version=4.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Drawing.Common.4.5.1\lib\net461\System.Drawing.Common.dll</HintPath>
     </Reference>
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\ControlzEx.3.0.2.4\lib\net462\System.Windows.Interactivity.dll</HintPath>
     </Reference>
@@ -97,6 +95,16 @@
     <Compile Include="PublicFunction\GlobalValue.cs" />
     <Compile Include="PublicFunction\NewTextureLoader.cs" />
     <Compile Include="PublicFunction\Player.cs" />
+    <Compile Include="PublicFunction\Player\IPlayer.cs" />
+    <Compile Include="PublicFunction\Player\Player_2_1_08.cs" />
+    <Compile Include="PublicFunction\Player\Player_2_1_25.cs" />
+    <Compile Include="PublicFunction\Player\Player_3_1_07.cs" />
+    <Compile Include="PublicFunction\Player\Player_3_4_02.cs" />
+    <Compile Include="PublicFunction\Player\Player_3_5_51.cs" />
+    <Compile Include="PublicFunction\Player\Player_3_6_32.cs" />
+    <Compile Include="PublicFunction\Player\Player_3_6_39.cs" />
+    <Compile Include="PublicFunction\Player\Player_3_6_53.cs" />
+    <Compile Include="PublicFunction\Player\Player_3_7_83.cs" />
     <Compile Include="PublicFunction\XnaLoader\Util.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Animation.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.08\AnimationState.cs" />
@@ -463,32 +471,8 @@
     <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\SkeletonRenderer.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\VertexEffect.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\XnaTextureLoader.cs" />
-    <Compile Include="Views\Player2_1_08.xaml.cs">
-      <DependentUpon>Player2_1_08.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Player2_1_25.xaml.cs">
-      <DependentUpon>Player2_1_25.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Player3_1_07.xaml.cs">
-      <DependentUpon>Player3_1_07.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Player3_7_83.xaml.cs">
-      <DependentUpon>Player3_7_83.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Player3_6_53.xaml.cs">
-      <DependentUpon>Player3_6_53.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Player3_6_39.xaml.cs">
-      <DependentUpon>Player3_6_39.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Player3_6_32.xaml.cs">
-      <DependentUpon>Player3_6_32.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Player3_4_02.xaml.cs">
-      <DependentUpon>Player3_4_02.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\Player3_5_51.xaml.cs">
-      <DependentUpon>Player3_5_51.xaml</DependentUpon>
+    <Compile Include="Views\UCPlayer.xaml.cs">
+      <DependentUpon>UCPlayer.xaml</DependentUpon>
     </Compile>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -502,39 +486,7 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="Views\Player2_1_08.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Player2_1_25.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Player3_1_07.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Player3_7_83.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Views\Player3_6_53.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Views\Player3_6_39.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Views\Player3_6_32.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Views\Player3_4_02.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Player3_5_51.xaml">
+    <Page Include="Views\UCPlayer.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -581,6 +533,17 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Resource Include="Resources\icons-pause.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\icons-next.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\icons-capture.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\icons-video.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
