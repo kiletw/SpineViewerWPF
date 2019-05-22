@@ -44,9 +44,12 @@ namespace Spine3_4_02 {
 		public void Load (AtlasPage page, String path) {
 			Texture2D texture = Util.LoadTexture(device, path);
 			page.rendererObject = texture;
-			page.width = texture.Width;
-			page.height = texture.Height;
-		}
+            if (page.width == 0 || page.height == 0)
+            {
+                page.width = texture.Width;
+                page.height = texture.Height;
+            }
+        }
 
 		public void Unload (Object texture) {
 			((Texture2D)texture).Dispose();
