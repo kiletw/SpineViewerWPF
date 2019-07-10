@@ -118,5 +118,26 @@ namespace SpineViewerWPF.Views
         {
             player.ChangeSet();
         }
+
+        public void Reload()
+        {
+            Frame.Children.Remove(App.AppXC);
+            App.AppXC.Initialize -= player.Initialize;
+            App.AppXC.Update -= player.Update;
+            App.AppXC.LoadContent -= player.LoadContent;
+            App.AppXC.Draw -= player.Draw;
+
+
+            App.AppXC.Initialize += player.Initialize;
+            App.AppXC.Update += player.Update;
+            App.AppXC.LoadContent += player.LoadContent;
+            App.AppXC.Draw += player.Draw;
+            App.AppXC.Width = App.GV.FrameWidth;
+            App.AppXC.Height = App.GV.FrameHeight;
+
+            Frame.Children.Add(App.AppXC);
+            player.ChangeSet();
+            MainWindow.SetCBAnimeName();
+        }
     }
 }

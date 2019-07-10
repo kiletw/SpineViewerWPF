@@ -15,8 +15,6 @@ public class Player_2_1_08 : IPlayer
     private Skeleton skeleton;
     private AnimationState state;
     private SkeletonMeshRenderer skeletonRenderer;
-    private List<Animation> listAnimation;
-    private List<Skin> listSkin;
     private Atlas atlas;
     private SkeletonData skeletonData;
     private AnimationStateData stateData;
@@ -53,21 +51,9 @@ public class Player_2_1_08 : IPlayer
 
         state = new AnimationState(stateData);
 
-        List<string> AnimationNames = new List<string>();
-        listAnimation = state.Data.skeletonData.Animations;
-        foreach (Animation An in listAnimation)
-        {
-            AnimationNames.Add(An.name);
-        }
-        App.GV.AnimeList = AnimationNames;
+        App.GV.AnimeList = state.Data.skeletonData.Animations.Select(x => x.Name).ToList();
+        App.GV.SkinList = state.Data.skeletonData.Skins.Select(x => x.Name).ToList();
 
-        List<string> SkinNames = new List<string>();
-        listSkin = state.Data.skeletonData.Skins;
-        foreach (Skin Sk in listSkin)
-        {
-            SkinNames.Add(Sk.name);
-        }
-        App.GV.SkinList = SkinNames;
 
         if (App.GV.SelectAnimeName != "")
         {
@@ -118,8 +104,7 @@ public class Player_2_1_08 : IPlayer
 
 
         state.Update(App.GV.Speed / 1000f);
-        state.Apply(skeleton);
-        state.TimeScale = App.GV.TimeScale;
+
         if (json != null)
         {
             if (App.GV.Scale != json.Scale)
@@ -134,11 +119,10 @@ public class Player_2_1_08 : IPlayer
         skeleton.Y = App.GV.PosY;
         skeleton.FlipX = App.GV.FilpX;
         skeleton.FlipY = App.GV.FilpY;
-
-
-
         skeleton.RootBone.Rotation = App.GV.Rotation;
         skeleton.UpdateWorldTransform();
+        state.TimeScale = App.GV.TimeScale;
+        state.Apply(skeleton);
         skeletonRenderer.PremultipliedAlpha = App.GV.Alpha;
         skeletonRenderer.Begin();
         skeletonRenderer.Draw(skeleton);

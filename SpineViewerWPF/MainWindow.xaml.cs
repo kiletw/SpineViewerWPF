@@ -106,9 +106,8 @@ namespace SpineViewerWPF
         {
             for (int i = 0; i < App.GV.AnimeList.Count; i++)
             {
-                MasterMain.cb_AnimeList.Items.Add(App.GV.AnimeList[i]);
+               MasterMain.cb_AnimeList.Items.Add(App.GV.AnimeList[i]);
             }
-
             for (int i = 0; i < App.GV.SkinList.Count; i++)
             {
                 MasterMain.cb_SkinList.Items.Add(App.GV.SkinList[i]);
@@ -194,30 +193,43 @@ namespace SpineViewerWPF
                 MasterMain.cb_SkinList.Items.Clear();
                 if (Player.Content != null)
                 {
-                    App.isNew = true;
-                    App.AppXC.ContentManager.Dispose();
-                    App.AppXC.Initialize = null;
-                    App.AppXC.Update = null;
-                    App.AppXC.LoadContent = null;
-                    App.AppXC.Draw = null;
-                    btn_PlayControl.Content = this.FindResource("img_pause");
+                    if(App.GV.SpineVersion != cb_Version.SelectionBoxItem.ToString())
+                    {
+                        App.GV.SpineVersion = cb_Version.SelectionBoxItem.ToString();
+                        App.isNew = true;
+                        App.AppXC.ContentManager.Dispose();
+                        App.AppXC.Initialize = null;
+                        App.AppXC.Update = null;
+                        App.AppXC.LoadContent = null;
+                        App.AppXC.Draw = null;
+                        btn_PlayControl.Content = this.FindResource("img_pause");
 
-                    DependencyObject xnaParent = ((UserControl)Player.Content).Parent;
-                    if (xnaParent != null)
-                    {
-                        xnaParent.SetValue(ContentPresenter.ContentProperty, null);
+                        DependencyObject xnaParent = ((UserControl)Player.Content).Parent;
+                        if (xnaParent != null)
+                        {
+                            xnaParent.SetValue(ContentPresenter.ContentProperty, null);
+                        }
+                        Canvas oldCanvas = (Canvas)App.AppXC.Parent;
+                        if (oldCanvas != null)
+                        {
+                            oldCanvas.Children.Clear();
+                        }
+                        Player.Content = null;
+                        UC_Player = new UCPlayer();
+                        Player.Content = UC_Player;
                     }
-                    Canvas oldCanvas = (Canvas)App.AppXC.Parent;
-                    if (oldCanvas != null)
+                    else
                     {
-                        oldCanvas.Children.Clear();
+                        UC_Player.Reload();
                     }
-                    Player.Content = null;
-                    UC_Player = null;
                 }
-                App.GV.SpineVersion = cb_Version.SelectionBoxItem.ToString();
-                UC_Player = new UCPlayer();
-                Player.Content = UC_Player;
+                else
+                {
+                    App.GV.SpineVersion = cb_Version.SelectionBoxItem.ToString();
+                    UC_Player = new UCPlayer();
+                    Player.Content = UC_Player;
+                }
+            
 
             }
         }
