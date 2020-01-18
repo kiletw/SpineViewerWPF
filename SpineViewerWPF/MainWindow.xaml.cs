@@ -159,6 +159,9 @@ namespace SpineViewerWPF
         private void loadFileToolStripMenuItem_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
+            OpenFileDialog openFileDialog2 = new OpenFileDialog();
+
+
 
             if (Directory.Exists(App.LastDir))
             {
@@ -169,7 +172,8 @@ namespace SpineViewerWPF
                 openFileDialog.InitialDirectory = Environment.CurrentDirectory;
             }
            
-            openFileDialog.Filter = "Spine Altas Files (*.atlas)|*.atlas;";
+            openFileDialog.Filter = "Spine Altas File (*.atlas)|*.atlas;";
+            openFileDialog2.Filter = "Spine Json File (*.json)|*.json|Spine Binary File (*.skel)|*.skel";
 
             if (cb_Version.SelectedIndex == -1)
             {
@@ -180,13 +184,21 @@ namespace SpineViewerWPF
             if (openFileDialog.ShowDialog() == true)
             {
                 Common.Reset();
-                App.GV.SelectFile = openFileDialog.FileName;
+                App.GV.SelectAtlasFile = openFileDialog.FileName;
                 App.LastDir = Common.GetDirName(openFileDialog.FileName);
-
-                if (!Common.CheckSpineFile(App.GV.SelectFile))
+                openFileDialog2.InitialDirectory = App.LastDir;
+                if (!Common.CheckSpineFile(App.GV.SelectAtlasFile))
                 {
                     MessageBox.Show("Can not found Spine Json or Binary file！");
-                    return;
+
+                    if(openFileDialog2.ShowDialog() == true)
+                    {
+                        App.GV.SelectSpineFile = openFileDialog2.FileName;
+                    }
+                    else
+                    {
+                        return;
+                    }
                 }
 
 
@@ -233,16 +245,19 @@ namespace SpineViewerWPF
             }
         }
 
+
+        int tempSpeed = 0;
         private void btn_PlayControl_Click(object sender, RoutedEventArgs e)
         {
             if (App.GV.TimeScale == 0)
             {
-                App.GV.TimeScale = 1;
+                App.GV.Speed = tempSpeed;
                 btn_PlayControl.Content = this.FindResource("img_pause"); 
             }
-            else if (App.GV.TimeScale == 1)
+            else if (App.GV.Speed > 0)
             {
-                App.GV.TimeScale = 0;
+                tempSpeed = App.GV.Speed;
+                App.GV.Speed = 0;
                 btn_PlayControl.Content = this.FindResource("img_next"); 
             }
         }

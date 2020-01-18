@@ -32,19 +32,19 @@ public class Player_2_1_25 : IPlayer
         skeletonRenderer = new SkeletonMeshRenderer(App.graphicsDevice);
         skeletonRenderer.PremultipliedAlpha = App.GV.Alpha;
 
-        atlas = new Atlas(App.GV.SelectFile, new XnaTextureLoader(App.graphicsDevice));
+        atlas = new Atlas(App.GV.SelectAtlasFile, new XnaTextureLoader(App.graphicsDevice));
 
-        if (Common.IsBinaryData(App.GV.SelectFile))
+        if (Common.IsBinaryData(App.GV.SelectSpineFile))
         {
             binary = new SkeletonBinary(atlas);
             binary.Scale = App.GV.Scale;
-            skeletonData = binary.ReadSkeletonData(Common.GetSkelPath(App.GV.SelectFile));
+            skeletonData = binary.ReadSkeletonData(App.GV.SelectSpineFile);
         }
         else
         {
             json = new SkeletonJson(atlas);
             json.Scale = App.GV.Scale;
-            skeletonData = json.ReadSkeletonData(Common.GetJsonPath(App.GV.SelectFile));
+            skeletonData = json.ReadSkeletonData(App.GV.SelectSpineFile);
         }
         skeleton = new Skeleton(skeletonData);
 
@@ -110,12 +110,6 @@ public class Player_2_1_25 : IPlayer
             skeleton.SetSlotsToSetupPose();
             App.GV.SetSkin = false;
         }
-
-
-    }
-
-    public void Draw()
-    {
         if (App.GV.SpineVersion != "2.1.25" || App.GV.FileHash != skeleton.Data.Hash)
         {
             state = null;
@@ -125,17 +119,17 @@ public class Player_2_1_25 : IPlayer
         App.graphicsDevice.Clear(Color.Transparent);
 
         Player.DrawBG(ref App.spriteBatch);
+        App.GV.TimeScale = (float)App.GV.Speed / 30f;
 
+        state.Update((float)gameTime.ElapsedGameTime.TotalMilliseconds / 1000f);
 
-        state.Update(App.GV.Speed / 1000f);
         state.Apply(skeleton);
-        state.TimeScale = App.GV.TimeScale;
         if (binary != null)
         {
             if (App.GV.Scale != binary.Scale)
             {
                 binary.Scale = App.GV.Scale;
-                skeletonData = binary.ReadSkeletonData(Common.GetSkelPath(App.GV.SelectFile));
+                skeletonData = binary.ReadSkeletonData(App.GV.SelectSpineFile);
                 skeleton = new Skeleton(skeletonData);
             }
         }
@@ -144,7 +138,7 @@ public class Player_2_1_25 : IPlayer
             if (App.GV.Scale != json.Scale)
             {
                 json.Scale = App.GV.Scale;
-                skeletonData = json.ReadSkeletonData(Common.GetJsonPath(App.GV.SelectFile));
+                skeletonData = json.ReadSkeletonData(App.GV.SelectSpineFile);
                 skeleton = new Skeleton(skeletonData);
             }
         }
@@ -162,9 +156,18 @@ public class Player_2_1_25 : IPlayer
         skeletonRenderer.Draw(skeleton);
         skeletonRenderer.End();
 
+
+    }
+
+    public void Draw()
+    {
+
+ 
+
         if (state != null)
         {
             TrackEntry entry = state.GetCurrent(0);
+            float speed = (float)App.GV.Speed / 30f;
             if (entry != null)
             {
                 if (App.GV.IsRecoding && App.GV.GifList != null && entry.LastTime < entry.EndTime)
@@ -173,7 +176,7 @@ public class Player_2_1_25 : IPlayer
                     {
                         TrackEntry te = state.GetCurrent(0);
                         te.Time = 0;
-                        App.GV.TimeScale = 1;
+                        App.GV.TimeScale = speed;
                         App.GV.Lock = 0;
                     }
 
@@ -186,8 +189,8 @@ public class Player_2_1_25 : IPlayer
                     App.GV.IsRecoding = false;
                     Common.RecodingEnd(entry.EndTime);
 
-                    state.TimeScale = 1;
-                    App.GV.TimeScale = 1;
+                    state.TimeScale = speed;
+                    App.GV.TimeScale = speed;
                 }
 
                 if (App.GV.TimeScale == 0)
@@ -198,7 +201,7 @@ public class Player_2_1_25 : IPlayer
                 else
                 {
                     App.GV.Lock = (entry.LastTime % entry.EndTime) / entry.EndTime;
-                    entry.TimeScale = 1;
+                    entry.TimeScale = App.GV.TimeScale;
                 }
                 App.GV.LoadingProcess = $"{ Math.Round((entry.Time % entry.EndTime) / entry.EndTime * 100, 2)}%";
             }

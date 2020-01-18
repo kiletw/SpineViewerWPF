@@ -1,13 +1,13 @@
-﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Content;
-using Microsoft.Xna.Framework.Graphics;
-using Spine2_1_08;
-using SpineViewerWPF;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Spine2_1_08;
+using SpineViewerWPF;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
+using Microsoft.Xna.Framework.Graphics;
 
 
 public class Player_2_1_08 : IPlayer
@@ -33,11 +33,11 @@ public class Player_2_1_08 : IPlayer
         skeletonRenderer = new SkeletonMeshRenderer(App.graphicsDevice);
         skeletonRenderer.PremultipliedAlpha = App.GV.Alpha;
 
-        atlas = new Atlas(App.GV.SelectFile, new XnaTextureLoader(App.graphicsDevice));
+        atlas = new Atlas(App.GV.SelectAtlasFile, new XnaTextureLoader(App.graphicsDevice));
 
         json = new SkeletonJson(atlas);
         json.Scale = App.GV.Scale;
-        skeletonData = json.ReadSkeletonData(Common.GetJsonPath(App.GV.SelectFile));
+        skeletonData = json.ReadSkeletonData(App.GV.SelectSpineFile);
 
 
         skeleton = new Skeleton(skeletonData);
@@ -95,37 +95,33 @@ public class Player_2_1_08 : IPlayer
             state.SetAnimation(0, App.GV.SelectAnimeName, App.GV.IsLoop);
             App.GV.SetAnime = false;
         }
+
         if (App.GV.SelectSkin != "" && App.GV.SetSkin)
         {
             skeleton.SetSkin(App.GV.SelectSkin);
             skeleton.SetSlotsToSetupPose();
             App.GV.SetSkin = false;
         }
-    }
-
-    public void Draw()
-    {
         if (App.GV.SpineVersion != "2.1.08" || App.GV.FileHash != skeleton.Data.Hash)
         {
             state = null;
-
             skeletonRenderer = null;
             return;
         }
         App.graphicsDevice.Clear(Color.Transparent);
 
         Player.DrawBG(ref App.spriteBatch);
+        App.GV.TimeScale = (float)App.GV.Speed / 30f;
 
+        state.Update((float)gameTime.ElapsedGameTime.TotalMilliseconds / 1000f);
 
-        state.Update(App.GV.Speed / 1000f);
         state.Apply(skeleton);
-        state.TimeScale = App.GV.TimeScale;
         if (json != null)
         {
             if (App.GV.Scale != json.Scale)
             {
                 json.Scale = App.GV.Scale;
-                skeletonData = json.ReadSkeletonData(Common.GetJsonPath(App.GV.SelectFile));
+                skeletonData = json.ReadSkeletonData(App.GV.SelectSpineFile);
                 skeleton = new Skeleton(skeletonData);
             }
         }
@@ -136,7 +132,6 @@ public class Player_2_1_08 : IPlayer
         skeleton.FlipY = App.GV.FilpY;
 
 
-
         skeleton.RootBone.Rotation = App.GV.Rotation;
         skeleton.UpdateWorldTransform();
         skeletonRenderer.PremultipliedAlpha = App.GV.Alpha;
@@ -144,9 +139,18 @@ public class Player_2_1_08 : IPlayer
         skeletonRenderer.Draw(skeleton);
         skeletonRenderer.End();
 
+
+    }
+
+    public void Draw()
+    {
+
+ 
+
         if (state != null)
         {
             TrackEntry entry = state.GetCurrent(0);
+            float speed = (float)App.GV.Speed / 30f;
             if (entry != null)
             {
                 if (App.GV.IsRecoding && App.GV.GifList != null && entry.LastTime < entry.EndTime)
@@ -155,7 +159,7 @@ public class Player_2_1_08 : IPlayer
                     {
                         TrackEntry te = state.GetCurrent(0);
                         te.Time = 0;
-                        App.GV.TimeScale = 1;
+                        App.GV.TimeScale = speed;
                         App.GV.Lock = 0;
                     }
 
@@ -168,8 +172,8 @@ public class Player_2_1_08 : IPlayer
                     App.GV.IsRecoding = false;
                     Common.RecodingEnd(entry.EndTime);
 
-                    state.TimeScale = 1;
-                    App.GV.TimeScale = 1;
+                    state.TimeScale = speed;
+                    App.GV.TimeScale = speed;
                 }
 
                 if (App.GV.TimeScale == 0)
@@ -180,7 +184,7 @@ public class Player_2_1_08 : IPlayer
                 else
                 {
                     App.GV.Lock = (entry.LastTime % entry.EndTime) / entry.EndTime;
-                    entry.TimeScale = 1;
+                    entry.TimeScale = App.GV.TimeScale;
                 }
                 App.GV.LoadingProcess = $"{ Math.Round((entry.Time % entry.EndTime) / entry.EndTime * 100, 2)}%";
             }

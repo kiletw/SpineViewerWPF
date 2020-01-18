@@ -55,7 +55,7 @@ public class Common
 
     public static bool IsBinaryData(string path)
     {
-        if (File.Exists(path.Replace(".atlas", ".skel")))
+        if (File.Exists(path.Replace(".atlas", ".skel")) && path.IndexOf(".skel") > -1)
             return true;
         else
             return false;
@@ -64,11 +64,22 @@ public class Common
     public static bool CheckSpineFile(string path)
     {
         if (File.Exists(path.Replace(".atlas", ".skel")))
+        {
+
+            App.GV.SelectSpineFile = path.Replace(".atlas", ".skel");
             return true;
+        }
         else if (File.Exists(path.Replace(".atlas", ".json")))
+        {
+            App.GV.SelectSpineFile = path.Replace(".atlas", ".json");
             return true;
+        }
         else
+        {
+            App.GV.SelectSpineFile = "";
             return false;
+        }
+          
     }
 
 
@@ -162,7 +173,7 @@ public class Common
                 GQ = GifQuality.Default;
                 break;
         }
-        string fileName = GetFileNameNoEx(App.GV.SelectFile);
+        string fileName = GetFileNameNoEx(App.GV.SelectAtlasFile);
         if (App.GV.SelectAnimeName != "")
             fileName += $"_{App.GV.SelectAnimeName}";
         if (App.GV.SelectSkin != "")
@@ -177,12 +188,12 @@ public class Common
         }
         else
         {
-            delay = (int)(time * 1000 / lms.Count);
-
+            delay = (int)(time * 1000 * (App.GV.Speed / 30f) / lms.Count);
         }
         
         if (saveFileDialog.FileName != "")
         {
+
             using (AnimatedGifCreator gifCreator = AnimatedGif.AnimatedGif.Create(saveFileDialog.FileName, delay, App.GV.IsLoop == true ? 0 : 1))
             {
                 foreach (MemoryStream msimg in lms)
@@ -231,7 +242,7 @@ public class Common
         SaveFileDialog saveFileDialog = new SaveFileDialog();
         saveFileDialog.Filter = "Png Image|*.png";
         saveFileDialog.Title = "Save a Png File";
-        string fileName = GetFileNameNoEx(App.GV.SelectFile);
+        string fileName = GetFileNameNoEx(App.GV.SelectAtlasFile);
         if (App.GV.SelectAnimeName != "")
             fileName += $"_{App.GV.SelectAnimeName}";
         if (App.GV.SelectSkin != "")

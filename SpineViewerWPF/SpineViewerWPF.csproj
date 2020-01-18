@@ -50,8 +50,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AnimatedGif, Version=1.0.3.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\AnimatedGif.1.0.3\lib\netstandard2.0\AnimatedGif.dll</HintPath>
+    <Reference Include="AnimatedGif, Version=1.0.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\AnimatedGif.1.0.5\lib\netstandard2.0\AnimatedGif.dll</HintPath>
     </Reference>
     <Reference Include="ControlzEx, Version=3.0.2.4, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\ControlzEx.3.0.2.4\lib\net462\ControlzEx.dll</HintPath>
@@ -63,7 +63,7 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Drawing.Common, Version=4.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Drawing.Common.4.5.1\lib\net461\System.Drawing.Common.dll</HintPath>
+      <HintPath>..\packages\System.Drawing.Common.4.7.0\lib\net461\System.Drawing.Common.dll</HintPath>
     </Reference>
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -105,6 +105,7 @@
     <Compile Include="PublicFunction\Player\Player_3_6_39.cs" />
     <Compile Include="PublicFunction\Player\Player_3_6_53.cs" />
     <Compile Include="PublicFunction\Player\Player_3_7_83.cs" />
+    <Compile Include="PublicFunction\Player\Player_3_8_x.cs" />
     <Compile Include="PublicFunction\XnaLoader\Util.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.08\Animation.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-2.1.08\AnimationState.cs" />
@@ -471,6 +472,53 @@
     <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\SkeletonRenderer.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\VertexEffect.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.7.83\XnaLoader\XnaTextureLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Animation.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\AnimationState.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\AnimationStateData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Atlas.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Attachments\AtlasAttachmentLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Attachments\Attachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Attachments\AttachmentLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Attachments\AttachmentType.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Attachments\BoundingBoxAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Attachments\ClippingAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Attachments\MeshAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Attachments\PathAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Attachments\PointAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Attachments\RegionAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Attachments\VertexAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\BlendMode.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Bone.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\BoneData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Collections\OrderedDictionary.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\ConstraintData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Event.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\EventData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\ExposedList.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\IkConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\IkConstraintData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\IUpdatable.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Json.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\MathUtils.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\PathConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\PathConstraintData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Skeleton.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\SkeletonBinary.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\SkeletonBounds.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\SkeletonClipping.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\SkeletonData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\SkeletonJson.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Skin.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Slot.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\SlotData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\TransformConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\TransformConstraintData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\Triangulator.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\XnaLoader\MeshBatcher.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\XnaLoader\ShapeRenderer.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\XnaLoader\SkeletonRenderer.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\XnaLoader\VertexEffect.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.8.x\XnaLoader\XnaTextureLoader.cs" />
     <Compile Include="Views\UCPlayer.xaml.cs">
       <DependentUpon>UCPlayer.xaml</DependentUpon>
     </Compile>
@@ -519,9 +567,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Icon.ico" />
-  </ItemGroup>
-  <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.6.2">
       <Visible>False</Visible>
       <ProductName>Microsoft .NET Framework 4.6.2 %28x86 和 x64%29</ProductName>
@@ -545,5 +590,6 @@
   <ItemGroup>
     <Resource Include="Resources\icons-video.png" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

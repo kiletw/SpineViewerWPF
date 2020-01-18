@@ -57,6 +57,9 @@ namespace SpineViewerWPF.Views
                 case "3.7.83":
                     player = new Player_3_7_83();
                     break;
+                case "3.8.x":
+                    player = new Player_3_8_x();
+                    break;
             }
 
             App.AppXC.Initialize += player.Initialize;

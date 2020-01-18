@@ -30,6 +30,7 @@
                     <ComboBoxItem Content="3.6.39"></ComboBoxItem>
                     <ComboBoxItem Content="3.6.53"></ComboBoxItem>
                     <ComboBoxItem Content="3.7.83"></ComboBoxItem>
+                    <ComboBoxItem Content="3.8.x"></ComboBoxItem>
                 </ComboBox>
             </MenuItem>
         </Menu>

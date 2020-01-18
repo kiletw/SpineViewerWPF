@@ -9,7 +9,8 @@ using System.Threading.Tasks;
 
 public class GlobalValue : INotifyPropertyChanged
 {
-    private string _SelectFile = "";
+    private string _SelectAtlasFile = "";
+    private string _SelectSpineFile = "";
     private List<string> _AnimeList;
     private List<string> _SkinList;
     private float _Scale;
@@ -45,21 +46,38 @@ public class GlobalValue : INotifyPropertyChanged
     private List<Texture2D> _GifList;
 
 
-    public string SelectFile
+    public string SelectAtlasFile
     {
         get
         {
-            return _SelectFile;
+            return _SelectAtlasFile;
         }
         set
         {
-            if (_SelectFile != value)
+            if (_SelectAtlasFile != value)
             {
-                _SelectFile = value;
-                OnPropertyChanged("SelectFile");
+                _SelectAtlasFile = value;
+                OnPropertyChanged("SelectAtlasFile");
             }
         }
     }
+
+    public string SelectSpineFile
+    {
+        get
+        {
+            return _SelectSpineFile;
+        }
+        set
+        {
+            if (_SelectSpineFile != value)
+            {
+                _SelectSpineFile = value;
+                OnPropertyChanged("SelectSpineFile");
+            }
+        }
+    }
+
     public List<string> AnimeList
     {
         get
