@@ -122,24 +122,7 @@ public class Player_3_7_83 : IPlayer
         Player.DrawBG(ref App.spriteBatch);
         App.GV.TimeScale = (float)App.GV.Speed / 30f;
 
-        //timer += (float)gameTime.ElapsedGameTime.TotalSeconds;
-        //float updateTime = 1f / App.GV.Speed;
-        //state.TimeScale = App.GV.TimeScale;
-        //float step = timer - (timer % updateTime);
-        //timer -= step;
-        //step *= state.TimeScale;
-
         state.Update((float)gameTime.ElapsedGameTime.TotalMilliseconds/1000f);
-        //skeleton.Update(step);
-        //state.Apply(skeleton);
-        //state.Update(updateTime);
-        //while (timer >= updateTime)
-        //{
-
-        //    state.Apply(skeleton);
-        //    timer -= updateTime;
-        //}
-        //state.Update(App.GV.Speed / 1000f);
         state.Apply(skeleton);
 
         skeleton.X = App.GV.PosX;

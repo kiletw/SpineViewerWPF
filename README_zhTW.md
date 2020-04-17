@@ -26,7 +26,7 @@
 
 
 要求:
-- [.NET Framework 4.6.2](http://go.microsoft.com/fwlink/?linkid=780600)
+- [.NET Framework 4.7.2](http://go.microsoft.com/fwlink/?linkid=863265)
 - [Microsoft XNA Framework Redistributable 4.0](https://www.microsoft.com/en-us/download/details.aspx?id=20914)
 
 ## 問題:

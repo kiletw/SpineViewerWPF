@@ -1,5 +1,6 @@
 ﻿using AnimatedGif;
 using Microsoft.Win32;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using SpineViewerWPF;
 using System;
@@ -249,9 +250,9 @@ public class Common
             fileName += $"_{App.GV.SelectSkin}";
 
         saveFileDialog.FileName = fileName;
-        saveFileDialog.ShowDialog();
+        Nullable<bool> result = saveFileDialog.ShowDialog();
 
-        if (saveFileDialog.FileName != "")
+        if (result == true)
         {
             using (var fs = (FileStream)saveFileDialog.OpenFile())
             {
@@ -288,8 +289,11 @@ public class Common
         App.GV.TimeScale = 0;
         using (RenderTarget2D renderTarget = new RenderTarget2D(_graphicsDevice, _graphicsDevice.PresentationParameters.BackBufferWidth, _graphicsDevice.PresentationParameters.BackBufferHeight))
         {
+            _graphicsDevice.Textures[0] = null;
             _graphicsDevice.SetRenderTarget(renderTarget);
             App.AppXC.Draw();
+            GameTime gameTime = new GameTime();
+            App.AppXC.Update(gameTime);
             _graphicsDevice.Viewport = new Viewport(0, 0, _graphicsDevice.PresentationParameters.BackBufferWidth, _graphicsDevice.PresentationParameters.BackBufferHeight);
             _graphicsDevice.SetRenderTarget(null);
             int[] screenData = new int[_graphicsDevice.PresentationParameters.BackBufferWidth * _graphicsDevice.PresentationParameters.BackBufferHeight];
