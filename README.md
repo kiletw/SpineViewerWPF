@@ -1,6 +1,13 @@
 # SpineViewerWPF
 a tool can view spine files with different spine-runtimes version and export gif or png file.
 
+
+## Hot Key
+* Ctrl+Mousewheel  Canvas Scaling
+* Alt+Mousewheel  Spine Scaling
+* Ctrl+Mousedown+Mousemove  Canvas Moving
+* Alt+Mousedown+Mousemove  Spine Moving
+
 ## Features
 * Suppot Spine Runtimes Version 
   * **2.1.08**
@@ -12,9 +19,11 @@ a tool can view spine files with different spine-runtimes version and export gif
   * **3.6.39**
   * **3.6.53**
   * **3.7.83**
-  * **3.8.x**
+  * **3.8.95**
 * Export animation to gif or png file.
 * Can view Animation with different options.
+
+
 
 
 ## Usage
