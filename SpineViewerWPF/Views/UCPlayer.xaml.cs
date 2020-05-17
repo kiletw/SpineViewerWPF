@@ -26,9 +26,9 @@ namespace SpineViewerWPF.Views
         public UCPlayer()
         {
             InitializeComponent();
-            App.AppXC = new WpfXnaControl.XnaControl();
+            App.appXC = new WpfXnaControl.XnaControl();
 
-            switch (App.GV.SpineVersion)
+            switch (App.globalValues.SpineVersion)
             {
                 case "2.1.08":
                     player = new Player_2_1_08();
@@ -57,19 +57,19 @@ namespace SpineViewerWPF.Views
                 case "3.7.83":
                     player = new Player_3_7_83();
                     break;
-                case "3.8.x":
-                    player = new Player_3_8_x();
+                case "3.8.95":
+                    player = new Player_3_8_95();
                     break;
             }
 
-            App.AppXC.Initialize += player.Initialize;
-            App.AppXC.Update += player.Update;
-            App.AppXC.LoadContent += player.LoadContent;
-            App.AppXC.Draw += player.Draw;
-            App.AppXC.Width = App.GV.FrameWidth;
-            App.AppXC.Height = App.GV.FrameHeight;
+            App.appXC.Initialize += player.Initialize;
+            App.appXC.Update += player.Update;
+            App.appXC.LoadContent += player.LoadContent;
+            App.appXC.Draw += player.Draw;
+            App.appXC.Width = App.globalValues.FrameWidth;
+            App.appXC.Height = App.globalValues.FrameHeight;
 
-            Frame.Children.Add(App.AppXC);
+            Frame.Children.Add(App.appXC);
 
         }
 
@@ -85,26 +85,29 @@ namespace SpineViewerWPF.Views
             if (App.isPress)
             {
                 System.Windows.Point position = Mouse.GetPosition(this.Frame);
-                if (App.GV.UseBG && App.GV.ControlBG)
+                if (App.globalValues.UseBG && App.globalValues.ControlBG)
                 {
                     Common.SetBGXY(position.X, position.Y, App.mouseLocation.X, App.mouseLocation.Y);
                 }
-                else
+                else if (Keyboard.IsKeyDown(Key.LeftAlt))
                 {
                     Common.SetXY(position.X, position.Y, App.mouseLocation.X, App.mouseLocation.Y);
                 }
-                App.mouseLocation = Mouse.GetPosition(this.Frame);
+                else if (Keyboard.IsKeyDown(Key.LeftCtrl))
+                {
+                   
+                    var transformGroup = (TransformGroup)Frame.RenderTransform;
+                    var tt = (TranslateTransform)transformGroup.Children.Where(x => x.GetType() == typeof(TranslateTransform)).FirstOrDefault();
+                    tt.X = (float)(position.X + tt.X - App.mouseLocation.X);
+                    tt.Y = (float)(position.Y + tt.Y - App.mouseLocation.Y);
+                }
+                    App.mouseLocation = Mouse.GetPosition(this.Frame);
             }
         }
 
         private void Frame_MouseUp(object sender, MouseButtonEventArgs e)
         {
             App.isPress = false;
-        }
-
-        private void Frame_MouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            Player.Frame_MouseWheel(e);
         }
 
         private void UserControl_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -124,23 +127,46 @@ namespace SpineViewerWPF.Views
 
         public void Reload()
         {
-            Frame.Children.Remove(App.AppXC);
-            App.AppXC.Initialize -= player.Initialize;
-            App.AppXC.Update -= player.Update;
-            App.AppXC.LoadContent -= player.LoadContent;
-            App.AppXC.Draw -= player.Draw;
+            var st = (ScaleTransform)Frame.LayoutTransform;
+            st.ScaleX = 1;
+            st.ScaleY = 1;
+            Frame.Children.Remove(App.appXC);
+            App.appXC.Initialize -= player.Initialize;
+            App.appXC.Update -= player.Update;
+            App.appXC.LoadContent -= player.LoadContent;
+            App.appXC.Draw -= player.Draw;
 
 
-            App.AppXC.Initialize += player.Initialize;
-            App.AppXC.Update += player.Update;
-            App.AppXC.LoadContent += player.LoadContent;
-            App.AppXC.Draw += player.Draw;
-            App.AppXC.Width = App.GV.FrameWidth;
-            App.AppXC.Height = App.GV.FrameHeight;
+            App.appXC.Initialize += player.Initialize;
+            App.appXC.Update += player.Update;
+            App.appXC.LoadContent += player.LoadContent;
+            App.appXC.Draw += player.Draw;
+            App.appXC.Width = App.globalValues.FrameWidth;
+            App.appXC.Height = App.globalValues.FrameHeight;
 
-            Frame.Children.Add(App.AppXC);
+            Frame.Children.Add(App.appXC);
             player.ChangeSet();
             MainWindow.SetCBAnimeName();
+        }
+
+        private void ScrollViewer_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (Keyboard.IsKeyDown(Key.LeftAlt))
+            {
+                Player.Frame_MouseWheel(e);
+            }
+            else if (Keyboard.IsKeyDown(Key.LeftCtrl))
+            {
+                double zoom = e.Delta > 0 ? .02 : -.02;
+                var transformGroup = (TransformGroup)Frame.LayoutTransform;
+                var st = (ScaleTransform)transformGroup.Children.Where(x => x.GetType() == typeof(ScaleTransform)).FirstOrDefault();
+                App.globalValues.ViewScale += zoom;
+                st.ScaleX = App.globalValues.ViewScale;
+                st.ScaleY = App.globalValues.ViewScale;
+                Frame.Width = Frame.ActualWidth;
+                Frame.Height = Frame.ActualHeight;
+
+            }
         }
     }
 }

@@ -14,6 +14,7 @@ public class GlobalValue : INotifyPropertyChanged
     private List<string> _AnimeList;
     private List<string> _SkinList;
     private float _Scale;
+    private double _ViewScale;
     private int _Speed = 30;
     private float _PosX = 0;
     private float _PosY = 0;
@@ -42,6 +43,7 @@ public class GlobalValue : INotifyPropertyChanged
     private bool _FilpY = false;
     private float _RedcodePanelWidth = 280f;
     private float _Rotation = 0;
+    private bool _UseCache = false;
 
     private List<Texture2D> _GifList;
 
@@ -123,6 +125,22 @@ public class GlobalValue : INotifyPropertyChanged
             }
         }
     }
+    public double ViewScale
+    {
+        get
+        {
+            return _ViewScale;
+        }
+        set
+        {
+            if (_ViewScale != value)
+            {
+                _ViewScale = (double)Math.Round(value, 2);
+                OnPropertyChanged("ViewScale");
+            }
+        }
+    }
+
     public int Speed
     {
         get
@@ -589,7 +607,21 @@ public class GlobalValue : INotifyPropertyChanged
         }
     }
 
-
+    public bool UseCache
+    {
+        get
+        {
+            return _UseCache;
+        }
+        set
+        {
+            if (_UseCache != value)
+            {
+                _UseCache = value;
+                OnPropertyChanged("UseCache");
+            }
+        }
+    }
 
     public event PropertyChangedEventHandler PropertyChanged;
     public void OnPropertyChanged(string propertyName)

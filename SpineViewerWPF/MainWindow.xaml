@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:SpineViewerWPF"
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         mc:Ignorable="d"
-        Title="SpineViewerWPF" Height="704.8" Width="800" MinWidth="450" MinHeight="400" SizeChanged="Window_SizeChanged" Closed="Window_Closed"   >
+        Title="SpineViewerWPF" Height="704.8" Width="800" MinWidth="520" MinHeight="400" SizeChanged="Window_SizeChanged" Closed="Window_Closed"   >
     <Window.Resources>
         <Image x:Key="img_pause" Source="Resources/icons-pause.png"></Image>
         <Image x:Key="img_next" Source="Resources/icons-next.png"></Image>
@@ -14,47 +14,51 @@
         <Image x:Key="img_capture" Source="Resources/icons-capture.png"></Image>
     </Window.Resources>
     <DockPanel Name="MasterGrid">
-        <Menu Name="mu_Header" DockPanel.Dock="Top" VerticalAlignment="Top"  Height="20"   >
+        <Menu Name="mu_Header" DockPanel.Dock="Top" VerticalAlignment="Top"  Height="20" >
             <MenuItem Name="mi_File" Header="File" >
-                <MenuItem Name="mi_File_Load" Header="Load Spine" Click="loadFileToolStripMenuItem_Click" >
+                <MenuItem Name="mi_File_Load" Header="Open Spine" Click="loadFileToolStripMenuItem_Click" >
                 </MenuItem>
             </MenuItem>
-            <MenuItem Name="mi_Version" Header="Use Version" >
-                <ComboBox Name="cb_Version" HorizontalAlignment="Left"  VerticalAlignment="Top" Width="120">
-                    <ComboBoxItem Content="2.1.08"></ComboBoxItem>
-                    <ComboBoxItem Content="2.1.25"></ComboBoxItem>
-                    <ComboBoxItem Content="3.1.07"></ComboBoxItem>
-                    <ComboBoxItem Content="3.4.02"></ComboBoxItem>
-                    <ComboBoxItem Content="3.5.51"></ComboBoxItem>
-                    <ComboBoxItem Content="3.6.32"></ComboBoxItem>
-                    <ComboBoxItem Content="3.6.39"></ComboBoxItem>
-                    <ComboBoxItem Content="3.6.53"></ComboBoxItem>
-                    <ComboBoxItem Content="3.7.83"></ComboBoxItem>
-                    <ComboBoxItem Content="3.8.x"></ComboBoxItem>
-                </ComboBox>
-            </MenuItem>
         </Menu>
+        <Grid Name="GridHeaderButton" DockPanel.Dock="Top" VerticalAlignment="Top"  Height="22"  Background="AliceBlue">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" ></ColumnDefinition>
+                <ColumnDefinition Width="80"></ColumnDefinition>
+                <ColumnDefinition Width="32"></ColumnDefinition>
+                <ColumnDefinition Width="300"></ColumnDefinition>
+                <ColumnDefinition Width="34"></ColumnDefinition>
+                <ColumnDefinition Width="34"></ColumnDefinition>
+                <ColumnDefinition Width="34"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="20"></RowDefinition>
+            </Grid.RowDefinitions>
+            <Label Name="lb_ViewScale" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right" Height="20" FontSize="8" Content="ViewScale：100%"     VerticalAlignment="Top" Width="80"/>
+            <Label Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" Content="Playing Process："  VerticalAlignment="Top"  FontSize="8" Margin="0,0,0,0"  />
+            <Label Name="lb_Loading"  Grid.Row="0" Grid.Column="2" HorizontalAlignment="Right" Content="100%"  VerticalAlignment="Top"  FontSize="8" Margin="0,0,0,0"  />
+            <Slider Name="sl_Loading" Grid.Row="0"  Grid.Column="3" HorizontalAlignment="Right" Width="300" Margin="0,0,0,0" Maximum="1" SmallChange="0.01" LargeChange="0.1"  />
+            <Button Name="btn_PlayControl" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Right" Content="{StaticResource img_pause}" Width="32" Margin="0,0,0,0" Height="20" Click="btn_PlayControl_Click" />
+            <Button Name="btn_CaptureControl" Grid.Row="0" Grid.Column="5" HorizontalAlignment="Right" Content="{StaticResource img_capture}" Width="32" Margin="0,0,0,0" Height="20"  Click="btn_CaptureControl_Click" VerticalAlignment="Top"   />
+            <Button Name="btn_RecodeControl" Grid.Row="0" Grid.Column="6" HorizontalAlignment="Right" Content="{StaticResource img_video}" Width="32" Margin="0,0,0,0" Height="20" Click="btn_RecodeControl_Click" ></Button>
+
+            <Border Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="7" BorderBrush="#61738B" BorderThickness="1 1 0 1" />
+        </Grid>
 
 
         <Grid Name="MainContent">
 
-            <Grid Name="GridPlayer">
+            <Grid Name="GridPlayer" >
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="60" ></ColumnDefinition>
                     <ColumnDefinition Width="*" ></ColumnDefinition>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"></RowDefinition>
-                    <RowDefinition Height="20"></RowDefinition>
                 </Grid.RowDefinitions>
-                <ContentControl Name="Player" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left" VerticalAlignment="Top"   />
-                <TextBox Name="tb_Scale" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right" Height="14" FontSize="8" Text="100%"  TextWrapping="NoWrap"  Visibility="Hidden" VerticalAlignment="Top" Width="26"/>
-                <Label Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Content="Playing Process："  VerticalAlignment="Top"  FontSize="8" Margin="0,0,0,0"  />
-                <Label Name="lb_Loading"  Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Content="100%"  VerticalAlignment="Top"  FontSize="8" Margin="65.6,0,0,0"  />
-                <Slider Name="sl_Loading" Grid.Row="1"  Grid.Column="1" HorizontalAlignment="Left" Width="300" Margin="100,0,0,0" Maximum="1" SmallChange="0.01" LargeChange="0.1"  />
-                <Button Name="btn_PlayControl" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Content="{StaticResource img_pause}" Width="32" Margin="402.6,0,0,0"  Click="btn_PlayControl_Click" />
-                <Button Name="btn_CaptureControl" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Content="{StaticResource img_capture}" Width="32" Margin="440,0,0,0" Height="20"  Click="btn_CaptureControl_Click" VerticalAlignment="Top"   />
-                <Button Name="btn_RecodeControl" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Content="{StaticResource img_video}" Width="32" Margin="476.6,0,0,0" Height="20" Click="btn_RecodeControl_Click" ></Button>
+
+                <ContentControl Name="Player" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left" VerticalAlignment="Top"  >
+
+                </ContentControl>
 
 
 
@@ -97,7 +101,7 @@
                         <TabItem.Header>
                             <Label Content="Attributes"   HorizontalAlignment="Stretch"></Label>
                         </TabItem.Header>
-                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" >
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition MinWidth="100" ></ColumnDefinition>
@@ -211,6 +215,7 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="24"></RowDefinition>
                                     <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="*"></RowDefinition>
                                 </Grid.RowDefinitions>
                                 <Label Content="Gif Quality" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right"/>
                                 <ComboBox x:Name="cb_gif_q" Grid.Row="0" Grid.Column="1"  HorizontalAlignment="Left"  VerticalAlignment="Top" Width="94" SelectionChanged="cb_gif_q_SelectionChanged" >
@@ -219,6 +224,9 @@
                                     <ComboBoxItem Content="Bit4"/>
                                     <ComboBoxItem Content="Grayscale"/>
                                 </ComboBox>
+                                <Label Content="Use Disk Cache "  Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <Label Content="(Use Less Memory)"  Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <CheckBox Name="chb_LessMemory" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left"  VerticalAlignment="Center" IsChecked="True"  />
                             </Grid>
                         </ScrollViewer>
 

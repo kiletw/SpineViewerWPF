@@ -6,9 +6,20 @@
              xmlns:local="clr-namespace:SpineViewerWPF.Views"
              mc:Ignorable="d" 
      d:DesignHeight="610" d:DesignWidth="800" SizeChanged="UserControl_SizeChanged" >
-    <Grid Name="Panel">
-        <Canvas  Name="Frame" Background="{x:Null}"  MouseDown="Frame_MouseDown" MouseMove="Frame_MouseMove"  MouseUp="Frame_MouseUp" MouseWheel="Frame_MouseWheel" MouseLeave="Frame_MouseLeave"  >
-
-        </Canvas>
+    <Grid Name="Panel" Background="#FFC1C1C1" >
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"  PreviewMouseWheel="ScrollViewer_MouseWheel" >
+        <Canvas Name="Frame" Background="{x:Null}"  MouseDown="Frame_MouseDown" MouseMove="Frame_MouseMove"  MouseUp="Frame_MouseUp"  MouseLeave="Frame_MouseLeave"  >
+                <Canvas.RenderTransform>
+                    <TransformGroup>
+                        <TranslateTransform />
+                    </TransformGroup>
+                </Canvas.RenderTransform>
+                <Canvas.LayoutTransform>
+                    <TransformGroup>
+                        <ScaleTransform  />
+                    </TransformGroup>
+                </Canvas.LayoutTransform>
+            </Canvas>
+        </ScrollViewer>
     </Grid>
 </UserControl>

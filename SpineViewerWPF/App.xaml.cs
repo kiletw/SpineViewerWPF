@@ -15,17 +15,18 @@ namespace SpineViewerWPF
     /// </summary>
     public partial class App : Application
     {
-        public static GlobalValue GV = new GlobalValue();
-        public static string RootDir = Environment.CurrentDirectory;
-        public static string LastDir = "";
-        public static XnaControl AppXC;
-        public static Texture2D TextureBG;
+        public static GlobalValue globalValues = new GlobalValue();
+        public static string rootDir = Environment.CurrentDirectory;
+        public static string lastDir = "";
+        public static XnaControl appXC;
+        public static Texture2D textureBG;
 
         public static bool isPress = false;
         public static bool isNew = true;
         public static System.Windows.Point mouseLocation;
         public static SpriteBatch spriteBatch;
         public static GraphicsDevice graphicsDevice;
+        public static int recordImageCount;
 
     }
 }

@@ -41,7 +41,7 @@ using SpineViewerWPF;
 
 		static public Texture2D LoadTexture (GraphicsDevice device, Stream input) {
             NewTextureLoader ntl = new NewTextureLoader(device);
-            return ntl.FromStreamFast(input, App.GV.PreMultiplyAlpha);
+            return ntl.FromStreamFast(input, App.globalValues.PreMultiplyAlpha);
         }
 	}
 

@@ -15,31 +15,32 @@ public class Common
 {
     public static void Reset()
     {
-        App.GV.PosX = 0;
-        App.GV.PosY = 0;
-        App.GV.Scale = 1;
-        App.GV.SelectAnimeName = "";
-        App.GV.SelectSkin = "";
-        App.GV.SetSkin = false;
-        App.GV.SetAnime = false;
-        App.GV.Rotation = 0;
-        App.GV.UseBG = false;
-        App.GV.SelectBG = "";
-        App.GV.ControlBG = false;
-        App.GV.TimeScale = 1;
-        App.GV.Lock = 0f;
-        App.GV.IsRecoding = false;
-        App.GV.FilpX = false;
-        App.GV.FilpY = false;
-        App.GV.PosBGX = 0;
-        App.GV.PosBGY = 0;
-        if (App.TextureBG != null)
-            App.TextureBG.Dispose();
+        App.globalValues.PosX = 0;
+        App.globalValues.PosY = 0;
+        App.globalValues.Scale = 1;
+        App.globalValues.ViewScale = 1;
+        App.globalValues.SelectAnimeName = "";
+        App.globalValues.SelectSkin = "";
+        App.globalValues.SetSkin = false;
+        App.globalValues.SetAnime = false;
+        App.globalValues.Rotation = 0;
+        App.globalValues.UseBG = false;
+        App.globalValues.SelectBG = "";
+        App.globalValues.ControlBG = false;
+        App.globalValues.TimeScale = 1;
+        App.globalValues.Lock = 0f;
+        App.globalValues.IsRecoding = false;
+        App.globalValues.FilpX = false;
+        App.globalValues.FilpY = false;
+        App.globalValues.PosBGX = 0;
+        App.globalValues.PosBGY = 0;
+        if (App.textureBG != null)
+            App.textureBG.Dispose();
 
-        if (App.GV.AnimeList != null)
-            App.GV.AnimeList.Clear();
-        if (App.GV.SkinList != null)
-            App.GV.SkinList.Clear();
+        if (App.globalValues.AnimeList != null)
+            App.globalValues.AnimeList.Clear();
+        if (App.globalValues.SkinList != null)
+            App.globalValues.SkinList.Clear();
 
     }
 
@@ -67,17 +68,17 @@ public class Common
         if (File.Exists(path.Replace(".atlas", ".skel")))
         {
 
-            App.GV.SelectSpineFile = path.Replace(".atlas", ".skel");
+            App.globalValues.SelectSpineFile = path.Replace(".atlas", ".skel");
             return true;
         }
         else if (File.Exists(path.Replace(".atlas", ".json")))
         {
-            App.GV.SelectSpineFile = path.Replace(".atlas", ".json");
+            App.globalValues.SelectSpineFile = path.Replace(".atlas", ".json");
             return true;
         }
         else
         {
-            App.GV.SelectSpineFile = "";
+            App.globalValues.SelectSpineFile = "";
             return false;
         }
           
@@ -105,7 +106,7 @@ public class Common
                 {
                     image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
                     ms.Seek(0, SeekOrigin.Begin);
-                    return Texture2D.FromStream(App.AppXC.GraphicsDevice, ms);
+                    return Texture2D.FromStream(App.appXC.GraphicsDevice, ms);
                 }
             }
         }
@@ -114,32 +115,41 @@ public class Common
 
     public static void SetXY(double MosX, double MosY, double oldX, double oldY)
     {
-        App.GV.PosX = (float)(MosX + App.GV.PosX - oldX);
-        App.GV.PosY = (float)(MosY + App.GV.PosY - oldY);
+        App.globalValues.PosX = (float)(MosX + App.globalValues.PosX - oldX);
+        App.globalValues.PosY = (float)(MosY + App.globalValues.PosY - oldY);
     }
 
     public static void SetBGXY(double MosX, double MosY, double oldX, double oldY)
     {
-        App.GV.PosBGX = (float)(MosX + App.GV.PosBGX - oldX);
-        App.GV.PosBGY = (float)(MosY + App.GV.PosBGY - oldY);
+        App.globalValues.PosBGX = (float)(MosX + App.globalValues.PosBGX - oldX);
+        App.globalValues.PosBGY = (float)(MosY + App.globalValues.PosBGY - oldY);
     }
+
 
     public static void RecodingEnd(float AnimationEnd)
     {
 
         Thread t = new Thread(() =>
         {
-            List<MemoryStream> lms = new List<MemoryStream>();
-            for (int i = 0; i < App.GV.GifList.Count; i++)
+            if (!App.globalValues.UseCache)
             {
-                MemoryStream ms = new MemoryStream();
-                App.GV.GifList[i].SaveAsPng(ms, App.GV.GifList[i].Width, App.GV.GifList[i].Height);
-                lms.Add(ms);
-                App.GV.GifList[i].Dispose();
+                List<MemoryStream> lms = new List<MemoryStream>();
+                for (int i = 0; i < App.globalValues.GifList.Count; i++)
+                {
+                    MemoryStream ms = new MemoryStream();
+                    App.globalValues.GifList[i].SaveAsPng(ms, App.globalValues.GifList[i].Width, App.globalValues.GifList[i].Height);
+                    lms.Add(ms);
+                    App.globalValues.GifList[i].Dispose();
+                }
+                Common.SaveToGif(lms, AnimationEnd);
+                App.globalValues.GifList.Clear();
+                GC.Collect();
             }
-            Common.SaveToGif(lms, AnimationEnd);
-            App.GV.GifList.Clear();
-            GC.Collect();
+            else
+            {
+                Common.SaveToGif2(AnimationEnd);
+            }
+ 
         });
         t.SetApartmentState(ApartmentState.STA);
         t.Start();
@@ -154,48 +164,48 @@ public class Common
         saveFileDialog.Filter = "Gif Image|*.gif";
         saveFileDialog.Title = "Save a Gif File";
 
-        GifQuality GQ = new GifQuality();
+        GifQuality gifQuality = new GifQuality();
 
-        switch (App.GV.GifQuality)
+        switch (App.globalValues.GifQuality)
         {
             case "Default":
-                GQ = GifQuality.Default;
+                gifQuality = GifQuality.Default;
                 break;
             case "Bit8":
-                GQ = GifQuality.Bit8;
+                gifQuality = GifQuality.Bit8;
                 break;
             case "Bit4":
-                GQ = GifQuality.Bit4;
+                gifQuality = GifQuality.Bit4;
                 break;
             case "Grayscale":
-                GQ = GifQuality.Grayscale;
+                gifQuality = GifQuality.Grayscale;
                 break;
             default:
-                GQ = GifQuality.Default;
+                gifQuality = GifQuality.Default;
                 break;
         }
-        string fileName = GetFileNameNoEx(App.GV.SelectAtlasFile);
-        if (App.GV.SelectAnimeName != "")
-            fileName += $"_{App.GV.SelectAnimeName}";
-        if (App.GV.SelectSkin != "")
-            fileName += $"_{App.GV.SelectSkin}";
+        string fileName = GetFileNameNoEx(App.globalValues.SelectAtlasFile);
+        if (App.globalValues.SelectAnimeName != "")
+            fileName += $"_{App.globalValues.SelectAnimeName}";
+        if (App.globalValues.SelectSkin != "")
+            fileName += $"_{App.globalValues.SelectSkin}";
 
         saveFileDialog.FileName = fileName;
         saveFileDialog.ShowDialog();
         int delay = 0;
         if (time == 0)
         {
-            delay = 1000 / App.GV.Speed;
+            delay = 1000 / App.globalValues.Speed;
         }
         else
         {
-            delay = (int)(time * 1000 * (App.GV.Speed / 30f) / lms.Count);
+            delay = (int)(time * 1000 * (App.globalValues.Speed / 30f) / lms.Count);
         }
         
         if (saveFileDialog.FileName != "")
         {
 
-            using (AnimatedGifCreator gifCreator = AnimatedGif.AnimatedGif.Create(saveFileDialog.FileName, delay, App.GV.IsLoop == true ? 0 : 1))
+            using (AnimatedGifCreator gifCreator = AnimatedGif.AnimatedGif.Create(saveFileDialog.FileName, delay, App.globalValues.IsLoop == true ? 0 : 1))
             {
                 foreach (MemoryStream msimg in lms)
                 {
@@ -203,7 +213,7 @@ public class Common
                     {
                         using(Image img = Image.FromStream(msimg))
                         {
-                            gifCreator.AddFrame(img, -1, GQ);
+                            gifCreator.AddFrame(img, -1, gifQuality);
                         }
                     }
                 }
@@ -215,11 +225,91 @@ public class Common
             {
                 ms.Dispose();
             }
+
+        }
+        foreach (Texture2D ms in App.globalValues.GifList)
+        {
+            ms.Dispose();
         }
         lms.Clear();
         GC.Collect();
 
     }
+
+    public static void SaveToGif2(float time = 0)
+    {
+        SaveFileDialog saveFileDialog = new SaveFileDialog();
+        saveFileDialog.Filter = "Gif Image|*.gif";
+        saveFileDialog.Title = "Save a Gif File";
+
+        GifQuality gifQuality = new GifQuality();
+
+        switch (App.globalValues.GifQuality)
+        {
+            case "Default":
+                gifQuality = GifQuality.Default;
+                break;
+            case "Bit8":
+                gifQuality = GifQuality.Bit8;
+                break;
+            case "Bit4":
+                gifQuality = GifQuality.Bit4;
+                break;
+            case "Grayscale":
+                gifQuality = GifQuality.Grayscale;
+                break;
+            default:
+                gifQuality = GifQuality.Default;
+                break;
+        }
+        string fileName = GetFileNameNoEx(App.globalValues.SelectAtlasFile);
+        if (App.globalValues.SelectAnimeName != "")
+            fileName += $"_{App.globalValues.SelectAnimeName}";
+        if (App.globalValues.SelectSkin != "")
+            fileName += $"_{App.globalValues.SelectSkin}";
+
+        saveFileDialog.FileName = fileName;
+        saveFileDialog.ShowDialog();
+
+        string[] pngList = Directory.GetFiles($"{App.rootDir}\\Temp\\", "*.png",SearchOption.TopDirectoryOnly);
+
+
+        int delay = 0;
+        if (time == 0)
+        {
+            delay = 1000 / App.globalValues.Speed;
+        }
+        else
+        {
+            delay = (int)(time * 1000 * (App.globalValues.Speed / 30f) / pngList.Length);
+        }
+
+        if (saveFileDialog.FileName != "")
+        {
+
+            using (AnimatedGifCreator gifCreator = AnimatedGif.AnimatedGif.Create(saveFileDialog.FileName, delay, App.globalValues.IsLoop == true ? 0 : 1))
+            {
+                foreach (string path in pngList)
+                {
+                    using (FileStream fsimg = new FileStream(path,FileMode.Open))
+                    {
+                        using (Image img = Image.FromStream(fsimg))
+                        {
+                            gifCreator.AddFrame(img, -1, gifQuality);
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+        }
+        ClearCacheFile();
+
+        GC.Collect();
+
+    }
+
 
     public static BitmapSource SourceFrom(MemoryStream stream, int? size = null)
     {
@@ -243,11 +333,11 @@ public class Common
         SaveFileDialog saveFileDialog = new SaveFileDialog();
         saveFileDialog.Filter = "Png Image|*.png";
         saveFileDialog.Title = "Save a Png File";
-        string fileName = GetFileNameNoEx(App.GV.SelectAtlasFile);
-        if (App.GV.SelectAnimeName != "")
-            fileName += $"_{App.GV.SelectAnimeName}";
-        if (App.GV.SelectSkin != "")
-            fileName += $"_{App.GV.SelectSkin}";
+        string fileName = GetFileNameNoEx(App.globalValues.SelectAtlasFile);
+        if (App.globalValues.SelectAnimeName != "")
+            fileName += $"_{App.globalValues.SelectAnimeName}";
+        if (App.globalValues.SelectSkin != "")
+            fileName += $"_{App.globalValues.SelectSkin}";
 
         saveFileDialog.FileName = fileName;
         Nullable<bool> result = saveFileDialog.ShowDialog();
@@ -262,7 +352,7 @@ public class Common
 
     }
 
-    public static Texture2D TakeRecodeScreenshot(GraphicsDevice _graphicsDevice)
+    public static void TakeRecodeScreenshot(GraphicsDevice _graphicsDevice)
     {
         var wpfRenderTarget = (RenderTarget2D)_graphicsDevice.GetRenderTargets()[0].RenderTarget;
         int[] screenData = new int[_graphicsDevice.PresentationParameters.BackBufferWidth * _graphicsDevice.PresentationParameters.BackBufferHeight];
@@ -272,28 +362,48 @@ public class Common
         Texture2D texture = new Texture2D(_graphicsDevice, _graphicsDevice.PresentationParameters.BackBufferWidth, _graphicsDevice.PresentationParameters.BackBufferHeight, false, _graphicsDevice.PresentationParameters.BackBufferFormat);
 
         texture.SetData(screenData);
-        return texture;
+        if (!App.globalValues.UseCache)
+        {
+            App.globalValues.GifList.Add(texture);
+            App.recordImageCount++;
+        }
+        else
+        {
+            string fileName = GetFileNameNoEx(App.globalValues.SelectAtlasFile);
+            if (App.globalValues.SelectAnimeName != "")
+                fileName += $"_{App.globalValues.SelectAnimeName}";
+            if (App.globalValues.SelectSkin != "")
+                fileName += $"_{App.globalValues.SelectSkin}"; 
+            using (FileStream fs = new FileStream($"{App.rootDir}\\Temp\\{fileName}_{App.recordImageCount.ToString().PadLeft(7,'0')}.png"
+                ,FileMode.Create))
+            {
+                texture.SaveAsPng(fs, _graphicsDevice.PresentationParameters.BackBufferWidth
+                    , _graphicsDevice.PresentationParameters.BackBufferHeight);
+            }
+            App.recordImageCount++;
+            texture.Dispose();
+        }
     }
 
     public static void TakeScreenshot()
     {
-        float bakTimeScale = App.GV.TimeScale;
+        float bakTimeScale = App.globalValues.TimeScale;
 
-        if (App.AppXC.GraphicsDevice == null)
+        if (App.appXC.GraphicsDevice == null)
         {
             MessageBox.Show("No Content！");
             return;
         }
 
-        GraphicsDevice _graphicsDevice = App.AppXC.GraphicsDevice;
-        App.GV.TimeScale = 0;
+        GraphicsDevice _graphicsDevice = App.appXC.GraphicsDevice;
+        App.globalValues.TimeScale = 0;
         using (RenderTarget2D renderTarget = new RenderTarget2D(_graphicsDevice, _graphicsDevice.PresentationParameters.BackBufferWidth, _graphicsDevice.PresentationParameters.BackBufferHeight))
         {
             _graphicsDevice.Textures[0] = null;
             _graphicsDevice.SetRenderTarget(renderTarget);
-            App.AppXC.Draw();
+            App.appXC.Draw();
             GameTime gameTime = new GameTime();
-            App.AppXC.Update(gameTime);
+            App.appXC.Update(gameTime);
             _graphicsDevice.Viewport = new Viewport(0, 0, _graphicsDevice.PresentationParameters.BackBufferWidth, _graphicsDevice.PresentationParameters.BackBufferHeight);
             _graphicsDevice.SetRenderTarget(null);
             int[] screenData = new int[_graphicsDevice.PresentationParameters.BackBufferWidth * _graphicsDevice.PresentationParameters.BackBufferHeight];
@@ -302,7 +412,20 @@ public class Common
             texture.SetData(screenData);
             Common.SaveToPng(texture);
         }
-        App.GV.TimeScale = bakTimeScale;
+        App.globalValues.TimeScale = bakTimeScale;
+    }
+
+
+    public static void ClearCacheFile()
+    {
+        string[] fileList = Directory.GetFiles($"{App.rootDir}\\Temp\\", "*.*", SearchOption.AllDirectories);
+        if (fileList.Length > 0)
+        {
+            foreach(string path in fileList)
+            {
+                File.Delete(path);
+            }
+        }
     }
 }
 

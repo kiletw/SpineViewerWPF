@@ -17,6 +17,8 @@ using Microsoft.Win32;
 using WpfXnaControl;
 using System.Text.RegularExpressions;
 using System.IO;
+using Microsoft.Xna.Framework;
+using SpineViewerWPF.Windows;
 
 namespace SpineViewerWPF
 {
@@ -32,6 +34,9 @@ namespace SpineViewerWPF
         public MainWindow()
         {
             InitializeComponent();
+
+            Game game = new Game();
+            game.IsFixedTimeStep = true;
             MasterMain = this;
             LoadSetting();
 
@@ -39,43 +44,44 @@ namespace SpineViewerWPF
 
         private void LoadSetting()
         {
-            if (App.GV.Scale == 0)
-                App.GV.Scale = 1;
+            if (App.globalValues.Scale == 0)
+                App.globalValues.Scale = 1;
 
             if (Properties.Settings.Default.LastSelectDir == "")
             {
-                App.LastDir = App.RootDir;
+                App.lastDir = App.rootDir;
             }
             else
             {
-                App.LastDir = Properties.Settings.Default.LastSelectDir;
+                App.lastDir = Properties.Settings.Default.LastSelectDir;
             }
-            tb_Fps.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Speed") });
-            tb_Spine_Scale.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Scale") });
-            tb_Scale.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Scale"), StringFormat = "{0}%" });
-            lb_Width.SetBinding(ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("FrameWidth") });
-            lb_Height.SetBinding(ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("FrameHeight") });
-            tb_PosX.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("PosX") });
-            tb_PosY.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("PosY") });
-            tb_Rotation.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Rotation") });
+            tb_Fps.SetBinding(TextBox.TextProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("Speed") });
+            tb_Spine_Scale.SetBinding(TextBox.TextProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("Scale") });
+            lb_ViewScale.SetBinding(ContentProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("ViewScale") });
+            lb_ViewScale.ContentStringFormat = $"ViewScale：{0 * 100}%";
+            lb_Width.SetBinding(ContentProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("FrameWidth") });
+            lb_Height.SetBinding(ContentProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("FrameHeight") });
+            tb_PosX.SetBinding(TextBox.TextProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("PosX") });
+            tb_PosY.SetBinding(TextBox.TextProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("PosY") });
+            tb_Rotation.SetBinding(TextBox.TextProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("Rotation") });
 
-            tb_BG_PosX.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("PosBGX") });
-            tb_BG_PosY.SetBinding(TextBox.TextProperty, new Binding() { Source = App.GV, Path = new PropertyPath("PosBGY") });
-            chb_UseBG.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("UseBG") });
-            lb_ImagePath.SetBinding(ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("SelectBG") });
-            chb_ControlBG.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("ControlBG") });
+            tb_BG_PosX.SetBinding(TextBox.TextProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("PosBGX") });
+            tb_BG_PosY.SetBinding(TextBox.TextProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("PosBGY") });
+            chb_UseBG.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("UseBG") });
+            lb_ImagePath.SetBinding(ContentProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("SelectBG") });
+            chb_ControlBG.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("ControlBG") });
 
 
-            chb_Alpha.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Alpha") });
-            chb_IsLoop.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("IsLoop") });
-            chb_PreMultiplyAlpha.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("PreMultiplyAlpha") });
-            chb_FilpX.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("FilpX") });
-            chb_FilpY.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.GV, Path = new PropertyPath("FilpY") });
-
+            chb_Alpha.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("Alpha") });
+            chb_IsLoop.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("IsLoop") });
+            chb_PreMultiplyAlpha.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("PreMultiplyAlpha") });
+            chb_FilpX.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("FilpX") });
+            chb_FilpY.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("FilpY") });
+            chb_LessMemory.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("UseCache") });
 
             TextCompositionManager.AddPreviewTextInputStartHandler(tb_Fps, tb_Fps_PreviewTextInput);
-            sl_Loading.SetBinding(Slider.ValueProperty, new Binding() { Source = App.GV, Path = new PropertyPath("Lock") });
-            lb_Loading.SetBinding(ContentProperty, new Binding() { Source = App.GV, Path = new PropertyPath("LoadingProcess") });
+            sl_Loading.SetBinding(Slider.ValueProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("Lock") });
+            lb_Loading.SetBinding(ContentProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("LoadingProcess") });
             GridAttributes.ColumnDefinitions[0].Width = new GridLength(34);
             gs_Control.Visibility = Visibility.Hidden;
             tc_Control.SelectedIndex = 4;
@@ -88,15 +94,15 @@ namespace SpineViewerWPF
             {
                 if (cb_AnimeList.SelectedItem.ToString() != "")
                 {
-                    App.GV.SelectAnimeName = cb_AnimeList.SelectedItem.ToString();
-                    App.GV.SetAnime = true;
+                    App.globalValues.SelectAnimeName = cb_AnimeList.SelectedItem.ToString();
+                    App.globalValues.SetAnime = true;
                 }
             }
         }
 
         public void UpdateSpine()
         {
-            if(UC_Player != null)
+            if (UC_Player != null)
             {
                 UC_Player.ChangeSet();
             }
@@ -104,23 +110,21 @@ namespace SpineViewerWPF
 
         public static void SetCBAnimeName()
         {
-            for (int i = 0; i < App.GV.AnimeList.Count; i++)
+            for (int i = 0; i < App.globalValues.AnimeList.Count; i++)
             {
-               MasterMain.cb_AnimeList.Items.Add(App.GV.AnimeList[i]);
+                MasterMain.cb_AnimeList.Items.Add(App.globalValues.AnimeList[i]);
             }
-            for (int i = 0; i < App.GV.SkinList.Count; i++)
+            for (int i = 0; i < App.globalValues.SkinList.Count; i++)
             {
-                MasterMain.cb_SkinList.Items.Add(App.GV.SkinList[i]);
+                MasterMain.cb_SkinList.Items.Add(App.globalValues.SkinList[i]);
             }
         }
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
 
-            App.GV.FrameWidth = Math.Round(GridPlayer.ColumnDefinitions[1].ActualWidth + 60 - 2, 2);
-            App.GV.FrameHeight = Math.Round(this.ActualHeight - 60, 2);
-            Player.Width = App.GV.FrameWidth;
-            Player.Height = App.GV.FrameHeight;
+            Player.Width = Math.Round(GridPlayer.ColumnDefinitions[1].ActualWidth + 60 - 2, 2);
+            Player.Height = Math.Round(this.ActualHeight - 60, 2);
 
         }
 
@@ -130,8 +134,8 @@ namespace SpineViewerWPF
             {
                 if (cb_SkinList.SelectedItem.ToString() != "")
                 {
-                    App.GV.SelectSkin = cb_SkinList.SelectedItem.ToString();
-                    App.GV.SetSkin = true;
+                    App.globalValues.SelectSkin = cb_SkinList.SelectedItem.ToString();
+                    App.globalValues.SetSkin = true;
                 }
             }
         }
@@ -139,7 +143,7 @@ namespace SpineViewerWPF
 
         private void chb_IsLoop_Click(object sender, RoutedEventArgs e)
         {
-            App.GV.SetAnime = true;
+            App.globalValues.SetAnime = true;
         }
         private void chb_PreMultiplyAlpha_Click(object sender, RoutedEventArgs e)
         {
@@ -157,94 +161,65 @@ namespace SpineViewerWPF
 
         private void loadFileToolStripMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            OpenFileDialog openFileDialog2 = new OpenFileDialog();
+            Open open = new Open(this);
+            open.Show();
+
+
+        }
+
+        public void LoadPlayer(string spineVersion)
+        {
+            Common.Reset();
 
 
 
-            if (Directory.Exists(App.LastDir))
+            MasterMain.cb_AnimeList.Items.Clear();
+            MasterMain.cb_SkinList.Items.Clear();
+            if (Player.Content != null)
             {
-                openFileDialog.InitialDirectory = App.LastDir;
-            }
-            else
-            {
-                openFileDialog.InitialDirectory = Environment.CurrentDirectory;
-            }
-           
-            openFileDialog.Filter = "Spine Altas File (*.atlas)|*.atlas;";
-            openFileDialog2.Filter = "Spine Json File (*.json)|*.json|Spine Binary File (*.skel)|*.skel";
-
-            if (cb_Version.SelectedIndex == -1)
-            {
-                MessageBox.Show("Please Select Spine Version！");
-                return;
-            }
-
-            if (openFileDialog.ShowDialog() == true)
-            {
-                Common.Reset();
-                App.GV.SelectAtlasFile = openFileDialog.FileName;
-                App.LastDir = Common.GetDirName(openFileDialog.FileName);
-                openFileDialog2.InitialDirectory = App.LastDir;
-                if (!Common.CheckSpineFile(App.GV.SelectAtlasFile))
+                if (App.globalValues.SpineVersion != spineVersion)
                 {
-                    MessageBox.Show("Can not found Spine Json or Binary file！");
+                    App.globalValues.SpineVersion = spineVersion;
+                    App.isNew = true;
+                    App.appXC.ContentManager.Dispose();
+                    App.appXC.Initialize = null;
+                    App.appXC.Update = null;
+                    App.appXC.LoadContent = null;
+                    App.appXC.Draw = null;
+                    btn_PlayControl.Content = this.FindResource("img_pause");
 
-                    if(openFileDialog2.ShowDialog() == true)
+                    DependencyObject xnaParent = ((UserControl)Player.Content).Parent;
+                    if (xnaParent != null)
                     {
-                        App.GV.SelectSpineFile = openFileDialog2.FileName;
+                        xnaParent.SetValue(ContentPresenter.ContentProperty, null);
                     }
-                    else
+                    Canvas oldCanvas = (Canvas)App.appXC.Parent;
+                    if (oldCanvas != null)
                     {
-                        return;
+                        oldCanvas.Children.Clear();
                     }
-                }
-
-
-                MasterMain.cb_AnimeList.Items.Clear();
-                MasterMain.cb_SkinList.Items.Clear();
-                if (Player.Content != null)
-                {
-                    if(App.GV.SpineVersion != cb_Version.SelectionBoxItem.ToString())
-                    {
-                        App.GV.SpineVersion = cb_Version.SelectionBoxItem.ToString();
-                        App.isNew = true;
-                        App.AppXC.ContentManager.Dispose();
-                        App.AppXC.Initialize = null;
-                        App.AppXC.Update = null;
-                        App.AppXC.LoadContent = null;
-                        App.AppXC.Draw = null;
-                        btn_PlayControl.Content = this.FindResource("img_pause");
-
-                        DependencyObject xnaParent = ((UserControl)Player.Content).Parent;
-                        if (xnaParent != null)
-                        {
-                            xnaParent.SetValue(ContentPresenter.ContentProperty, null);
-                        }
-                        Canvas oldCanvas = (Canvas)App.AppXC.Parent;
-                        if (oldCanvas != null)
-                        {
-                            oldCanvas.Children.Clear();
-                        }
-                        Player.Content = null;
-                        UC_Player = new UCPlayer();
-                        Player.Content = UC_Player;
-                    }
-                    else
-                    {
-                        UC_Player.Reload();
-                    }
-                }
-                else
-                {
-                    App.GV.SpineVersion = cb_Version.SelectionBoxItem.ToString();
+                    Player.Content = null;
                     UC_Player = new UCPlayer();
                     Player.Content = UC_Player;
                 }
-            
-
+                else
+                {
+                    UC_Player.Reload();
+                }
             }
+            else
+            {
+                App.globalValues.SpineVersion = spineVersion;
+                UC_Player = new UCPlayer();
+                Player.Content = UC_Player;
+            }
+
         }
+
+
+
+
+
 
         private void cb_gif_q_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -252,7 +227,7 @@ namespace SpineViewerWPF
             {
                 if (cb_gif_q.SelectedItem.ToString() != "")
                 {
-                    App.GV.GifQuality = ((ComboBoxItem)cb_gif_q.SelectedItem).Content.ToString();
+                    App.globalValues.GifQuality = ((ComboBoxItem)cb_gif_q.SelectedItem).Content.ToString();
                 }
             }
         }
@@ -261,16 +236,26 @@ namespace SpineViewerWPF
         int tempSpeed = 0;
         private void btn_PlayControl_Click(object sender, RoutedEventArgs e)
         {
-            if (App.GV.TimeScale == 0)
+            if (App.globalValues.Speed == 0)
             {
-                App.GV.Speed = tempSpeed;
-                btn_PlayControl.Content = this.FindResource("img_pause"); 
+                App.globalValues.Speed = tempSpeed;
+                App.globalValues.TimeScale = 1;
+                btn_PlayControl.Content = this.FindResource("img_pause");
             }
-            else if (App.GV.Speed > 0)
+            else if (App.globalValues.Speed > 0)
             {
-                tempSpeed = App.GV.Speed;
-                App.GV.Speed = 0;
-                btn_PlayControl.Content = this.FindResource("img_next"); 
+                tempSpeed = App.globalValues.Speed;
+                App.globalValues.Speed = 0;
+                App.globalValues.TimeScale = 0;
+                btn_PlayControl.Content = this.FindResource("img_next");
+            }
+            else if (App.globalValues == null)
+            {
+                App.globalValues = new GlobalValue();
+                tempSpeed = App.globalValues.Speed;
+                App.globalValues.Speed = 0;
+                App.globalValues.TimeScale = 0;
+                btn_PlayControl.Content = this.FindResource("img_next");
             }
         }
 
@@ -281,33 +266,38 @@ namespace SpineViewerWPF
 
         private void btn_RecodeControl_Click(object sender, RoutedEventArgs e)
         {
-            if (!App.GV.IsRecoding)
+            if (!App.globalValues.IsRecoding)
             {
-                App.GV.IsRecoding = true;
-                App.GV.SetAnime = true;
-                App.GV.SetSkin = true;
+                if (!Directory.Exists($"{App.rootDir}\\Temp\\"))
+                    Directory.CreateDirectory($"{App.rootDir}\\Temp\\");
+
+                Common.ClearCacheFile();
+                App.recordImageCount = 1;
+                App.globalValues.IsRecoding = true;
+                App.globalValues.SetAnime = true;
+                App.globalValues.SetSkin = true;
             }
         }
 
         private void Btn_SelectBG_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.InitialDirectory = App.LastDir;
+            openFileDialog.InitialDirectory = App.lastDir;
             openFileDialog.Filter = "Png Files (*.png)|*.png|Jpeg Files (*.jpg)|*.jpg;";
 
             if (openFileDialog.ShowDialog() == true)
             {
-                if (App.TextureBG != null)
+                if (App.textureBG != null)
                 {
-                    App.TextureBG.Dispose();
-                    App.TextureBG = null;
+                    App.textureBG.Dispose();
+                    App.textureBG = null;
                 }
-                   
 
-                App.GV.SelectBG = openFileDialog.FileName;
-                App.GV.PosBGX = 0;
-                App.GV.PosBGY = 0;
-                App.TextureBG = Common.SetBG(App.GV.SelectBG);
+
+                App.globalValues.SelectBG = openFileDialog.FileName;
+                App.globalValues.PosBGX = 0;
+                App.globalValues.PosBGY = 0;
+                App.textureBG = Common.SetBG(App.globalValues.SelectBG);
             }
 
         }
@@ -317,7 +307,7 @@ namespace SpineViewerWPF
         {
             if (tc_Control.SelectedIndex != 4 && tc_Control.SelectedIndex != -1)
             {
-                GridAttributes.ColumnDefinitions[0].Width = new GridLength(App.GV.RedcodePanelWidth);
+                GridAttributes.ColumnDefinitions[0].Width = new GridLength(App.globalValues.RedcodePanelWidth);
                 gs_Control.Visibility = Visibility.Visible;
                 btn_Exporer.Visibility = Visibility.Visible;
             }
@@ -332,7 +322,7 @@ namespace SpineViewerWPF
         {
             if (Convert.ToInt32(GridAttributes.ColumnDefinitions[0].Width.Value) <= 34)
             {
-                GridAttributes.ColumnDefinitions[0].Width = new GridLength(App.GV.RedcodePanelWidth);
+                GridAttributes.ColumnDefinitions[0].Width = new GridLength(App.globalValues.RedcodePanelWidth);
                 gs_Control.Visibility = Visibility.Visible;
             }
             else
@@ -346,14 +336,15 @@ namespace SpineViewerWPF
 
         private void GridSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
         {
-            App.GV.RedcodePanelWidth = Convert.ToInt32(GridAttributes.ColumnDefinitions[0].Width.Value);
+            App.globalValues.RedcodePanelWidth = Convert.ToInt32(GridAttributes.ColumnDefinitions[0].Width.Value);
         }
 
         private void Window_Closed(object sender, EventArgs e)
         {
-            Properties.Settings.Default.LastSelectDir = App.LastDir;
+            Properties.Settings.Default.LastSelectDir = App.lastDir;
             Properties.Settings.Default.Save();
         }
+
 
     }
 }
