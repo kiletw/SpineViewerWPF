@@ -1,6 +1,12 @@
 # SpineViewerWPF
 這是一個能選擇你要的Spine運行庫來查看Spine動畫並可匯出png或gif的工具。
 
+## 快捷鍵
+* Ctrl+Mousewheel 縮放視窗
+* Alt+Mousewheel  縮放Spine物件
+* Ctrl+Mousedown+Mousemove  移動視窗
+* Alt+Mousedown+Mousemove  移動Spine物件
+
 ## 特色
 * 支持的Spine運行庫版本 
   * **2.1.08**
@@ -12,7 +18,7 @@
   * **3.6.39**
   * **3.6.53**
   * **3.7.83**
-  * **3.8.x**
+  * **3.8.95**
 * 將Spine動畫匯出成png或gif。
 * 能用不同功能選項瀏覽Spine動畫。
 
@@ -30,7 +36,5 @@
 - [Microsoft XNA Framework Redistributable 4.0](https://www.microsoft.com/en-us/download/details.aspx?id=20914)
 
 ## 問題:
-1.記憶體使用過大問題
-2.部分動畫圖層之間會有錯誤的陰影
-3.匯出的gif圖的速度有的會跟表現的差異過大
+1.部分動畫圖層之間會有錯誤的陰影
 *  \_(:3」∠)\_
