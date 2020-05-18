@@ -52,9 +52,6 @@
   <PropertyGroup>
     <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
-	<PropertyGroup>
-		<LangVersion>latest</LangVersion>
-	</PropertyGroup>
   <ItemGroup>
     <Reference Include="AnimatedGif, Version=1.0.5.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\AnimatedGif.1.0.5\lib\netstandard2.0\AnimatedGif.dll</HintPath>
