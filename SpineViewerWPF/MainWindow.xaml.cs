@@ -30,6 +30,7 @@ namespace SpineViewerWPF
         public static MainWindow MasterMain;
         public static ContentControl MasterControl;
         public static UCPlayer UC_Player;
+        public static Open open;
 
         public MainWindow()
         {
@@ -37,6 +38,7 @@ namespace SpineViewerWPF
 
             Game game = new Game();
             game.IsFixedTimeStep = true;
+            this.Title = $"SpineViewerWPF      v{System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()}";
             MasterMain = this;
             LoadSetting();
 
@@ -70,7 +72,7 @@ namespace SpineViewerWPF
             chb_UseBG.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("UseBG") });
             lb_ImagePath.SetBinding(ContentProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("SelectBG") });
             chb_ControlBG.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("ControlBG") });
-
+            lb_SpineVersion.SetBinding(ContentProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("SpineVersion") });
 
             chb_Alpha.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("Alpha") });
             chb_IsLoop.SetBinding(CheckBox.IsCheckedProperty, new Binding() { Source = App.globalValues, Path = new PropertyPath("IsLoop") });
@@ -161,7 +163,7 @@ namespace SpineViewerWPF
 
         private void loadFileToolStripMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            Open open = new Open(this);
+            open = new Open(this);
             open.Show();
 
 
@@ -171,15 +173,13 @@ namespace SpineViewerWPF
         {
             Common.Reset();
 
-
-
             MasterMain.cb_AnimeList.Items.Clear();
             MasterMain.cb_SkinList.Items.Clear();
             if (Player.Content != null)
             {
-                if (App.globalValues.SpineVersion != spineVersion)
+                if (App.globalValues.SelectSpineVersion != spineVersion)
                 {
-                    App.globalValues.SpineVersion = spineVersion;
+                    App.globalValues.SelectSpineVersion = spineVersion;
                     App.isNew = true;
                     App.appXC.ContentManager.Dispose();
                     App.appXC.Initialize = null;
@@ -209,7 +209,7 @@ namespace SpineViewerWPF
             }
             else
             {
-                App.globalValues.SpineVersion = spineVersion;
+                App.globalValues.SelectSpineVersion = spineVersion;
                 UC_Player = new UCPlayer();
                 Player.Content = UC_Player;
             }
@@ -343,8 +343,17 @@ namespace SpineViewerWPF
         {
             Properties.Settings.Default.LastSelectDir = App.lastDir;
             Properties.Settings.Default.Save();
+            if(open != null)
+                open.Close();
         }
 
-
+        private void mi_Exit_Click(object sender, RoutedEventArgs e)
+        {
+            Properties.Settings.Default.LastSelectDir = App.lastDir;
+            Properties.Settings.Default.Save();
+            if (open != null)
+                open.Close();
+            Application.Current.Shutdown();
+        }
     }
 }

@@ -427,6 +427,16 @@ public class Common
             }
         }
     }
+
+    public static void SetInitLocation(float height)
+    {
+        if (App.isNew)
+        {
+            App.globalValues.PosX = Convert.ToSingle(App.globalValues.FrameWidth / 2f);
+            App.globalValues.PosY = Convert.ToSingle((height + App.globalValues.FrameHeight) / 2f);
+        }
+    }
+
 }
 
 

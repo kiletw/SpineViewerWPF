@@ -29,6 +29,13 @@ namespace SpineViewerWPF.Windows
             InitializeComponent();
 
             _window = main;
+            string spineVersion = App.globalValues.SelectSpineVersion.ToString();
+            if (spineVersion != "")
+            {
+                cb_Version.SelectedValue = spineVersion;
+            }
+
+
             tb_Canvas_X.Text = System.Windows.SystemParameters.WorkArea.Width.ToString();
             tb_Canvas_Y.Text = System.Windows.SystemParameters.WorkArea.Height.ToString();
         }
@@ -44,7 +51,11 @@ namespace SpineViewerWPF.Windows
                 {
                     MessageBox.Show("Can not found Spine Json or Binary file！");
 
-                    SelectFile("Spine Json File (*.json)|*.json|Spine Binary File (*.skel)|*.skel", tb_JS_file);
+                    bool isSelectSp = SelectFile("Spine Json File (*.json)|*.json|Spine Binary File (*.skel)|*.skel", tb_JS_file);
+                    if (isSelectSp)
+                    {
+                        tb_JS_file.Text = App.globalValues.SelectSpineFile;
+                    }
                 }
                 else
                 {

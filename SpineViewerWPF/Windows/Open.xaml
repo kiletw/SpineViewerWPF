@@ -27,7 +27,7 @@
         <TextBox Name="tb_JS_file" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Width="330" VerticalAlignment="Center" Height="22" ></TextBox>
         <Button x:Name="btn_Altas_Open" Content="..."  Grid.Row="0" Grid.Column="2" Click="btn_Altas_Open_Click" ></Button>
         <Button x:Name="btn_JS_Open" Content="..."  Grid.Row="1" Grid.Column="2" Height="25" VerticalAlignment="Top" Click="btn_JS_Open_Click" ></Button>
-        <ComboBox Name="cb_Version" HorizontalAlignment="Left" Grid.Row="2" Grid.Column="1" VerticalAlignment="Top" Width="120">
+        <ComboBox Name="cb_Version" HorizontalAlignment="Left" Grid.Row="2" Grid.Column="1" VerticalAlignment="Top" Width="120" SelectedValuePath="Content">
             <ComboBoxItem Content="2.1.08"></ComboBoxItem>
             <ComboBoxItem Content="2.1.25"></ComboBoxItem>
             <ComboBoxItem Content="3.1.07"></ComboBoxItem>

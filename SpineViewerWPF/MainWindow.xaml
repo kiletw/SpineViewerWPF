@@ -18,6 +18,9 @@
             <MenuItem Name="mi_File" Header="File" >
                 <MenuItem Name="mi_File_Load" Header="Open Spine" Click="loadFileToolStripMenuItem_Click" >
                 </MenuItem>
+                <Separator />
+                <MenuItem Name="mi_Exit" Header="Exit"  Click="mi_Exit_Click"  >
+                </MenuItem>
             </MenuItem>
         </Menu>
         <Grid Name="GridHeaderButton" DockPanel.Dock="Top" VerticalAlignment="Top"  Height="22"  Background="AliceBlue">
@@ -161,13 +164,16 @@
                                     <ColumnDefinition MinWidth="20"  Width="*" ></ColumnDefinition>
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="24"></RowDefinition>
-                                    <RowDefinition Height="24"></RowDefinition>
+                                    <RowDefinition Height="26"></RowDefinition>
+                                    <RowDefinition Height="26"></RowDefinition>
+                                    <RowDefinition Height="26"></RowDefinition>
                                 </Grid.RowDefinitions>
                                 <Label Content="FrameWidth" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right"/>
                                 <Label Name="lb_Width" Grid.Row="0" Grid.Column="1"  Content="" HorizontalAlignment="Left" />
                                 <Label Content="FrameHeight" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right"/>
                                 <Label Name="lb_Height" Grid.Row="1" Grid.Column="1"  Content="" HorizontalAlignment="Left" />
+                                <Label Content="Spine Version" Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <Label Name="lb_SpineVersion" Grid.Row="2" Grid.Column="1"  Content="" HorizontalAlignment="Left" />
                             </Grid>
                         </ScrollViewer>
                     </TabItem>

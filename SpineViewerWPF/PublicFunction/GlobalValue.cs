@@ -11,6 +11,7 @@ public class GlobalValue : INotifyPropertyChanged
 {
     private string _SelectAtlasFile = "";
     private string _SelectSpineFile = "";
+    private string _SpineVersion = "";
     private List<string> _AnimeList;
     private List<string> _SkinList;
     private float _Scale;
@@ -28,7 +29,7 @@ public class GlobalValue : INotifyPropertyChanged
     private string _SelectAnimeName = "";
     private string _SelectSkin = "";
     private float _TimeScale = 1;
-    private string _SpineVersion = "";
+    private string _SelectSpineVersion = "";
     private double _FrameWidth;
     private double _FrameHeight;
     private bool _PreMultiplyAlpha;
@@ -79,6 +80,23 @@ public class GlobalValue : INotifyPropertyChanged
             }
         }
     }
+
+    public string SpineVersion
+    {
+        get
+        {
+            return _SpineVersion;
+        }
+        set
+        {
+            if (_SpineVersion != value)
+            {
+                _SpineVersion = value;
+                OnPropertyChanged("SpineVersion");
+            }
+        }
+    }
+
 
     public List<string> AnimeList
     {
@@ -341,18 +359,18 @@ public class GlobalValue : INotifyPropertyChanged
             }
         }
     }
-    public string SpineVersion
+    public string SelectSpineVersion
     {
         get
         {
-            return _SpineVersion;
+            return _SelectSpineVersion;
         }
         set
         {
-            if (_SpineVersion != value)
+            if (_SelectSpineVersion != value)
             {
-                _SpineVersion = value;
-                OnPropertyChanged("SpineVersion");
+                _SelectSpineVersion = value;
+                OnPropertyChanged("SelectSpineVersion");
             }
         }
     }
@@ -375,7 +393,7 @@ public class GlobalValue : INotifyPropertyChanged
     {
         get
         {
-            return _FrameHeight - 20;
+            return _FrameHeight;
         }
         set
         {

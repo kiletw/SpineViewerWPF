@@ -47,13 +47,10 @@ public class Player_3_7_83 : IPlayer
             json.Scale = App.globalValues.Scale;
             skeletonData = json.ReadSkeletonData(App.globalValues.SelectSpineFile);
         }
+        App.globalValues.SpineVersion = skeletonData.Version;
         skeleton = new Skeleton(skeletonData);
 
-        if (App.isNew)
-        {
-            App.globalValues.PosX = Convert.ToSingle(App.globalValues.FrameWidth / 2f);
-            App.globalValues.PosY = Convert.ToSingle((skeleton.Data.Height + App.globalValues.FrameHeight) / 2f);
-        }
+        Common.SetInitLocation(skeleton.Data.Height);
         App.globalValues.FileHash = skeleton.Data.Hash;
 
         stateData = new AnimationStateData(skeleton.Data);
@@ -111,7 +108,7 @@ public class Player_3_7_83 : IPlayer
         }
 
 
-        if (App.globalValues.SpineVersion != "3.7.83" || App.globalValues.FileHash != skeleton.Data.Hash)
+        if (App.globalValues.SelectSpineVersion != "3.7.83" || App.globalValues.FileHash != skeleton.Data.Hash)
         {
             state = null;
             skeletonRenderer = null;

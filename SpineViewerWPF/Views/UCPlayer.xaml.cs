@@ -28,7 +28,7 @@ namespace SpineViewerWPF.Views
             InitializeComponent();
             App.appXC = new WpfXnaControl.XnaControl();
 
-            switch (App.globalValues.SpineVersion)
+            switch (App.globalValues.SelectSpineVersion)
             {
                 case "2.1.08":
                     player = new Player_2_1_08();
@@ -127,9 +127,14 @@ namespace SpineViewerWPF.Views
 
         public void Reload()
         {
-            var st = (ScaleTransform)Frame.LayoutTransform;
+            var transformGroupL = (TransformGroup)Frame.LayoutTransform;
+            var st = (ScaleTransform)transformGroupL.Children.Where(x => x.GetType() == typeof(ScaleTransform)).FirstOrDefault();
             st.ScaleX = 1;
             st.ScaleY = 1;
+            var transformGroupR = (TransformGroup)Frame.RenderTransform;
+            var tt = (TranslateTransform)transformGroupR.Children.Where(x => x.GetType() == typeof(TranslateTransform)).FirstOrDefault();
+            tt.X = 0;
+            tt.Y = 0;
             Frame.Children.Remove(App.appXC);
             App.appXC.Initialize -= player.Initialize;
             App.appXC.Update -= player.Update;
