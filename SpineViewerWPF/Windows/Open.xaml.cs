@@ -116,7 +116,9 @@ namespace SpineViewerWPF.Windows
                 return;
             }
 
-            if(!double.TryParse(tb_Canvas_X.Text, out double  setWidth) || !double.TryParse(tb_Canvas_Y.Text, out double setHeight))
+            double setWidth;
+            double setHeight;
+            if (!double.TryParse(tb_Canvas_X.Text,out setWidth) || !double.TryParse(tb_Canvas_Y.Text, out setHeight))
             {
                 System.Windows.MessageBox.Show("Please Set Currect Canvas Value！");
                 return;
