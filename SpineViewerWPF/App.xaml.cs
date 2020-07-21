@@ -27,6 +27,8 @@ namespace SpineViewerWPF
         public static SpriteBatch spriteBatch;
         public static GraphicsDevice graphicsDevice;
         public static int recordImageCount;
+        public static double canvasWidth = SystemParameters.WorkArea.Width;
+        public static double canvasHeight = SystemParameters.WorkArea.Height;
 
     }
 }

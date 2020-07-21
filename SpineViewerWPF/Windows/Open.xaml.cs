@@ -35,9 +35,9 @@ namespace SpineViewerWPF.Windows
                 cb_Version.SelectedValue = spineVersion;
             }
 
-
-            tb_Canvas_X.Text = System.Windows.SystemParameters.WorkArea.Width.ToString();
-            tb_Canvas_Y.Text = System.Windows.SystemParameters.WorkArea.Height.ToString();
+            
+            tb_Canvas_X.Text = App.canvasWidth.ToString();
+            tb_Canvas_Y.Text = App.canvasHeight.ToString();
         }
 
         private void btn_Altas_Open_Click(object sender, RoutedEventArgs e)
@@ -54,7 +54,7 @@ namespace SpineViewerWPF.Windows
                     bool isSelectSp = SelectFile("Spine Json File (*.json)|*.json|Spine Binary File (*.skel)|*.skel", tb_JS_file);
                     if (isSelectSp)
                     {
-                        tb_JS_file.Text = App.globalValues.SelectSpineFile;
+                        App.globalValues.SelectSpineFile = tb_JS_file.Text;
                     }
                 }
                 else
@@ -125,6 +125,8 @@ namespace SpineViewerWPF.Windows
             }
             App.globalValues.FrameWidth = setWidth;
             App.globalValues.FrameHeight = setHeight;
+            App.canvasWidth = setWidth;
+            App.canvasHeight = setHeight;
 
             _window.LoadPlayer(cb_Version.SelectionBoxItem.ToString());
             this.Close();
