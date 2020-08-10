@@ -37,7 +37,7 @@ namespace SpineViewerWPF
             InitializeComponent();
 
             Game game = new Game();
-            game.IsFixedTimeStep = true;
+            //game.IsFixedTimeStep = true;
             this.Title = $"SpineViewerWPF      v{System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()}";
             MasterMain = this;
             LoadSetting();
@@ -88,6 +88,8 @@ namespace SpineViewerWPF
             gs_Control.Visibility = Visibility.Hidden;
             tc_Control.SelectedIndex = 4;
 
+            App.mainWidth = this.ActualWidth;
+            App.mainHeight = this.ActualHeight;
         }
 
         private void cb_AnimeList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -124,6 +126,8 @@ namespace SpineViewerWPF
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
+            App.mainWidth = this.ActualWidth;
+            App.mainHeight = this.ActualHeight;
 
             Player.Width = Math.Round(GridPlayer.ColumnDefinitions[1].ActualWidth + 60 - 2, 2);
             Player.Height = Math.Round(this.ActualHeight - 60, 2);

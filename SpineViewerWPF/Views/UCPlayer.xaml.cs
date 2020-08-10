@@ -69,6 +69,11 @@ namespace SpineViewerWPF.Views
             App.appXC.Width = App.globalValues.FrameWidth;
             App.appXC.Height = App.globalValues.FrameHeight;
 
+            var transformGroup = (TransformGroup)Frame.RenderTransform;
+            var tt = (TranslateTransform)transformGroup.Children.Where(x => x.GetType() == typeof(TranslateTransform)).FirstOrDefault();
+            tt.X = (float)((App.mainWidth ) / 2 - (App.canvasWidth / 2) -10);
+            tt.Y = (float)((App.mainHeight ) / 2 - (App.canvasHeight / 2)-40);
+
             Frame.Children.Add(App.appXC);
 
         }
@@ -133,8 +138,8 @@ namespace SpineViewerWPF.Views
             st.ScaleY = 1;
             var transformGroupR = (TransformGroup)Frame.RenderTransform;
             var tt = (TranslateTransform)transformGroupR.Children.Where(x => x.GetType() == typeof(TranslateTransform)).FirstOrDefault();
-            tt.X = 0;
-            tt.Y = 0;
+            tt.X = (float)((App.mainWidth) / 2 - (App.canvasWidth / 2) - 10);
+            tt.Y = (float)((App.mainHeight) / 2 - (App.canvasHeight / 2) - 40);
             Frame.Children.Remove(App.appXC);
             App.appXC.Initialize -= player.Initialize;
             App.appXC.Update -= player.Update;

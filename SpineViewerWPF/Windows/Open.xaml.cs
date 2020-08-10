@@ -127,7 +127,7 @@ namespace SpineViewerWPF.Windows
             App.globalValues.FrameHeight = setHeight;
             App.canvasWidth = setWidth;
             App.canvasHeight = setHeight;
-
+            App.isNew = true;
             _window.LoadPlayer(cb_Version.SelectionBoxItem.ToString());
             this.Close();
 

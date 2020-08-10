@@ -29,6 +29,7 @@ namespace SpineViewerWPF
         public static int recordImageCount;
         public static double canvasWidth = SystemParameters.WorkArea.Width;
         public static double canvasHeight = SystemParameters.WorkArea.Height;
-
+        public static double mainWidth ;
+        public static double mainHeight ;
     }
 }

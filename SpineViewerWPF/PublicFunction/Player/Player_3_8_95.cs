@@ -83,16 +83,20 @@ public class Player_3_8_95 : IPlayer
 
         if (App.isNew)
         {
+            App.globalValues.PosX = (float)App.canvasWidth/2;
+            App.globalValues.PosY = (float)App.canvasHeight/2;
             MainWindow.SetCBAnimeName();
         }
         App.isNew = false;
 
     }
 
-
-
+    int update = 0;
+    int draw = 0;
     public void Update(GameTime gameTime)
     {
+        System.Diagnostics.Debug.WriteLine($"UPDATE:{update}");
+        update++;
         if (App.globalValues.SelectAnimeName != "" && App.globalValues.SetAnime)
         {
             state.ClearTracks();
@@ -107,22 +111,6 @@ public class Player_3_8_95 : IPlayer
             skeleton.SetSlotsToSetupPose();
             App.globalValues.SetSkin = false;
         }
-
-
-    }
-
-    public void Draw()
-    {
-        if (App.globalValues.SelectSpineVersion != "3.8.95" || App.globalValues.FileHash != skeleton.Data.Hash)
-        {
-            state = null;
-            skeletonRenderer = null;
-            return;
-        }
-        App.graphicsDevice.Clear(Color.Transparent);
-
-        Player.DrawBG(ref App.spriteBatch);
-
 
         state.Update(App.globalValues.Speed / 1000f);
         state.Apply(skeleton);
@@ -148,12 +136,30 @@ public class Player_3_8_95 : IPlayer
 
         skeleton.X = App.globalValues.PosX;
         skeleton.Y = App.globalValues.PosY;
-        skeleton.ScaleX = (App.globalValues.FilpX ? -1 : 1) ;
-        skeleton.ScaleY = (App.globalValues.FilpY ? -1 : 1) ;
+        skeleton.ScaleX = (App.globalValues.FilpX ? -1 : 1);
+        skeleton.ScaleY = (App.globalValues.FilpY ? -1 : 1);
 
 
         skeleton.RootBone.Rotation = App.globalValues.Rotation;
         skeleton.UpdateWorldTransform();
+    }
+
+    public void Draw()
+    {
+        System.Diagnostics.Debug.WriteLine($"DRAW:{draw}");
+        draw++;
+        if (App.globalValues.SelectSpineVersion != "3.8.95" || App.globalValues.FileHash != skeleton.Data.Hash)
+        {
+            state = null;
+            skeletonRenderer = null;
+            return;
+        }
+        App.graphicsDevice.Clear(Color.Transparent);
+
+        Player.DrawBG(ref App.spriteBatch);
+
+
+     
         skeletonRenderer.PremultipliedAlpha = App.globalValues.Alpha;
         if (skeletonRenderer.Effect is BasicEffect)
         {
