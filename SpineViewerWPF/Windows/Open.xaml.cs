@@ -34,8 +34,16 @@ namespace SpineViewerWPF.Windows
             {
                 cb_Version.SelectedValue = spineVersion;
             }
+            if (App.globalValues.SelectAtlasFile != "")
+            {
+                tb_Atlas_File.Text = App.globalValues.SelectAtlasFile;
+            }
+            if (App.globalValues.SelectSpineFile != "") {
+                tb_JS_file.Text = App.globalValues.SelectSpineFile;
+            }
+   
 
-            
+
             tb_Canvas_X.Text = App.canvasWidth.ToString();
             tb_Canvas_Y.Text = App.canvasHeight.ToString();
         }

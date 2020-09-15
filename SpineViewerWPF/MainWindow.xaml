@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:SpineViewerWPF"
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         mc:Ignorable="d"
-        Title="SpineViewerWPF" Height="704.8" Width="800" MinWidth="520" MinHeight="400" SizeChanged="Window_SizeChanged" Closed="Window_Closed"   >
+        Title="SpineViewerWPF" Height="704.8" Width="800" MinWidth="520" MinHeight="400" SizeChanged="Window_SizeChanged" Closed="Window_Closed"  >
     <Window.Resources>
         <Image x:Key="img_pause" Source="Resources/icons-pause.png"></Image>
         <Image x:Key="img_next" Source="Resources/icons-next.png"></Image>

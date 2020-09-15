@@ -19,6 +19,7 @@ using System.Text.RegularExpressions;
 using System.IO;
 using Microsoft.Xna.Framework;
 using SpineViewerWPF.Windows;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace SpineViewerWPF
 {
@@ -31,15 +32,17 @@ namespace SpineViewerWPF
         public static ContentControl MasterControl;
         public static UCPlayer UC_Player;
         public static Open open;
-
+        System.Windows.Threading.DispatcherTimer dispatcherTimer = new System.Windows.Threading.DispatcherTimer();
         public MainWindow()
         {
             InitializeComponent();
-
             Game game = new Game();
             //game.IsFixedTimeStep = true;
             this.Title = $"SpineViewerWPF      v{System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()}";
             MasterMain = this;
+            dispatcherTimer.Tick += dispatcherTimer_Tick;
+            dispatcherTimer.Interval = new TimeSpan(0, 0, 0,0,100);
+            dispatcherTimer.Start();
             LoadSetting();
 
         }
@@ -347,7 +350,7 @@ namespace SpineViewerWPF
         {
             Properties.Settings.Default.LastSelectDir = App.lastDir;
             Properties.Settings.Default.Save();
-            if(open != null)
+            if (open != null)
                 open.Close();
         }
 
@@ -359,5 +362,26 @@ namespace SpineViewerWPF
                 open.Close();
             Application.Current.Shutdown();
         }
+
+
+
+        private void Window_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (App.graphicsDevice != null && App.graphicsDevice.GraphicsDeviceStatus == Microsoft.Xna.Framework.Graphics.GraphicsDeviceStatus.NotReset)
+            {
+                App.graphicsDevice.Reset();
+            }
+        }
+
+
+        private void dispatcherTimer_Tick(object sender, EventArgs e)
+        {
+           if (App.graphicsDevice != null && App.graphicsDevice.GraphicsDeviceStatus == Microsoft.Xna.Framework.Graphics.GraphicsDeviceStatus.NotReset)
+            {
+                App.graphicsDevice.Reset();
+            }
+        }
+
+
     }
 }
