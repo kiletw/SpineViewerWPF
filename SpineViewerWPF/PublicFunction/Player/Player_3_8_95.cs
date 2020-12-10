@@ -49,6 +49,9 @@ public class Player_3_8_95 : IPlayer
         App.globalValues.SpineVersion = skeletonData.Version;
         skeleton = new Skeleton(skeletonData);
 
+
+        
+
         Common.SetInitLocation(skeleton.Data.Height);
         App.globalValues.FileHash = skeleton.Data.Hash;
 
@@ -125,7 +128,7 @@ public class Player_3_8_95 : IPlayer
 
         Player.DrawBG(ref App.spriteBatch);
 
-
+        
         state.Update(App.globalValues.Speed / 1000f);
         state.Apply(skeleton);
         state.TimeScale = App.globalValues.TimeScale;
