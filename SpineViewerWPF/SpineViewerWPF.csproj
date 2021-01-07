@@ -103,6 +103,7 @@
     <Compile Include="PublicFunction\Player\Player_2_1_08.cs" />
     <Compile Include="PublicFunction\Player\Player_2_1_25.cs" />
     <Compile Include="PublicFunction\Player\Player_3_1_07.cs" />
+    <Compile Include="PublicFunction\Player\Player_3_2_xx.cs" />
     <Compile Include="PublicFunction\Player\Player_3_4_02.cs" />
     <Compile Include="PublicFunction\Player\Player_3_5_51.cs" />
     <Compile Include="PublicFunction\Player\Player_3_6_32.cs" />
@@ -213,6 +214,45 @@
     <Compile Include="SpineLibrary\spine-runtimes-3.1.07\XnaLoader\SkeletonMeshRenderer.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.1.07\XnaLoader\SkeletonRegionRenderer.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.1.07\XnaLoader\XnaTextureLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Animation.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\AnimationState.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\AnimationStateData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Atlas.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Attachments\AtlasAttachmentLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Attachments\Attachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Attachments\AttachmentLoader.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Attachments\AttachmentType.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Attachments\BoundingBoxAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Attachments\IFfdAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Attachments\MeshAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Attachments\RegionAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Attachments\WeightedMeshAttachment.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\BlendMode.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Bone.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\BoneData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Event.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\EventData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\ExposedList.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\IkConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\IkConstraintData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\IUpdatable.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Json.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\MathUtils.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Skeleton.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\SkeletonBinary.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\SkeletonBounds.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\SkeletonData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\SkeletonJson.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Skin.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\Slot.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\SlotData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\TransformConstraint.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\TransformConstraintData.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\XnaLoader\MeshBatcher.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\XnaLoader\RegionBatcher.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\XnaLoader\SkeletonMeshRenderer.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\XnaLoader\SkeletonRegionRenderer.cs" />
+    <Compile Include="SpineLibrary\spine-runtimes-3.2.xx\XnaLoader\XnaTextureLoader.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.4.02\Animation.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.4.02\AnimationState.cs" />
     <Compile Include="SpineLibrary\spine-runtimes-3.4.02\AnimationStateData.cs" />
@@ -592,5 +632,6 @@
   <ItemGroup>
     <Resource Include="icon.ico" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

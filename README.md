@@ -14,6 +14,7 @@ a tool can view spine files with different spine-runtimes version and export gif
   * **2.1.08**
   * **2.1.25**
   * **3.1.07**
+  * **3.2.xx**
   * **3.4.02**
   * **3.5.51**
   * **3.6.32**

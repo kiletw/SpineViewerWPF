@@ -39,6 +39,9 @@ namespace SpineViewerWPF.Views
                 case "3.1.07":
                     player = new Player_3_1_07();
                     break;
+                case "3.2.xx":
+                    player = new Player_3_2_xx();
+                    break;
                 case "3.4.02":
                     player = new Player_3_4_02();
                     break;
