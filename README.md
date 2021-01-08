@@ -1,7 +1,7 @@
 # SpineViewerWPF
 a tool can view spine files with different spine-runtimes version and export gif or png file.
 
-中文說明請看[這裡](README.zhTW.md)
+中文說明請看[這裡](README_zhTW.md)
 
 ## Hot Key
 * Ctrl+Mousewheel  Canvas Scaling
