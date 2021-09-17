@@ -7,9 +7,9 @@ using SpineViewerWPF;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
-using Spine3_8_95;
+using Spine4_0_31;
 
-public class Player_3_8_95 : IPlayer
+public class Player_4_0_31 : IPlayer
 {
     private Skeleton skeleton;
     private AnimationState state;
@@ -32,15 +32,14 @@ public class Player_3_8_95 : IPlayer
         skeletonRenderer = new SkeletonRenderer(App.graphicsDevice);
         skeletonRenderer.PremultipliedAlpha = App.globalValues.Alpha;
 
-        if(App.mulitTexture.Length == 0)
+        if (App.mulitTexture.Length == 0)
         {
             atlas = new Atlas(App.globalValues.SelectAtlasFile, new XnaTextureLoader(App.graphicsDevice));
         }
         else
         {
-            atlas = new Atlas(App.globalValues.SelectAtlasFile,new XnaTextureLoader(App.graphicsDevice,true,App.mulitTexture));
+            atlas = new Atlas(App.globalValues.SelectAtlasFile, new XnaTextureLoader(App.graphicsDevice, true, App.mulitTexture));
         }
-        
 
         if (Common.IsBinaryData(App.globalValues.SelectSpineFile))
         {
@@ -126,7 +125,7 @@ public class Player_3_8_95 : IPlayer
 
     public void Draw()
     {
-        if (App.globalValues.SelectSpineVersion != "3.8.95" || App.globalValues.FileHash != skeleton.Data.Hash)
+        if (App.globalValues.SelectSpineVersion != "4.0.31" || App.globalValues.FileHash != skeleton.Data.Hash)
         {
             state = null;
             skeletonRenderer = null;

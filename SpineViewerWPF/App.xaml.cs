@@ -20,6 +20,7 @@ namespace SpineViewerWPF
         public static string lastDir = "";
         public static XnaControl appXC;
         public static Texture2D textureBG;
+        public static string[] mulitTexture;
 
         public static bool isPress = false;
         public static bool isNew = true;

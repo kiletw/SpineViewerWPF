@@ -136,6 +136,14 @@ namespace SpineViewerWPF.Windows
             App.canvasWidth = setWidth;
             App.canvasHeight = setHeight;
             App.isNew = true;
+
+            if (tb_Muilt_Texture.Text.Trim() != "") {
+                List<string> muiltTextureList = tb_Muilt_Texture.Text.Split(',').ToList();
+                muiltTextureList.Insert(0, "");
+                App.mulitTexture = muiltTextureList.ToArray();
+            }
+
+
             _window.LoadPlayer(cb_Version.SelectionBoxItem.ToString());
             this.Close();
 

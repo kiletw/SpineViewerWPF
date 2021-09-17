@@ -5,10 +5,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SpineViewerWPF.Windows"
         mc:Ignorable="d"
-        Title="Open Spine" Height="160" Width="500" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" >
+        Title="Open Spine" Height="210" Width="510" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" >
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="120"></ColumnDefinition>
+            <ColumnDefinition Width="130"></ColumnDefinition>
             <ColumnDefinition Width="*"></ColumnDefinition>
             <ColumnDefinition Width="32"></ColumnDefinition>
         </Grid.ColumnDefinitions>
@@ -18,11 +18,14 @@
             <RowDefinition Height="24"></RowDefinition>
             <RowDefinition Height="24"></RowDefinition>
             <RowDefinition Height="24"></RowDefinition>
+            <RowDefinition Height="24"></RowDefinition>
+            <RowDefinition Height="24"></RowDefinition>
         </Grid.RowDefinitions>
         <Label Content="Atlas File：" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right"></Label>
         <Label Content="Json Or Skel File：" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right"></Label>
         <Label Content="Spine Version：" Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right"></Label>
-        <Label Content="Canvas Size：" Grid.Row="3" Grid.Column="0" HorizontalAlignment="Right"></Label>
+        <Label Content="Load Muilt Texture：" Grid.Row="3" Grid.Column="0" HorizontalAlignment="Right"></Label>
+        <Label Content="Canvas Size：" Grid.Row="5" Grid.Column="0" HorizontalAlignment="Right"></Label>
         <TextBox Name="tb_Atlas_File" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Left" Width="330" VerticalAlignment="Center" Height="22" ></TextBox>
         <TextBox Name="tb_JS_file" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Width="330" VerticalAlignment="Center" Height="22" ></TextBox>
         <Button x:Name="btn_Altas_Open" Content="..."  Grid.Row="0" Grid.Column="2" Click="btn_Altas_Open_Click" ></Button>
@@ -39,13 +42,17 @@
             <ComboBoxItem Content="3.6.53"></ComboBoxItem>
             <ComboBoxItem Content="3.7.94"></ComboBoxItem>
             <ComboBoxItem Content="3.8.95"></ComboBoxItem>
+            <ComboBoxItem Content="4.0.31"></ComboBoxItem>
         </ComboBox>
-        <StackPanel Grid.Row="3" Grid.Column="1" HorizontalAlignment="Left" FlowDirection="LeftToRight" Width="300" Orientation="Horizontal" >
+        <TextBox Name="tb_Muilt_Texture" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Left" Width="160" VerticalAlignment="Center" Height="22" ></TextBox>
+        <Label Content="ex:__normal,__pro  use ',' to split." Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" FontSize="11"></Label>
+        <Label Content="Only work for version 3.8.95 and higher." Grid.Row="4" Grid.Column="1" HorizontalAlignment="Left" FontSize="11"></Label>
+        <StackPanel Grid.Row="5" Grid.Column="1" HorizontalAlignment="Left" FlowDirection="LeftToRight" Width="300" Orientation="Horizontal" >
             <TextBox Name="tb_Canvas_X"  HorizontalAlignment="Left" Width="50" VerticalAlignment="Center" Height="22" ></TextBox>
             <Label Content="x"  HorizontalAlignment="Right"></Label>
             <TextBox Name="tb_Canvas_Y"  HorizontalAlignment="Left" Width="50" VerticalAlignment="Center" Height="22" ></TextBox>
         </StackPanel>
-        <Button x:Name="btn_Open" Content="Open" Grid.Column="1" Grid.Row="4" Width="44" HorizontalAlignment="Right" Click="btn_Open_Click"></Button>
+        <Button x:Name="btn_Open" Content="Open" Grid.Column="1" Grid.Row="6" Width="44" HorizontalAlignment="Right" Click="btn_Open_Click"></Button>
 
     </Grid>
 </Window>

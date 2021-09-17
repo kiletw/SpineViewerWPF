@@ -34,17 +34,21 @@ using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace Spine3_6_53 {
-	public class XnaTextureLoader : TextureLoader {
-		GraphicsDevice device;
+namespace Spine3_6_53
+{
+    public class XnaTextureLoader : TextureLoader
+    {
+        GraphicsDevice device;
 
-		public XnaTextureLoader (GraphicsDevice device) {
-			this.device = device;
-		}
+        public XnaTextureLoader(GraphicsDevice device)
+        {
+            this.device = device;
+        }
 
-		public void Load (AtlasPage page, String path) {
-			Texture2D texture = Util.LoadTexture(device, path);
-			page.rendererObject = texture;
+        public void Load(AtlasPage page, String path)
+        {
+            Texture2D texture = Util.LoadTexture(device, path);
+            page.rendererObject = texture;
             if (page.width == 0 || page.height == 0)
             {
                 page.width = texture.Width;
@@ -52,8 +56,9 @@ namespace Spine3_6_53 {
             }
         }
 
-		public void Unload (Object texture) {
-			((Texture2D)texture).Dispose();
-		}
-	}
+        public void Unload(Object texture)
+        {
+            ((Texture2D)texture).Dispose();
+        }
+    }
 }

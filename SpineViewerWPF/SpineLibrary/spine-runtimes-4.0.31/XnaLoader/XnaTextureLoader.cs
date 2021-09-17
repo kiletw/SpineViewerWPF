@@ -27,12 +27,12 @@
  * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-using System;
-using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System;
+using System.IO;
 
-namespace Spine3_8_95
+namespace Spine4_0_31
 {
     public class XnaTextureLoader : TextureLoader
     {
@@ -89,7 +89,20 @@ namespace Spine3_8_95
 
         public void Unload(Object texture)
         {
-            ((Texture2D)texture).Dispose();
+            string type = texture.GetType().FullName;
+            if (type == "Microsoft.Xna.Framework.Graphics.Texture2D[]")
+            {
+                foreach (Texture2D texture2d in (Texture2D[])texture)
+                {
+                    texture2d.Dispose();
+                }
+
+            }
+            else
+            {
+                ((Texture2D)texture).Dispose();
+            }
+
         }
 
         private string GetLayerName(string firstLayerPath, string firstLayerSuffix, string replacementSuffix)
