@@ -32,7 +32,7 @@ public class Player_3_8_95 : IPlayer
         skeletonRenderer = new SkeletonRenderer(App.graphicsDevice);
         skeletonRenderer.PremultipliedAlpha = App.globalValues.Alpha;
 
-        if(App.mulitTexture.Length == 0)
+        if(App.mulitTexture != null && App.mulitTexture.Length == 0)
         {
             atlas = new Atlas(App.globalValues.SelectAtlasFile, new XnaTextureLoader(App.graphicsDevice));
         }
