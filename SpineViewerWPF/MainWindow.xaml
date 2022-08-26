@@ -223,12 +223,10 @@
                                     <RowDefinition Height="24"></RowDefinition>
                                     <RowDefinition Height="*"></RowDefinition>
                                 </Grid.RowDefinitions>
-                                <Label Content="Gif Quality" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right"/>
-                                <ComboBox x:Name="cb_gif_q" Grid.Row="0" Grid.Column="1"  HorizontalAlignment="Left"  VerticalAlignment="Top" Width="94" SelectionChanged="cb_gif_q_SelectionChanged" >
-                                    <ComboBoxItem Content="Default" IsSelected="True"/>
-                                    <ComboBoxItem Content="Bit8"/>
-                                    <ComboBoxItem Content="Bit4"/>
-                                    <ComboBoxItem Content="Grayscale"/>
+                                <Label Content="Export Type" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right"/>
+                                <ComboBox x:Name="cb_export_type" Grid.Row="0" Grid.Column="1"  HorizontalAlignment="Left"  VerticalAlignment="Top" Width="100" SelectionChanged="cb_export_type_SelectionChanged" >
+                                    <ComboBoxItem Content="Gif" IsSelected="True"/>
+                                    <ComboBoxItem Content="Png Sequence"/>
                                 </ComboBox>
                                 <Label Content="Use Disk Cache "  Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right"/>
                                 <Label Content="(Use Less Memory)"  Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right"/>

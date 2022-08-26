@@ -228,13 +228,13 @@ namespace SpineViewerWPF
 
 
 
-        private void cb_gif_q_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void cb_export_type_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (cb_gif_q.SelectedIndex != -1)
+            if (cb_export_type.SelectedIndex != -1)
             {
-                if (cb_gif_q.SelectedItem.ToString() != "")
+                if (cb_export_type.SelectedItem.ToString() != "")
                 {
-                    App.globalValues.GifQuality = ((ComboBoxItem)cb_gif_q.SelectedItem).Content.ToString();
+                    App.globalValues.ExportType = ((ComboBoxItem)cb_export_type.SelectedItem).Content.ToString();
                 }
             }
         }
@@ -275,8 +275,32 @@ namespace SpineViewerWPF
         {
             if (!App.globalValues.IsRecoding)
             {
-                if (!Directory.Exists($"{App.rootDir}\\Temp\\"))
-                    Directory.CreateDirectory($"{App.rootDir}\\Temp\\");
+                switch (App.globalValues.ExportType)
+                {
+                    case "Png Sequence":
+
+                        SaveFileDialog saveFileDialog = new SaveFileDialog();
+
+                        saveFileDialog.Filter = "All files (*.*)|*.*";
+                        saveFileDialog.RestoreDirectory = true;
+                        saveFileDialog.FileName = "Save Path";
+
+                        if (saveFileDialog.ShowDialog() == true)
+                        {
+                            App.globalValues.ExportPath = System.IO.Path.GetDirectoryName(saveFileDialog.FileName) + "\\";
+                        }
+                        else
+                        {
+                            return;
+                        }
+
+                        break;
+                }
+
+
+
+                if (!Directory.Exists(App.tempDirPath))
+                    Directory.CreateDirectory(App.tempDirPath);
 
                 Common.ClearCacheFile();
                 App.recordImageCount = 1;

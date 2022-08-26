@@ -32,7 +32,7 @@ a tool can view spine files with different spine-runtimes version and export gif
 ## Usage
 
 Library:
-- [AnimatedGif](https://github.com/mrousavy/AnimatedGif)
+- [ImageSharp](https://github.com/SixLabors/ImageSharp)
 - [WpfXnaControl](https://github.com/erickeek/WpfXnaControl)
 - [spine-runtimes](https://github.com/EsotericSoftware/spine-runtimes)
 

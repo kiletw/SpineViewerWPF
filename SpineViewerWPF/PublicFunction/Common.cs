@@ -1,7 +1,11 @@
-﻿using AnimatedGif;
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Gif;
+//using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SpineViewerWPF;
 using System;
 using System.Collections.Generic;
@@ -100,7 +104,7 @@ public class Common
     {
         using (FileStream fileStream = new FileStream(path, FileMode.Open))
         {
-            using (Image image = Image.FromStream(fileStream))
+            using (System.Drawing.Image image = System.Drawing.Image.FromStream(fileStream))
             {
                 using (MemoryStream ms = new MemoryStream())
                 {
@@ -128,33 +132,33 @@ public class Common
 
     public static void RecodingEnd(float AnimationEnd)
     {
-
-        Thread t = new Thread(() =>
+        if(App.globalValues.ExportType == "Gif")
         {
-            if (!App.globalValues.UseCache)
+            Thread t = new Thread(() =>
             {
-                List<MemoryStream> lms = new List<MemoryStream>();
-                for (int i = 0; i < App.globalValues.GifList.Count; i++)
+                if (!App.globalValues.UseCache)
                 {
-                    MemoryStream ms = new MemoryStream();
-                    App.globalValues.GifList[i].SaveAsPng(ms, App.globalValues.GifList[i].Width, App.globalValues.GifList[i].Height);
-                    lms.Add(ms);
-                    App.globalValues.GifList[i].Dispose();
+                    List<MemoryStream> lms = new List<MemoryStream>();
+                    for (int i = 0; i < App.globalValues.GifList.Count; i++)
+                    {
+                        MemoryStream ms = new MemoryStream();
+                        App.globalValues.GifList[i].SaveAsPng(ms, App.globalValues.GifList[i].Width, App.globalValues.GifList[i].Height);
+                        lms.Add(ms);
+                        App.globalValues.GifList[i].Dispose();
+                    }
+                    Common.SaveToGif(lms, AnimationEnd);
+                    App.globalValues.GifList.Clear();
+                    GC.Collect();
                 }
-                Common.SaveToGif(lms, AnimationEnd);
-                App.globalValues.GifList.Clear();
-                GC.Collect();
-            }
-            else
-            {
-                Common.SaveToGif2(AnimationEnd);
-            }
- 
-        });
-        t.SetApartmentState(ApartmentState.STA);
-        t.Start();
+                else
+                {
+                    Common.SaveToGif2(AnimationEnd);
+                }
 
-
+            });
+            t.SetApartmentState(ApartmentState.STA);
+            t.Start();
+        }
 
     }
 
@@ -164,26 +168,6 @@ public class Common
         saveFileDialog.Filter = "Gif Image|*.gif";
         saveFileDialog.Title = "Save a Gif File";
 
-        GifQuality gifQuality = new GifQuality();
-
-        switch (App.globalValues.GifQuality)
-        {
-            case "Default":
-                gifQuality = GifQuality.Default;
-                break;
-            case "Bit8":
-                gifQuality = GifQuality.Bit8;
-                break;
-            case "Bit4":
-                gifQuality = GifQuality.Bit4;
-                break;
-            case "Grayscale":
-                gifQuality = GifQuality.Grayscale;
-                break;
-            default:
-                gifQuality = GifQuality.Default;
-                break;
-        }
         string fileName = GetFileNameNoEx(App.globalValues.SelectAtlasFile);
         if (App.globalValues.SelectAnimeName != "")
             fileName += $"_{App.globalValues.SelectAnimeName}";
@@ -205,19 +189,34 @@ public class Common
         if (saveFileDialog.FileName != "")
         {
 
-            using (AnimatedGifCreator gifCreator = AnimatedGif.AnimatedGif.Create(saveFileDialog.FileName, delay, App.globalValues.IsLoop == true ? 0 : 1))
+            SixLabors.ImageSharp.Image img = null;
+
+            SixLabors.ImageSharp.Image<Rgba32> gif = new SixLabors.ImageSharp.Image<Rgba32>(Convert.ToInt32(App.globalValues.FrameWidth), Convert.ToInt32(App.globalValues.FrameHeight));
+
+            for (int i = 0; i < lms.Count; ++i)
             {
-                foreach (MemoryStream msimg in lms)
-                {
-                    using (msimg)
-                    {
-                        using(Image img = Image.FromStream(msimg))
-                        {
-                            gifCreator.AddFrame(img, -1, gifQuality);
-                        }
-                    }
-                }
+                img = SixLabors.ImageSharp.Image.Load(lms[i].ToArray());
+                gif.Frames.AddFrame(img.Frames[0]);
+                img.Dispose();
             }
+
+
+            foreach (ImageFrame frame in gif.Frames)
+            {
+                GifFrameMetadata meta = frame.Metadata.GetGifMetadata(); // Get or create if none.
+
+                meta.FrameDelay = delay / 10; // Set to 30/100 of a second.
+                meta.DisposalMethod = GifDisposalMethod.RestoreToBackground;
+            }
+
+            GifMetadata gifMetadata = gif.Metadata.GetGifMetadata();
+            gifMetadata.RepeatCount = App.globalValues.IsLoop == true ? (ushort)0 : (ushort)1;
+            gif.Frames.RemoveFrame(0);
+            using (FileStream fs = File.Create(saveFileDialog.FileName))
+            {
+                gif.SaveAsGif(fs, new GifEncoder() { ColorTableMode = GifColorTableMode.Global });
+            }
+
         }
         else
         {
@@ -242,26 +241,6 @@ public class Common
         saveFileDialog.Filter = "Gif Image|*.gif";
         saveFileDialog.Title = "Save a Gif File";
 
-        GifQuality gifQuality = new GifQuality();
-
-        switch (App.globalValues.GifQuality)
-        {
-            case "Default":
-                gifQuality = GifQuality.Default;
-                break;
-            case "Bit8":
-                gifQuality = GifQuality.Bit8;
-                break;
-            case "Bit4":
-                gifQuality = GifQuality.Bit4;
-                break;
-            case "Grayscale":
-                gifQuality = GifQuality.Grayscale;
-                break;
-            default:
-                gifQuality = GifQuality.Default;
-                break;
-        }
         string fileName = GetFileNameNoEx(App.globalValues.SelectAtlasFile);
         if (App.globalValues.SelectAnimeName != "")
             fileName += $"_{App.globalValues.SelectAnimeName}";
@@ -287,19 +266,34 @@ public class Common
         if (saveFileDialog.FileName != "")
         {
 
-            using (AnimatedGifCreator gifCreator = AnimatedGif.AnimatedGif.Create(saveFileDialog.FileName, delay, App.globalValues.IsLoop == true ? 0 : 1))
+            SixLabors.ImageSharp.Image img = null;
+
+            SixLabors.ImageSharp.Image<Rgba32> gif = new SixLabors.ImageSharp.Image<Rgba32>(Convert.ToInt32(App.globalValues.FrameWidth), Convert.ToInt32(App.globalValues.FrameHeight));
+
+            for (int i = 0; i < pngList.Length; ++i)
             {
-                foreach (string path in pngList)
-                {
-                    using (FileStream fsimg = new FileStream(path,FileMode.Open))
-                    {
-                        using (Image img = Image.FromStream(fsimg))
-                        {
-                            gifCreator.AddFrame(img, -1, gifQuality);
-                        }
-                    }
-                }
+                img = SixLabors.ImageSharp.Image.Load(pngList[i]);
+                gif.Frames.AddFrame(img.Frames[0]);
+                img.Dispose();
             }
+
+           
+            foreach (ImageFrame frame in gif.Frames)
+            {
+                GifFrameMetadata meta = frame.Metadata.GetGifMetadata(); // Get or create if none.
+                
+                meta.FrameDelay = delay/10; // Set to 30/100 of a second.
+                meta.DisposalMethod = GifDisposalMethod.RestoreToBackground;
+            }
+
+            GifMetadata gifMetadata = gif.Metadata.GetGifMetadata();
+            gifMetadata.RepeatCount = App.globalValues.IsLoop == true ? (ushort)0 : (ushort)1;
+            gif.Frames.RemoveFrame(0);
+            using (FileStream fs = File.Create(saveFileDialog.FileName))
+            {
+                gif.SaveAsGif(fs,new GifEncoder() { ColorTableMode =  GifColorTableMode.Global});
+            }
+
         }
         else
         {
@@ -362,7 +356,7 @@ public class Common
         Texture2D texture = new Texture2D(_graphicsDevice, _graphicsDevice.PresentationParameters.BackBufferWidth, _graphicsDevice.PresentationParameters.BackBufferHeight, false, _graphicsDevice.PresentationParameters.BackBufferFormat);
 
         texture.SetData(screenData);
-        if (!App.globalValues.UseCache)
+        if (!App.globalValues.UseCache && App.globalValues.ExportType == "Gif")
         {
             App.globalValues.GifList.Add(texture);
             App.recordImageCount++;
@@ -373,8 +367,14 @@ public class Common
             if (App.globalValues.SelectAnimeName != "")
                 fileName += $"_{App.globalValues.SelectAnimeName}";
             if (App.globalValues.SelectSkin != "")
-                fileName += $"_{App.globalValues.SelectSkin}"; 
-            using (FileStream fs = new FileStream($"{App.rootDir}\\Temp\\{fileName}_{App.recordImageCount.ToString().PadLeft(7,'0')}.png"
+                fileName += $"_{App.globalValues.SelectSkin}";
+
+            string exportDir = App.tempDirPath;
+            if(App.globalValues.ExportType == "Png Sequence")
+            {
+                exportDir = App.globalValues.ExportPath + "\\";
+            }
+            using (FileStream fs = new FileStream($"{exportDir}{fileName}_{App.recordImageCount.ToString().PadLeft(7,'0')}.png"
                 ,FileMode.Create))
             {
                 texture.SaveAsPng(fs, _graphicsDevice.PresentationParameters.BackBufferWidth

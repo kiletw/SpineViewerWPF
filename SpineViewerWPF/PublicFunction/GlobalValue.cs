@@ -36,7 +36,8 @@ public class GlobalValue : INotifyPropertyChanged
     private bool _SetSkin = false;
     private bool _SetAnime = false;
     private string _FileHash = "";
-    private string _GifQuality = "Default";
+    private string _ExportType = "Gif";
+    private string _ExportPath = "";
     private string _LoadingProcess = "0%";
     private float _Lock = 0f;
     private bool _IsRecoding = false;
@@ -469,18 +470,34 @@ public class GlobalValue : INotifyPropertyChanged
         }
     }
 
-    public string GifQuality
+    public string ExportType
     {
         get
         {
-            return _GifQuality;
+            return _ExportType;
         }
         set
         {
-            if (_GifQuality != value)
+            if (_ExportType != value)
             {
-                _GifQuality = value;
-                OnPropertyChanged("GifQuality");
+                _ExportType = value;
+                OnPropertyChanged("ExportType");
+            }
+        }
+    }
+
+    public string ExportPath
+    {
+        get
+        {
+            return _ExportPath;
+        }
+        set
+        {
+            if (_ExportPath != value)
+            {
+                _ExportPath = value;
+                OnPropertyChanged("ExportPath");
             }
         }
     }

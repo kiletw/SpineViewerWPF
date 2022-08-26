@@ -28,7 +28,7 @@
 ## 運用
 
 類別庫:
-- [AnimatedGif](https://github.com/mrousavy/AnimatedGif)
+- [ImageSharp](https://github.com/SixLabors/ImageSharp)
 - [WpfXnaControl](https://github.com/erickeek/WpfXnaControl)
 - [spine-runtimes](https://github.com/EsotericSoftware/spine-runtimes)
 
