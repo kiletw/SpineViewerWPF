@@ -175,7 +175,10 @@ public class Common
             fileName += $"_{App.globalValues.SelectSkin}";
 
         saveFileDialog.FileName = fileName;
-        saveFileDialog.ShowDialog();
+        if (saveFileDialog.ShowDialog() == false)
+        {
+            return;
+        }
         int delay = 0;
         if (time == 0)
         {
@@ -216,7 +219,7 @@ public class Common
             {
                 gif.SaveAsGif(fs, new GifEncoder() { ColorTableMode = GifColorTableMode.Global });
             }
-
+            gif.Dispose();
         }
         else
         {
@@ -248,7 +251,10 @@ public class Common
             fileName += $"_{App.globalValues.SelectSkin}";
 
         saveFileDialog.FileName = fileName;
-        saveFileDialog.ShowDialog();
+        if(saveFileDialog.ShowDialog() == false )
+        {
+            return;
+        }
 
         string[] pngList = Directory.GetFiles($"{App.rootDir}\\Temp\\", "*.png",SearchOption.TopDirectoryOnly);
 
@@ -293,6 +299,7 @@ public class Common
             {
                 gif.SaveAsGif(fs,new GifEncoder() { ColorTableMode =  GifColorTableMode.Global});
             }
+            gif.Dispose();
 
         }
         else
@@ -411,6 +418,7 @@ public class Common
             Texture2D texture = new Texture2D(_graphicsDevice, _graphicsDevice.PresentationParameters.BackBufferWidth, _graphicsDevice.PresentationParameters.BackBufferHeight, false, _graphicsDevice.PresentationParameters.BackBufferFormat);
             texture.SetData(screenData);
             Common.SaveToPng(texture);
+            texture.Dispose();
         }
         App.globalValues.TimeScale = bakTimeScale;
     }

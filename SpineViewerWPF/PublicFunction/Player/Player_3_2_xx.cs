@@ -221,5 +221,10 @@ public class Player_3_2_xx : IPlayer
         if (App.graphicsDevice != null)
             Player.UserControl_SizeChanged(ref App.graphicsDevice);
     }
+
+    public void Dispose()
+    {
+        ChangeSet();
+    }
 }
 

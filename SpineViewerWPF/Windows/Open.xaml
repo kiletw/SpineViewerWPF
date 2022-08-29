@@ -26,8 +26,8 @@
         <Label Content="Spine Version：" Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right"></Label>
         <Label Content="Load Muilt Texture：" Grid.Row="3" Grid.Column="0" HorizontalAlignment="Right"></Label>
         <Label Content="Canvas Size：" Grid.Row="5" Grid.Column="0" HorizontalAlignment="Right"></Label>
-        <TextBox Name="tb_Atlas_File" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Left" Width="330" VerticalAlignment="Center" Height="22" ></TextBox>
-        <TextBox Name="tb_JS_file" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Width="330" VerticalAlignment="Center" Height="22" ></TextBox>
+        <TextBox Name="tb_Atlas_File" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Left" Width="330" VerticalAlignment="Center" Height="22" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" PreviewDrop="TextBox_PreviewDrop"   ></TextBox>
+        <TextBox Name="tb_JS_file" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Width="330" VerticalAlignment="Center" Height="22" AllowDrop="True" PreviewDragOver="TextBox_PreviewDragOver" PreviewDrop="TextBox_PreviewDrop" ></TextBox>
         <Button x:Name="btn_Altas_Open" Content="..."  Grid.Row="0" Grid.Column="2" Click="btn_Altas_Open_Click" ></Button>
         <Button x:Name="btn_JS_Open" Content="..."  Grid.Row="1" Grid.Column="2" Height="25" VerticalAlignment="Top" Click="btn_JS_Open_Click" ></Button>
         <ComboBox Name="cb_Version" HorizontalAlignment="Left" Grid.Row="2" Grid.Column="1" VerticalAlignment="Top" Width="120" SelectedValuePath="Content">
@@ -43,6 +43,8 @@
             <ComboBoxItem Content="3.7.94"></ComboBoxItem>
             <ComboBoxItem Content="3.8.95"></ComboBoxItem>
             <ComboBoxItem Content="4.0.31"></ComboBoxItem>
+            <ComboBoxItem Content="4.0.64"></ComboBoxItem>
+            <ComboBoxItem Content="4.1.00"></ComboBoxItem>
         </ComboBox>
         <TextBox Name="tb_Muilt_Texture" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Left" Width="160" VerticalAlignment="Center" Height="22" ></TextBox>
         <Label Content="ex:__normal,__pro  use ',' to split." Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" FontSize="11"></Label>

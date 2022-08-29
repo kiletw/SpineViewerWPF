@@ -152,5 +152,55 @@ namespace SpineViewerWPF.Windows
             this.Close();
 
         }
+
+        private void TextBox_PreviewDragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = DragDropEffects.Copy;
+            e.Handled = true;
+        }
+
+        private void TextBox_PreviewDrop(object sender, DragEventArgs e)
+        {
+            object text = e.Data.GetData(DataFormats.FileDrop);
+            TextBox tb = sender as TextBox;
+            if (tb != null)
+            {
+                if(tb.Name == "tb_Atlas_File")
+                {
+                    if(((string[])text)[0].IndexOf(".atlas") != -1)
+                    {
+                        tb_Atlas_File.Text = ((string[])text)[0];
+                        App.globalValues.SelectAtlasFile = tb_Atlas_File.Text;
+                        if (!Common.CheckSpineFile(App.globalValues.SelectAtlasFile))
+                        {
+                            MessageBox.Show("Can not found Spine Json or Binary file！");
+
+                            bool isSelectSp = SelectFile("Spine Json File (*.json)|*.json|Spine Binary File (*.skel)|*.skel", tb_JS_file);
+                            if (isSelectSp)
+                            {
+                                App.globalValues.SelectSpineFile = tb_JS_file.Text;
+                            }
+                        }
+                        else
+                        {
+                            tb_JS_file.Text = App.globalValues.SelectSpineFile;
+                        }
+                    }
+                }
+                else if (tb.Name == "tb_JS_file")
+                {
+                    if (((string[])text)[0].IndexOf(".json") > 0 || ((string[])text)[0].IndexOf(".skel") > 0)
+                    {
+                        App.globalValues.SelectSpineFile = ((string[])text)[0];
+                        tb_JS_file.Text = App.globalValues.SelectSpineFile;
+                    }
+                }
+
+
+                   
+            }
+        }
+
+
     }
 }

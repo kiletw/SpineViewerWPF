@@ -26,7 +26,18 @@ namespace SpineViewerWPF.Views
         public UCPlayer()
         {
             InitializeComponent();
-            App.appXC = new WpfXnaControl.XnaControl();
+
+            if(App.appXC == null)
+            {
+                App.appXC = new WpfXnaControl.XnaControl();
+            }
+
+           
+
+            if(player != null)
+            {
+                player.Dispose();
+            }
 
             switch (App.globalValues.SelectSpineVersion)
             {
@@ -65,6 +76,12 @@ namespace SpineViewerWPF.Views
                     break;
                 case "4.0.31":
                     player = new Player_4_0_31();
+                    break;
+                case "4.0.64":
+                    player = new Player_4_0_64();
+                    break;
+                case "4.1.00":
+                    player = new Player_4_1_00();
                     break;
             }
 

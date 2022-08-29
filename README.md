@@ -23,6 +23,8 @@ a tool can view spine files with different spine-runtimes version and export gif
   * **3.7.94**
   * **3.8.95**
   * **4.0.31**
+  * **4.0.64**
+  * **4.1.00**
 * Export animation to gif or png file.
 * Can view Animation with different options.
 

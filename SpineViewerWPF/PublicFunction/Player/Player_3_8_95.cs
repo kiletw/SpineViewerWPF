@@ -239,5 +239,9 @@ public class Player_3_8_95 : IPlayer
             Player.UserControl_SizeChanged(ref App.graphicsDevice);
     }
 
+    public void Dispose()
+    {
+        ChangeSet();
+    }
 }
 

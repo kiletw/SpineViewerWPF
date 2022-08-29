@@ -22,5 +22,7 @@ public interface IPlayer
     void ChangeSet();
 
     void SizeChange();
+
+    void Dispose();
 }
 
