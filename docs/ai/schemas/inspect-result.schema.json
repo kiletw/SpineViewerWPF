@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spineviewerwpf.local/schemas/inspect-result.schema.json",
+  "title": "SpineViewerWPF Inspect Result",
+  "type": "object",
+  "required": [
+    "success",
+    "asset",
+    "runtime",
+    "animations",
+    "skins",
+    "diagnostics"
+  ],
+  "properties": {
+    "success": {
+      "type": "boolean"
+    },
+    "asset": {
+      "type": "object",
+      "required": [
+        "skeletonPath"
+      ],
+      "properties": {
+        "skeletonPath": {
+          "type": "string"
+        },
+        "atlasPath": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "textures": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "required": [
+        "selectedLine"
+      ],
+      "properties": {
+        "detectedExportVersion": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "selectedLine": {
+          "type": "string"
+        },
+        "runtimeVersion": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "overridden": {
+          "type": "boolean"
+        }
+      }
+    },
+    "animations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "skins": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      }
+    }
+  },
+  "$defs": {
+    "diagnostic": {
+      "type": "object",
+      "required": [
+        "severity",
+        "code",
+        "message"
+      ],
+      "properties": {
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ]
+        },
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

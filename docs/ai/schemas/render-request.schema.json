@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spineviewerwpf.local/schemas/render-request.schema.json",
+  "title": "SpineViewerWPF Render Request",
+  "type": "object",
+  "required": [
+    "skeletonPath",
+    "animation",
+    "timeSeconds",
+    "width",
+    "height",
+    "outputPath"
+  ],
+  "properties": {
+    "skeletonPath": {
+      "type": "string"
+    },
+    "atlasPath": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "runtimeOverride": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "animation": {
+      "type": "string"
+    },
+    "skins": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "timeSeconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "width": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16384
+    },
+    "height": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16384
+    },
+    "outputPath": {
+      "type": "string"
+    },
+    "overwrite": {
+      "type": "boolean",
+      "default": false
+    },
+    "pma": {
+      "type": "boolean"
+    }
+  }
+}

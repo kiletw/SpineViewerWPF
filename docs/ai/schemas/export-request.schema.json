@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spineviewerwpf.local/schemas/export-request.schema.json",
+  "title": "SpineViewerWPF Export Request",
+  "type": "object",
+  "required": [
+    "skeletonPath",
+    "animation",
+    "format",
+    "outputPath"
+  ],
+  "properties": {
+    "skeletonPath": {
+      "type": "string"
+    },
+    "atlasPath": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "runtimeOverride": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "animation": {
+      "type": "string"
+    },
+    "skins": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "format": {
+      "enum": [
+        "png-sequence",
+        "gif",
+        "video"
+      ]
+    },
+    "fps": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 240
+    },
+    "width": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16384
+    },
+    "height": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16384
+    },
+    "outputPath": {
+      "type": "string"
+    },
+    "overwrite": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

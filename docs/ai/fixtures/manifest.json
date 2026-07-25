@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "repositoryBaseline": "kiletw/SpineViewerWPF@79c6135",
+  "assetsCommitted": false,
+  "note": "No Spine asset fixture is present. Add only redistributable assets to the repository; otherwise keep files outside Git and record hashes here.",
+  "fixtures": [
+    {
+      "runtimeSelection": "2.1.08",
+      "officialTagCandidate": "2.1.08",
+      "json": "missing",
+      "binary": "not-supported-by-v2-player",
+      "atlas": "missing",
+      "textures": "missing",
+      "sha256": {},
+      "expectedLocalDirectory": "fixtures-local/2.1.08"
+    },
+    {
+      "runtimeSelection": "2.1.25",
+      "officialTagCandidate": "2.1.25",
+      "json": "missing",
+      "binary": "missing",
+      "atlas": "missing",
+      "textures": "missing",
+      "sha256": {},
+      "expectedLocalDirectory": "fixtures-local/2.1.25"
+    },
+    {
+      "runtimeSelection": "3.1.07",
+      "officialTagCandidate": "3.1.07",
+      "json": "missing",
+      "binary": "missing",
+      "atlas": "missing",
+      "textures": "missing",
+      "sha256": {},
+      "expectedLocalDirectory": "fixtures-local/3.1.07"
+    },
+    {
+      "runtimeSelection": "3.2.xx",
+      "officialTagCandidate": null,
+      "json": "missing",
+      "binary": "missing",
+      "atlas": "missing",
+      "textures": "missing",
+      "sha256": {},
+      "expectedLocalDirectory": "fixtures-local/3.2.xx"
+    },
+    {
+      "runtimeSelection": "3.4.02",
+      "officialTagCandidate": "3.4.02",
+      "json": "missing",
+      "binary": "missing",
+      "atlas": "missing",
+      "textures": "missing",
+      "sha256": {},
+      "expectedLocalDirectory": "fixtures-local/3.4.02"
+    },
+    {
+      "runtimeSelection": "3.5.51",
+      "officialTagCandidate": "3.5.51",
+      "json": "missing",
+      "binary": "missing",
+      "atlas": "missing",
+      "textures": "missing",
+      "sha256": {},
+      "expectedLocalDirectory": "fixtures-local/3.5.51"
+    },
+    {
+      "runtimeSelection": "3.6.32",
+      "officialTagCandidate": "3.6.32",
+      "json": "missing",
+      "binary": "missing",
+      "atlas": "missing",
+      "textures": "missing",
+      "sha256": {},
+      "expectedLocalDirectory": "fixtures-local/3.6.32"
+    },
+    {
+      "runtimeSelection": "3.6.39",
+      "officialTagCandidate": "3.6.39",
+      "json": "missing",
+      "binary": "missing",
+      "atlas": "missing",
+      "textures": "missing",
+      "sha256": {},
+      "expectedLocalDirectory": "fixtures-local/3.6.39"
+    },
+    {
+      "runtimeSelection": "3.6.53",
+      "officialTagCandidate": "3.6.53",
+      "json": "missing",
+      "binary": "missing",
+      "atlas": "missing",
+      "textures": "missing",
+      "sha256": {},
+      "expectedLocalDirectory": "fixtures-local/3.6.53"
+    },
+    {
+      "runtimeSelection": "3.7.94",
+      "officialTagCandidate": "3.7.94",
+      "json": "missing",
+      "binary": "missing",
+      "atlas": "missing",
+      "textures": "missing",
+      "sha256": {},
+      "expectedLocalDirectory": "fixtures-local/3.7.94"
+    },
+    {
+      "runtimeSelection": "3.8.95",
+      "officialTagCandidate": "3.8.95",
+      "json": "missing",
+      "binary": "missing",
+      "atlas": "missing",
+      "textures": "missing",
+      "sha256": {},
+      "expectedLocalDirectory": "fixtures-local/3.8.95"
+    },
+    {
+      "runtimeSelection": "4.0.31",
+      "officialTagCandidate": "4.0.31",
+      "json": "missing",
+      "binary": "missing",
+      "atlas": "missing",
+      "textures": "missing",
+      "sha256": {},
+      "expectedLocalDirectory": "fixtures-local/4.0.31"
+    },
+    {
+      "runtimeSelection": "4.0.64",
+      "officialTagCandidate": "4.0.64",
+      "json": "missing",
+      "binary": "missing",
+      "atlas": "missing",
+      "textures": "missing",
+      "sha256": {},
+      "expectedLocalDirectory": "fixtures-local/4.0.64"
+    },
+    {
+      "runtimeSelection": "4.1.00",
+      "officialTagCandidate": "4.1.00",
+      "json": "missing",
+      "binary": "missing",
+      "atlas": "missing",
+      "textures": "missing",
+      "sha256": {},
+      "expectedLocalDirectory": "fixtures-local/4.1.00"
+    }
+  ]
+}
