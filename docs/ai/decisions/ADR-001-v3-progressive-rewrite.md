@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted on 2026-07-26 after TASK-000 verified that UI, Runtime, rendering, export, and process-wide state are mutually coupled in the single v2 project.
 
 ## Context
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Blocked until TASK-000 is complete and ADR-001/002/003 are accepted or revised.
+Ready. TASK-000 completed and ADR-001/002/003 were accepted on 2026-07-26. Implementation remains gated on a legally usable 4.1 fixture and an explicit renderer decision.
 
 ## Objective
 

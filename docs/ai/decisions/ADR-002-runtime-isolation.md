@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted on 2026-07-26 after TASK-000 verified 14 namespace-renamed Runtime snapshots compiled directly into the WPF executable, with incomplete upstream equivalence metadata.
 
 ## Context
 

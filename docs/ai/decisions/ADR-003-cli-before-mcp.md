@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted on 2026-07-26. TASK-000 found no reusable Application boundary in v2, so a small machine-readable CLI is the first non-WPF proof surface.
 
 ## Context
 
