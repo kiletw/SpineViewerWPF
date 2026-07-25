@@ -1,105 +1,69 @@
-# Quick-Browse UI Information Architecture
+# Dockable Workspace Information Architecture
 
 ## Primary Surface
 
-The main window is a single quick-browse workspace, not a persistent export or diagnostics workbench.
+The application is a viewport-first workspace. Its default arrangement preserves the TASK-002 quick-browse flow; supporting tools may dock into the main window or float as separate owned windows.
 
-## Regions
+## Stable Regions
 
-### Command Bar
+These stay in the main workspace:
 
-- Open asset
-- Recent assets
-- Reload
-- Screenshot
-- Export
-- Settings
-- Diagnostics
+- command bar
+- central viewport
+- playback bar
+- compact status bar
 
-### Browse Rail
+## Dockable Panels
 
-Always prioritize animation discovery:
+### Asset Browser
 
-- animation filter
-- animation list
-- collapsible skins
-- collapsible asset information
+- opened assets
+- recent assets
+- reload and focus actions
 
-### Viewport
+### Animations and Skins
 
-- rendered asset
-- loading/error/unsupported overlays
-- pan, zoom, fit
-- optional checkerboard, color, or image background
+- animation filter and list
+- skin selection
+- later multi-track or grouped selection only through separate tasks
 
-### Playback Bar
-
-- play/pause
-- stop/reset
-- timeline
-- current time/duration
-- loop
-- speed
-- fit/reset access where appropriate
-
-### Status Bar
-
-- detected/selected Runtime
-- load state
-- warning/error count
-- renderer/device state
-- export progress only while exporting
-
-### Settings Drawer
-
-Opened only when needed:
+### Properties
 
 - model transform
 - PMA/render options
 - background
 - Runtime override
-- remembered-state policy
 
-### Export Dialog
+### Diagnostics
 
-Separate from browsing. Contains dimensions, animation, timing, format, output path, overwrite policy, progress, and cancellation.
+- compatibility warnings
+- load and renderer details
+- actionable error information
 
-## Navigation Priority
+The initial implementation does not need every panel. A docking spike should start with two supporting panels and prove dock, float, redock, hide/show, and reset-layout behavior before broadening scope.
 
-1. Open/drop/recent
-2. Select animation
-3. Playback and viewport
-4. Skin
-5. Screenshot/export
-6. Diagnostics and advanced settings
+## Secondary Workflows
 
-## Responsive Behavior
+- Export remains a dialog until a real queued workflow requires a panel.
+- Settings remains a dialog or drawer.
+- Multiple-model scene, wallpaper, and attachment editing remain deferred.
 
-At minimum supported width:
+## Default Layout Rules
 
-- viewport remains visible
-- browse rail can collapse
-- status condenses but keeps Runtime and warning state
-- advanced settings remain closed
-- export stays a dialog
+- viewport remains visible and receives the largest area
+- animations remain one interaction away
+- supporting panels can share tab groups
+- closing a panel hides it rather than destroying product state
+- Window menu restores hidden panels and resets the default layout
+- compact layouts may auto-collapse supporting panels
 
-TASK-002 measured the prototype at 756 by 519 pixels: the rail collapses to 54 pixels, the viewport remains primary, and fake preview content scales without clipping.
+## Localization Boundary
+
+- user-facing strings use stable resource keys
+- state, command, and automation identities do not depend on translated text
+- layout must tolerate longer translated labels
+- actual language switching and translated resource sets are deferred
 
 ## Automation IDs
 
-```text
-Main.Command.OpenAsset
-Main.Command.Reload
-Main.Command.Export
-Main.Asset.AnimationSearch
-Main.Asset.AnimationList
-Main.Asset.SkinList
-Main.Viewport.Surface
-Main.Playback.Toggle
-Main.Playback.Stop
-Main.Playback.Timeline
-Main.Playback.Loop
-Main.Viewport.Fit
-Main.Status.Runtime
-Main.Status.Diagnostics
-```
+Existing TASK-002 identifiers remain stable. New panel chrome uses identifiers only after the docking prototype selects its controls.

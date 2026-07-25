@@ -42,6 +42,8 @@ Read `10-cli-contract.md`, `11-mcp-capability-map.md`, and UI documents only whe
 | Official Runtime implementation | pinned `EsotericSoftware/spine-runtimes` snapshots |
 | Supported export versions | verified fixture results in `04-runtime-matrix.md` |
 | v3 architecture | Accepted ADRs |
+| Product and UI direction | product-owner input recorded in Accepted ADRs |
+| External feature ideas | `17-external-feature-reference.md`; reference only, not a contract |
 | Work scope | active `TASK-xxx.md` |
 | Build/validation | repository CI and active task |
 
@@ -52,4 +54,5 @@ Read `10-cli-contract.md`, `11-mcp-capability-map.md`, and UI documents only whe
 - Renderer: deterministic CPU spike accepted by ADR-005; production renderer remains undecided
 - CLI: 4.1 `inspect` and `render` implemented
 - MCP: capability planning only
-- UI: TASK-002 fake-state quick-browse shell completed; live Runtime/renderer integration not started
+- UI: TASK-002 fake-state quick-browse shell completed; ADR-006 keeps that fast default while evolving the shell into a dockable workspace
+- Localization: resource boundary required now; runtime language switching remains deferred
