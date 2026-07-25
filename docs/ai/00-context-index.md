@@ -54,6 +54,6 @@ Read `10-cli-contract.md`, `11-mcp-capability-map.md`, and UI documents only whe
 - Renderer: deterministic CPU spike accepted by ADR-005; production renderer remains undecided
 - CLI: 4.1 `inspect` and `render` implemented
 - MCP: capability planning only
-- UI: TASK-006 opens 4.1 PPM and PNG asset metadata through Application and the isolated Runtime adapter; preview rendering remains fake
+- UI: TASK-007 shows the verified 4.1 PPM fixture as a real deterministic static frame; PNG metadata opens with an explicit renderer-unavailable state
 - Localization: resource boundary required now; runtime language switching remains deferred
 - Editing: TASK-004 adds Inspector editing, Undo/Redo, dirty state, and versioned `*.spineviewer.json` sidecar save; Spine source writing remains forbidden

@@ -50,6 +50,8 @@ Connect the validated WPF shell to Application use cases:
 - viewport controls
 - diagnostics and capture
 
+Progress: TASK-005 connected real metadata opening, TASK-007 connected one deterministic static PPM frame and renderer-unavailable fallback. Interactive playback, fit/pan/zoom, diagnostics, and capture remain incomplete.
+
 ## Phase 4 — Export Replacement
 
 - deterministic frame capture

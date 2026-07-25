@@ -19,7 +19,7 @@ public enum WorkspaceState
     Exporting
 }
 
-public sealed class ShellViewModel : INotifyPropertyChanged
+public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 {
     private static readonly string[] DefaultAnimations = ["idle", "walk", "attack", "victory"];
     private static readonly string[] DefaultSkins = ["default", "armor", "shadow"];
@@ -41,6 +41,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged
     private readonly Func<string?> chooseAssetPath;
     private readonly Func<string, string?> chooseProjectPath;
     private readonly Func<bool> confirmDiscardChanges;
+    private readonly Func<string> createPreviewPath;
     // ponytail: in-memory history is enough for one fake document; cap or persist it with multi-document editing.
     private readonly Stack<EditorSnapshot> undo = [];
     private readonly Stack<EditorSnapshot> redo = [];
@@ -73,6 +74,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged
     private double trackAlpha = 1;
     private string backgroundMode = "Checkerboard";
     private string? projectPath;
+    private string? previewImagePath;
+    private bool isPrototypePreview = true;
     private string lastAction = "Prototype ready";
 
     public ShellViewModel(
@@ -82,7 +85,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged
         Func<string, string?>? chooseProjectPath = null,
         AssetService? assetService = null,
         Func<string?>? chooseAssetPath = null,
-        Func<bool>? confirmDiscardChanges = null)
+        Func<bool>? confirmDiscardChanges = null,
+        Func<string>? createPreviewPath = null)
     {
         state = initialState;
         isRailExpanded = expandedWorkspace;
@@ -93,6 +97,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged
         this.assetService = assetService;
         this.chooseAssetPath = chooseAssetPath ?? (() => null);
         this.confirmDiscardChanges = confirmDiscardChanges ?? (() => false);
+        this.createPreviewPath = createPreviewPath ?? (() =>
+            Path.Combine(Path.GetTempPath(), "SpineViewerWPF", $"{Guid.NewGuid():N}.png"));
         savedSnapshot = Capture();
 
         OpenAssetCommand = new RelayCommand(async () => await OpenAssetAsync(), () => !IsLoading);
@@ -308,6 +314,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged
     public bool IsExporting => State == WorkspaceState.Exporting;
     public bool HasAsset => Definition.HasAsset;
     public bool HasPreview => Definition.HasPreview;
+    public bool HasRenderedPreview => PreviewImagePath is not null;
+    public bool HasPrototypePreview => HasPreview && isPrototypePreview;
     public bool CanPlay => Definition.CanPlay && SelectedAnimation is not null;
     public bool IsDirty => Capture() != savedSnapshot;
     public bool HasBlockingOverlay => State is WorkspaceState.Unsupported or WorkspaceState.Failed or WorkspaceState.RendererUnavailable;
@@ -329,6 +337,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged
     public string WindowTitle => $"Spine Viewer · {DocumentTitle}";
     public string ProjectPathLabel => ProjectPath ?? "Not saved";
     public string? ProjectPath => projectPath;
+    public string? PreviewImagePath => previewImagePath;
     public double PreviewX => ModelX;
     public double PreviewY => ModelY;
     public double PreviewScaleX => ModelScale * (FlipX ? -1 : 1);
@@ -374,8 +383,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged
 
         try
         {
-            var result = await Task.Run(() => assetService.Inspect(path, null, null));
-            ApplyAsset(result);
+            var opened = await Task.Run(() => InspectAndRender(path));
+            ApplyAsset(opened.Result, opened.PreviewPath, opened.RenderError);
         }
         catch (NotSupportedException exception)
         {
@@ -395,6 +404,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged
 
     private void ApplyFakeAsset()
     {
+        ReplacePreview(null);
+        isPrototypePreview = true;
         animations = DefaultAnimations;
         skinNames = DefaultSkins;
         animationDurations = animations.ToDictionary(x => x, _ => 1.8, StringComparer.Ordinal);
@@ -411,8 +422,41 @@ public sealed class ShellViewModel : INotifyPropertyChanged
         RefreshCommands();
     }
 
-    private void ApplyAsset(InspectResult result)
+    private (InspectResult Result, string? PreviewPath, string? RenderError) InspectAndRender(string path)
     {
+        var result = assetService!.Inspect(path, null, null);
+        var animation = result.Animations.FirstOrDefault();
+        if (animation is null)
+            return (result, null, "The current renderer requires an animation.");
+
+        var previewPath = createPreviewPath();
+        try
+        {
+            assetService.Render(
+                result.Asset.SkeletonPath,
+                result.Asset.AtlasPath,
+                result.Runtime.SelectedLine,
+                animation.Name,
+                animation.DurationSeconds / 2,
+                64,
+                64,
+                previewPath,
+                true,
+                false,
+                result.Skins.Take(1).ToArray());
+            return (result, previewPath, null);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            DeletePreview(previewPath);
+            return (result, null, exception.Message);
+        }
+    }
+
+    private void ApplyAsset(InspectResult result, string? previewPath, string? renderError)
+    {
+        ReplacePreview(previewPath);
+        isPrototypePreview = false;
         animations = result.Animations.Select(x => x.Name).ToArray();
         skinNames = result.Skins.Count == 0 ? [DefaultSkins[0]] : result.Skins.ToArray();
         animationDurations = result.Animations.ToDictionary(x => x.Name, x => (double)x.DurationSeconds, StringComparer.Ordinal);
@@ -423,11 +467,45 @@ public sealed class ShellViewModel : INotifyPropertyChanged
         selectedAnimation = animations.FirstOrDefault();
         selectedSkin = skinNames[0];
         ResetEditor();
-        State = diagnosticCount == 0 ? WorkspaceState.Ready : WorkspaceState.ReadyWithWarnings;
-        LastAction = $"Opened {SkeletonFileName}";
+        State = renderError is not null
+            ? WorkspaceState.RendererUnavailable
+            : diagnosticCount == 0 ? WorkspaceState.Ready : WorkspaceState.ReadyWithWarnings;
+        if (renderError is not null)
+        {
+            stateDetailOverride = renderError;
+            Changed(nameof(StateDetail));
+        }
+        LastAction = renderError is null ? $"Rendered {SkeletonFileName}" : $"Opened metadata for {SkeletonFileName}";
         Changed(string.Empty);
         RefreshCommands();
     }
+
+    private void ReplacePreview(string? path)
+    {
+        if (previewImagePath == path) return;
+        DeletePreview(previewImagePath);
+        previewImagePath = path;
+        Changed(nameof(PreviewImagePath));
+        Changed(nameof(HasRenderedPreview));
+        Changed(nameof(HasPrototypePreview));
+    }
+
+    private static void DeletePreview(string? path)
+    {
+        if (path is null) return;
+        try
+        {
+            File.Delete(path);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+
+    public void Dispose() => ReplacePreview(null);
 
     private void ResetEditor()
     {

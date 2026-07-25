@@ -67,6 +67,6 @@ Preserved: official Runtime `src/**`, Core/Application/WPF/CLI contracts, P3 PPM
 
 Validation: valid generated PNG reaches WPF Ready with expected metadata; truncated and zero-width PNGs preserve deterministic validation failures; WPF and CLI regressions pass.
 
-Known gaps: PNG pixels are not decoded or rendered; CRC, later chunks, editor-export assets, multi-page atlases, and non-PNG production formats remain unverified.
+Known gaps: PNG pixels are not decoded or rendered; CRC, later chunks, editor-export assets, multi-page atlases, and non-PNG production formats remain unverified. TASK-007 later presents successfully inspected PNG assets as `RendererUnavailable` instead of showing the fake figure.
 
 Documentation: context index, Runtime matrix, and TASK-005 known gaps updated.

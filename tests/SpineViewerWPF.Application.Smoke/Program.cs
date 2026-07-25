@@ -2,6 +2,8 @@ using SpineRuntime.V41;
 using SpineViewerWPF.Application;
 using SpineViewerWPF.Core;
 using SpineViewerWPF.Wpf;
+using System.Globalization;
+using System.Security.Cryptography;
 
 var root = Path.Combine(Path.GetTempPath(), $"SpineViewerWPF-{Guid.NewGuid():N}");
 Directory.CreateDirectory(root);
@@ -36,6 +38,30 @@ try
     Assert(store.Load(uiProject).SelectedAnimation == "walk", "UI edit was not saved.");
 
     var fixtureDirectory = Path.Combine(Directory.GetCurrentDirectory(), "tests", "fixtures", "v41-minimal");
+    var assetService = new AssetService(new SpineV41Adapter());
+    var previewPath = Path.Combine(root, "preview.png");
+    var previewViewModel = new ShellViewModel(
+        WorkspaceState.Empty,
+        true,
+        store,
+        _ => Path.Combine(root, "preview.spineviewer.json"),
+        assetService,
+        createPreviewPath: () => previewPath);
+    await previewViewModel.OpenAssetAsync(Path.Combine(fixtureDirectory, "minimal.json"));
+    Assert(previewViewModel.State == WorkspaceState.Ready, "PPM fixture did not reach Ready.");
+    Assert(previewViewModel.PreviewImagePath == previewPath && File.Exists(previewPath), "Static preview was not rendered.");
+    Assert(
+        Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(previewPath)))
+            == "7178BBFA4315C36332AB5C4743A413FE6A7CD165D75C907BBC34D88DB846301E",
+        "WPF preview did not match the deterministic render baseline.");
+    Assert(
+        new PreviewImageConverter().Convert(previewPath, typeof(object), null, CultureInfo.InvariantCulture) is not null,
+        "WPF could not load the rendered preview.");
+    await previewViewModel.OpenAssetAsync(Path.Combine(root, "missing.json"));
+    Assert(previewViewModel.PreviewImagePath == previewPath && File.Exists(previewPath), "Failed replacement discarded the prior preview.");
+    previewViewModel.Dispose();
+    Assert(!File.Exists(previewPath), "Disposed preview file was not deleted.");
+
     var pngSkeleton = Path.Combine(root, "png.json");
     var pngAtlas = Path.Combine(root, "png.atlas");
     var pngTexture = Path.Combine(root, "png.png");
@@ -50,7 +76,7 @@ try
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+R16vcwAAAABJRU5ErkJggg==");
     File.WriteAllBytes(pngTexture, validPng);
 
-    var pngService = new AssetService(new SpineV41Adapter());
+    var pngService = assetService;
     var pngInspect = pngService.Inspect(pngSkeleton, null, null);
     Assert(pngInspect.Asset.Textures.SequenceEqual([Path.GetFullPath(pngTexture)]), "PNG texture path was not inspected.");
 
@@ -62,7 +88,8 @@ try
         _ => realProject,
         pngService);
     await realViewModel.OpenAssetAsync(pngSkeleton);
-    Assert(realViewModel.State == WorkspaceState.Ready, "Real fixture did not reach Ready.");
+    Assert(realViewModel.State == WorkspaceState.RendererUnavailable, "PNG metadata did not expose renderer unavailability.");
+    Assert(realViewModel.PreviewImagePath is null, "Unsupported PNG rendering exposed a fake preview.");
     Assert(realViewModel.FilteredAnimations.SequenceEqual(["move"]), "Real animation metadata was not mapped.");
     Assert(realViewModel.Skins.SequenceEqual(["default"]), "Real skin metadata was not mapped.");
     Assert(realViewModel.RuntimeLabel == "Runtime 4.1" && realViewModel.Duration == 1, "Runtime or duration was not mapped.");
@@ -73,7 +100,7 @@ try
 
     realViewModel.ModelY = 4;
     await realViewModel.OpenAssetAsync(Path.Combine(root, "missing.json"));
-    Assert(realViewModel.State == WorkspaceState.Ready && realViewModel.IsDirty, "Dirty replacement was not canceled.");
+    Assert(realViewModel.State == WorkspaceState.RendererUnavailable && realViewModel.IsDirty, "Dirty replacement was not canceled.");
     realViewModel.UndoCommand.Execute(null);
 
     await realViewModel.OpenAssetAsync(Path.Combine(root, "missing.json"));
@@ -104,7 +131,7 @@ try
     File.WriteAllText(project, File.ReadAllText(project).Replace("\"schemaVersion\": 1", "\"schemaVersion\": 2"));
     Expect<InvalidDataException>(() => store.Load(project));
 
-    Console.WriteLine("Viewer project, PNG asset open, edit history, failure states, and source isolation passed.");
+    Console.WriteLine("Viewer project, static preview, PNG fallback, edit history, and source isolation passed.");
 }
 finally
 {

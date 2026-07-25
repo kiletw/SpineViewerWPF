@@ -3,9 +3,10 @@ $ErrorActionPreference = 'Stop'
 $repository = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $repository 'src\SpineViewerWPF.Wpf\SpineViewerWPF.Wpf.csproj'
 $xaml = Join-Path $repository 'src\SpineViewerWPF.Wpf\MainWindow.xaml'
-$executable = Join-Path $repository 'src\SpineViewerWPF.Wpf\bin\Release\net8.0-windows\SpineViewerWPF.exe'
+$output = Join-Path $repository 'artifacts\ui-shell-smoke'
+$executable = Join-Path $output 'bin\Release\net8.0-windows\SpineViewerWPF.exe'
 
-dotnet build $project -c Release
+dotnet build $project -c Release -p:BaseOutputPath="$output\bin\"
 if ($LASTEXITCODE -ne 0) { throw 'WPF shell build failed.' }
 
 $automationIds = @(
@@ -20,6 +21,7 @@ $automationIds = @(
     'Main.Asset.AnimationList',
     'Main.Asset.SkinList',
     'Main.Viewport.Surface',
+    'Main.Viewport.RenderedPreview',
     'Main.Playback.Toggle',
     'Main.Playback.Stop',
     'Main.Playback.Timeline',
