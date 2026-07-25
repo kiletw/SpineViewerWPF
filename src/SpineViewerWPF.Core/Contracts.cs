@@ -31,3 +31,20 @@ public sealed record RenderRequest(
     bool Overwrite,
     bool Pma,
     IReadOnlyList<string> Skins);
+
+public sealed record ViewerProjectDocument(
+    int SchemaVersion,
+    string SkeletonPath,
+    string? AtlasPath,
+    string? SelectedAnimation,
+    string SelectedSkin,
+    double ModelX,
+    double ModelY,
+    double ModelScale,
+    double ModelRotation,
+    bool FlipX,
+    bool FlipY,
+    bool Loop,
+    double PlaybackSpeed,
+    double TrackAlpha,
+    string BackgroundMode);

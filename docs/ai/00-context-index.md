@@ -56,3 +56,4 @@ Read `10-cli-contract.md`, `11-mcp-capability-map.md`, and UI documents only whe
 - MCP: capability planning only
 - UI: TASK-002 fake-state quick-browse shell completed; ADR-006 keeps that fast default while evolving the shell into a dockable workspace
 - Localization: resource boundary required now; runtime language switching remains deferred
+- Editing: TASK-004 adds fake-session Inspector editing, Undo/Redo, dirty state, and versioned `*.spineviewer.json` sidecar save; Spine source writing remains forbidden

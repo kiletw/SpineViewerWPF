@@ -58,6 +58,7 @@ Supporting panels may be moved into tab groups or separate owned windows. The co
 - diagnostics summary
 - export dialog as a secondary workflow
 - dock, float, redock, hide/show, and reset-layout behavior for selected supporting panels
+- non-destructive Inspector editing with dirty state, Undo/Redo, and `*.spineviewer.json` project save
 
 ## Deferred
 
@@ -67,6 +68,7 @@ Supporting panels may be moved into tab groups or separate owned windows. The co
 - advanced attachment editor
 - final theme library decision
 - runtime language switcher and translated resource sets
+- writing changes back to Spine JSON or binary source files
 
 ## Open Product Decisions
 

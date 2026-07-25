@@ -11,6 +11,10 @@ if ($LASTEXITCODE -ne 0) { throw 'WPF shell build failed.' }
 $automationIds = @(
     'Main.Command.OpenAsset',
     'Main.Command.Reload',
+    'Main.Command.SaveProject',
+    'Main.Command.SaveProjectAs',
+    'Main.Command.Undo',
+    'Main.Command.Redo',
     'Main.Command.Export',
     'Main.Asset.AnimationSearch',
     'Main.Asset.AnimationList',
@@ -22,13 +26,27 @@ $automationIds = @(
     'Main.Playback.Loop',
     'Main.Viewport.Fit',
     'Main.Status.Runtime',
-    'Main.Status.Diagnostics'
+    'Main.Status.Diagnostics',
+    'Main.Inspector.Panel',
+    'Main.Inspector.ModelScale',
+    'Main.Inspector.Background',
+    'Main.Inspector.ProjectPath'
 )
 $markup = Get-Content -LiteralPath $xaml -Raw
 foreach ($automationId in $automationIds) {
     if (-not $markup.Contains("AutomationProperties.AutomationId=`"$automationId`"")) {
         throw "Missing automation ID: $automationId"
     }
+}
+
+$shortcuts = @(
+    'Key="S" Modifiers="Control" Command="{Binding SaveCommand}"',
+    'Key="S" Modifiers="Control+Shift" Command="{Binding SaveAsCommand}"',
+    'Key="Z" Modifiers="Control" Command="{Binding UndoCommand}"',
+    'Key="Y" Modifiers="Control" Command="{Binding RedoCommand}"'
+)
+foreach ($shortcut in $shortcuts) {
+    if (-not $markup.Contains($shortcut)) { throw "Missing shortcut: $shortcut" }
 }
 
 $process = $null
@@ -39,7 +57,7 @@ try {
         $process.Refresh()
         if ($process.HasExited -or $process.MainWindowTitle) { break }
     }
-    if ($process.HasExited -or $process.MainWindowTitle -notlike 'Spine Viewer*Quick Browse') {
+    if ($process.HasExited -or $process.MainWindowTitle -notlike 'Spine Viewer*') {
         throw 'WPF shell did not expose its main window.'
     }
 }
@@ -53,5 +71,6 @@ finally {
 [pscustomobject]@{
     Build = 'passed'
     AutomationIds = $automationIds.Count
+    EditorShortcuts = $shortcuts.Count
     CompactWarningState = 'launched'
 }

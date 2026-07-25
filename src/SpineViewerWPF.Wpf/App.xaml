@@ -1,5 +1,30 @@
 <Application x:Class="SpineViewerWPF.Wpf.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              ShutdownMode="OnMainWindowClose">
+    <Application.Resources>
+        <sys:String x:Key="Text.Save">_Save</sys:String>
+        <sys:String x:Key="Text.SaveAs">Save _As</sys:String>
+        <sys:String x:Key="Text.Undo">Undo</sys:String>
+        <sys:String x:Key="Text.Redo">Redo</sys:String>
+        <sys:String x:Key="Text.Inspector">Inspector</sys:String>
+        <sys:String x:Key="Text.SaveProjectTitle">Save Viewer project</sys:String>
+        <sys:String x:Key="Text.ProjectFilter">Spine Viewer project (*.spineviewer.json)|*.spineviewer.json</sys:String>
+        <sys:String x:Key="Text.UnsavedTitle">Unsaved Viewer project</sys:String>
+        <sys:String x:Key="Text.UnsavedPrompt">Save changes before closing?</sys:String>
+        <sys:String x:Key="Text.ModelTransform">MODEL TRANSFORM</sys:String>
+        <sys:String x:Key="Text.PositionX">Position X</sys:String>
+        <sys:String x:Key="Text.PositionY">Position Y</sys:String>
+        <sys:String x:Key="Text.Scale">Scale</sys:String>
+        <sys:String x:Key="Text.Rotation">Rotation</sys:String>
+        <sys:String x:Key="Text.FlipX">Flip X</sys:String>
+        <sys:String x:Key="Text.FlipY">Flip Y</sys:String>
+        <sys:String x:Key="Text.Playback">PLAYBACK</sys:String>
+        <sys:String x:Key="Text.Speed">Speed</sys:String>
+        <sys:String x:Key="Text.TrackAlpha">Track alpha</sys:String>
+        <sys:String x:Key="Text.Background">BACKGROUND</sys:String>
+        <sys:String x:Key="Text.Project">PROJECT</sys:String>
+        <sys:String x:Key="Text.ProjectPath">Project path</sys:String>
+    </Application.Resources>
 </Application>

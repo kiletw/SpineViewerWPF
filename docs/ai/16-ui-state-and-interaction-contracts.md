@@ -47,6 +47,15 @@ Preserve the previous Ready asset until replacement succeeds where practical.
 
 ViewModels may expose primitives, presentation DTOs, commands, and observable collections. They must not own official Runtime objects, graphics devices, textures, or render targets.
 
+## Editable Viewer Project
+
+- A project is dirty when its editable snapshot differs from the last loaded or saved snapshot.
+- Undo and Redo operate on project settings, not viewport playback time.
+- Save and Save As target only `*.spineviewer.json`.
+- Successful save clears dirty state; a failed or canceled save preserves it.
+- Closing a dirty project offers Save, Discard, and Cancel.
+- Spine JSON, binary, atlas, and texture sources remain read-only.
+
 ## Command Enablement
 
 | Command | Enabled when |
@@ -58,6 +67,10 @@ ViewModels may expose primitives, presentation DTOs, commands, and observable co
 | Export | asset ready, selection valid, no blocking diagnostic |
 | Reload | asset identity known and not in unsafe operation |
 | Runtime override | not exporting; reload confirmation if needed |
+| Save project | asset ready; project is dirty or has no project path |
+| Save project as | asset ready |
+| Undo | edit history is not empty |
+| Redo | redo history is not empty |
 
 ## Error Presentation
 

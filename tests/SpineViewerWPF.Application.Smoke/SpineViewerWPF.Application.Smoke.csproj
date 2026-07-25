@@ -1,13 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>SpineViewerWPF</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../SpineViewerWPF.Application/SpineViewerWPF.Application.csproj" />
+    <ProjectReference Include="../../src/SpineViewerWPF.Wpf/SpineViewerWPF.Wpf.csproj" />
   </ItemGroup>
 </Project>

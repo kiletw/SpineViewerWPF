@@ -40,6 +40,10 @@ Renders a deterministic frame from explicit dimensions, time, transform, backgro
 
 Produces a sequence or encoded output with progress, cancellation, overwrite policy, and diagnostics.
 
+### `LoadViewerProject`, `SaveViewerProject`
+
+Loads and saves project-owned viewer settings through a versioned `*.spineviewer.json` sidecar. The first schema stores source references, selected animation and skin, model transform, playback settings, and background mode. It never writes Spine JSON, binary, atlas, or texture sources.
+
 ## Error Model
 
 Use structured error codes and diagnostics. Exceptions are internal failure signals, not the public adapter contract.
