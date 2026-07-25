@@ -12,7 +12,7 @@ Exit: no major rewrite begins until unknowns and baseline blockers are documente
 
 Result: architecture, behavior, Runtime candidates, build, resource lifetime, risks, and missing fixtures are documented. Compatibility claims remain gated on real fixtures.
 
-## UI Discovery Track — Quick Browse Prototype
+## UI Discovery Track — Quick Browse Prototype (completed 2026-07-26)
 
 May begin after Phase 0 has captured v2 workflows. Use fake state only.
 
@@ -20,6 +20,8 @@ May begin after Phase 0 has captured v2 workflows. Use fake state only.
 - validate animation-first layout
 - design empty/loading/ready/warning/unsupported/error states
 - measure interactions to first visible animation
+
+Result: a fake-state WPF shell validates a one-interaction open-to-preview path, required states, keyboard commands, stable automation IDs, and the collapsed 756 by 519 layout. Live Application and renderer integration remains deferred.
 
 ## Phase 1 — One Vertical Slice (completed 2026-07-26)
 

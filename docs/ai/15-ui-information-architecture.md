@@ -83,6 +83,8 @@ At minimum supported width:
 - advanced settings remain closed
 - export stays a dialog
 
+TASK-002 measured the prototype at 756 by 519 pixels: the rail collapses to 54 pixels, the viewport remains primary, and fake preview content scales without clipping.
+
 ## Automation IDs
 
 ```text

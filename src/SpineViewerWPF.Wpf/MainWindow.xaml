@@ -1,0 +1,534 @@
+<Window x:Class="SpineViewerWPF.Wpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Spine Viewer · Quick Browse"
+        Width="1180"
+        Height="760"
+        MinWidth="760"
+        MinHeight="520"
+        Background="#0D0F14"
+        Foreground="#E8ECF3"
+        FontFamily="Segoe UI"
+        WindowStartupLocation="CenterScreen"
+        AutomationProperties.AutomationId="Main.Window">
+    <Window.InputBindings>
+        <KeyBinding Key="O" Modifiers="Control" Command="{Binding OpenAssetCommand}" />
+        <KeyBinding Key="F5" Command="{Binding ReloadCommand}" />
+        <KeyBinding Key="E" Modifiers="Control" Command="{Binding ExportCommand}" />
+        <KeyBinding Key="S" Modifiers="Control" Command="{Binding ScreenshotCommand}" />
+        <KeyBinding Key="Space" Command="{Binding TogglePlayCommand}" />
+        <KeyBinding Key="F" Command="{Binding FitCommand}" />
+        <KeyBinding Key="D" Modifiers="Control" Command="{Binding DiagnosticsCommand}" />
+        <KeyBinding Key="D" Modifiers="Control+Shift" Command="{Binding CycleStateCommand}" />
+    </Window.InputBindings>
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="PanelBrush" Color="#151820" />
+        <SolidColorBrush x:Key="PanelRaisedBrush" Color="#1B1F29" />
+        <SolidColorBrush x:Key="BorderBrush" Color="#2A303C" />
+        <SolidColorBrush x:Key="MutedBrush" Color="#929BAD" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#68E0C1" />
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#E8ECF3" />
+        </Style>
+        <Style x:Key="MutedText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+        </Style>
+        <Style x:Key="ButtonBase" TargetType="Button">
+            <Setter Property="Background" Value="#202530" />
+            <Setter Property="Foreground" Value="#E8ECF3" />
+            <Setter Property="BorderBrush" Value="#343B49" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="13,7" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#2A303C" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#343B49" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Border" Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource ButtonBase}">
+            <Setter Property="Background" Value="#68E0C1" />
+            <Setter Property="Foreground" Value="#07120F" />
+            <Setter Property="BorderBrush" Value="#68E0C1" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#10131A" />
+            <Setter Property="Foreground" Value="#E8ECF3" />
+            <Setter Property="CaretBrush" Value="#E8ECF3" />
+            <Setter Property="BorderBrush" Value="#303745" />
+            <Setter Property="Padding" Value="10,7" />
+        </Style>
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="#DDE3EC" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBox">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ScrollViewer Focusable="False" Padding="0">
+                                <ItemsPresenter />
+                            </ScrollViewer>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="0,2" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="AutomationProperties.AutomationId" Value="Main.Asset.AnimationItem" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="ItemBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#28483F" />
+                                <Setter Property="Foreground" Value="#8AF0D5" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#222732" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ItemBorder" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <DrawingBrush x:Key="ViewportGrid"
+                      TileMode="Tile"
+                      Viewport="0,0,32,32"
+                      ViewportUnits="Absolute">
+            <DrawingBrush.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="#10131A">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="0,0,32,32" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="#131720">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <RectangleGeometry Rect="0,0,16,16" />
+                                <RectangleGeometry Rect="16,16,16,16" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                </DrawingGroup>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="58" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="66" />
+            <RowDefinition Height="34" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="#171A21" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <Grid Margin="14,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0"
+                        Style="{StaticResource ButtonBase}"
+                        Content="☰"
+                        Margin="0,10,10,10"
+                        Padding="12,6"
+                        ToolTip="Collapse browse rail"
+                        Command="{Binding ToggleRailCommand}"
+                        AutomationProperties.AutomationId="Main.Command.ToggleBrowseRail" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="SPINE VIEWER" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" />
+                    <TextBlock Text="Quick browse" FontSize="16" FontWeight="SemiBold" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Button Style="{StaticResource AccentButton}"
+                            Content="_Open asset"
+                            Command="{Binding OpenAssetCommand}"
+                            AutomationProperties.AutomationId="Main.Command.OpenAsset" />
+                    <Button Style="{StaticResource ButtonBase}"
+                            Content="_Reload"
+                            Margin="8,0,0,0"
+                            Command="{Binding ReloadCommand}"
+                            AutomationProperties.AutomationId="Main.Command.Reload" />
+                </StackPanel>
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource ButtonBase}"
+                            Content="Screenshot"
+                            Command="{Binding ScreenshotCommand}"
+                            AutomationProperties.AutomationId="Main.Command.Screenshot" />
+                    <Button Style="{StaticResource ButtonBase}"
+                            Content="Export"
+                            Margin="8,0,0,0"
+                            Command="{Binding ExportCommand}"
+                            AutomationProperties.AutomationId="Main.Command.Export" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0"
+                    Background="{StaticResource PanelBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="0,0,1,0"
+                    AutomationProperties.AutomationId="Main.Asset.BrowseRail">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Width" Value="270" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsRailExpanded}" Value="False">
+                                <Setter Property="Width" Value="54" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
+                <Grid>
+                    <StackPanel Margin="14">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsRailExpanded}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="ANIMATIONS" FontSize="11" FontWeight="Bold" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,8" />
+                        <TextBox Text="{Binding AnimationFilter, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="Filter animations"
+                                 AutomationProperties.AutomationId="Main.Asset.AnimationSearch" />
+                        <ListBox ItemsSource="{Binding FilteredAnimations}"
+                                 SelectedItem="{Binding SelectedAnimation}"
+                                 IsEnabled="{Binding HasAsset}"
+                                 MinHeight="160"
+                                 Margin="0,8,0,16"
+                                 AutomationProperties.AutomationId="Main.Asset.AnimationList" />
+                        <Expander Header="Skins" IsExpanded="False" Foreground="#DDE3EC">
+                            <ListBox ItemsSource="{Binding Skins}"
+                                     Margin="4,6,0,10"
+                                     IsEnabled="{Binding HasAsset}"
+                                     AutomationProperties.AutomationId="Main.Asset.SkinList" />
+                        </Expander>
+                        <Expander Header="Asset information" IsExpanded="False" Foreground="#DDE3EC">
+                            <StackPanel Margin="4,8,0,0">
+                                <TextBlock Text="hero.json" />
+                                <TextBlock Text="hero.atlas · 2 textures" Style="{StaticResource MutedText}" Margin="0,3,0,0" />
+                            </StackPanel>
+                        </Expander>
+                    </StackPanel>
+
+                    <StackPanel HorizontalAlignment="Center" Margin="0,14">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsRailExpanded}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="A" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" ToolTip="Animations" />
+                        <TextBlock Text="4" Margin="0,12,0,0" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" ToolTip="4 animations" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <ScrollViewer Grid.Column="1"
+                          Margin="14"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Disabled"
+                          HorizontalContentAlignment="Stretch"
+                          VerticalContentAlignment="Stretch"
+                          IsTabStop="False"
+                          AutomationProperties.Name="Asset viewport"
+                          AutomationProperties.AutomationId="Main.Viewport.Surface">
+                <Border CornerRadius="12"
+                        BorderBrush="#29303B"
+                        BorderThickness="1"
+                        Background="{StaticResource ViewportGrid}"
+                        ClipToBounds="True">
+                    <Grid>
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="26">
+                        <Viewbox.Style>
+                            <Style TargetType="Viewbox">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasPreview}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Viewbox.Style>
+                        <Canvas Width="360" Height="420" Opacity="0.95">
+                            <Ellipse Canvas.Left="120" Canvas.Top="44" Width="120" Height="120" Fill="#223A39" Stroke="#68E0C1" StrokeThickness="3" />
+                            <Path Data="M 144,150 C 112,202 102,292 132,350 L 228,350 C 258,292 248,202 216,150 Z"
+                                  Fill="#1B2D33" Stroke="#68E0C1" StrokeThickness="3" />
+                            <Path Data="M 138,193 L 76,272 M 222,193 L 284,272 M 152,347 L 126,404 M 208,347 L 234,404"
+                                  Stroke="#68E0C1" StrokeThickness="6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                            <Polyline Points="180,104 180,174 180,242 180,320"
+                                      Stroke="#F3C969" StrokeThickness="2" StrokeDashArray="3,3" />
+                            <Ellipse Canvas.Left="173" Canvas.Top="97" Width="14" Height="14" Fill="#F3C969" />
+                            <Ellipse Canvas.Left="173" Canvas.Top="167" Width="14" Height="14" Fill="#F3C969" />
+                            <Ellipse Canvas.Left="173" Canvas.Top="235" Width="14" Height="14" Fill="#F3C969" />
+                            <Ellipse Canvas.Left="173" Canvas.Top="313" Width="14" Height="14" Fill="#F3C969" />
+                            <Ellipse Canvas.Left="153" Canvas.Top="87" Width="14" Height="20" Fill="#68E0C1" />
+                            <Ellipse Canvas.Left="193" Canvas.Top="87" Width="14" Height="20" Fill="#68E0C1" />
+                        </Canvas>
+                    </Viewbox>
+
+                    <Border VerticalAlignment="Top"
+                            HorizontalAlignment="Center"
+                            Margin="16"
+                            Background="#D69C32"
+                            CornerRadius="7"
+                            Padding="12,7">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsWarning}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="Preview ready · 1 non-blocking warning" Foreground="#171109" FontWeight="SemiBold" />
+                    </Border>
+
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="420">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsEmpty}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <Border Width="68" Height="68" CornerRadius="34" Background="#1D332F" HorizontalAlignment="Center">
+                            <TextBlock Text="＋" FontSize="34" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="{Binding StateTitle}" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,18,0,6" />
+                        <TextBlock Text="{Binding StateDetail}" Style="{StaticResource MutedText}" TextAlignment="Center" />
+                        <Button Style="{StaticResource AccentButton}"
+                                Content="Open asset"
+                                HorizontalAlignment="Center"
+                                Margin="0,20,0,0"
+                                Command="{Binding OpenAssetCommand}"
+                                AutomationProperties.AutomationId="Main.Viewport.OpenAsset" />
+                    </StackPanel>
+
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="390">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <ProgressBar Height="5" IsIndeterminate="True" Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="{Binding StateTitle}" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,20,0,6" />
+                        <TextBlock Text="{Binding StateDetail}" Style="{StaticResource MutedText}" TextAlignment="Center" />
+                    </StackPanel>
+
+                    <Border HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            MaxWidth="500"
+                            Margin="32"
+                            Padding="28"
+                            CornerRadius="12"
+                            Background="#E914171D"
+                            BorderBrush="#394150"
+                            BorderThickness="1">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasBlockingOverlay}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel>
+                            <TextBlock Text="{Binding StateTitle}" FontSize="22" FontWeight="SemiBold" TextAlignment="Center" />
+                            <TextBlock Text="{Binding StateDetail}" Style="{StaticResource MutedText}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,16" />
+                            <Button Style="{StaticResource ButtonBase}"
+                                    Content="View diagnostics"
+                                    HorizontalAlignment="Center"
+                                    Command="{Binding DiagnosticsCommand}"
+                                    AutomationProperties.AutomationId="Main.Status.DiagnosticsAction" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Margin="16"
+                            Padding="10,6"
+                            CornerRadius="6"
+                            Background="#C0202530">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsExporting}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <ProgressBar Width="70" Height="4" IsIndeterminate="True" Margin="0,0,9,0" />
+                            <TextBlock Text="Exporting…" />
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="FAKE PRESENTATION DATA"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Bottom"
+                               Margin="14"
+                               FontSize="10"
+                               Foreground="#657084" />
+                    </Grid>
+                </Border>
+            </ScrollViewer>
+        </Grid>
+
+        <Border Grid.Row="2" Background="#171A21" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+            <Grid Margin="14,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button Style="{StaticResource AccentButton}"
+                            Width="80"
+                            Content="{Binding PlaybackLabel}"
+                            Command="{Binding TogglePlayCommand}"
+                            AutomationProperties.AutomationId="Main.Playback.Toggle" />
+                    <Button Style="{StaticResource ButtonBase}"
+                            Content="Stop"
+                            Margin="8,0,0,0"
+                            Command="{Binding StopCommand}"
+                            AutomationProperties.AutomationId="Main.Playback.Stop" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="16,0" VerticalAlignment="Center">
+                    <Slider Minimum="0"
+                            Maximum="{Binding Duration}"
+                            Value="{Binding Position}"
+                            IsEnabled="{Binding CanPlay}"
+                            AutomationProperties.AutomationId="Main.Playback.Timeline" />
+                    <TextBlock Text="0:00 / 0:01.8" Style="{StaticResource MutedText}" FontSize="10" HorizontalAlignment="Right" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <CheckBox Content="Loop"
+                              IsChecked="True"
+                              VerticalAlignment="Center"
+                              Margin="0,0,12,0"
+                              IsEnabled="{Binding CanPlay}"
+                              AutomationProperties.AutomationId="Main.Playback.Loop" />
+                    <Button Style="{StaticResource ButtonBase}"
+                            Content="Fit"
+                            Command="{Binding FitCommand}"
+                            AutomationProperties.AutomationId="Main.Viewport.Fit" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3" Background="#101218">
+            <Grid Margin="14,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Text="{Binding RuntimeLabel}"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource AccentBrush}"
+                           FontSize="11"
+                           AutomationProperties.AutomationId="Main.Status.Runtime" />
+                <Button Grid.Column="1"
+                        Margin="14,0,0,0"
+                        Padding="0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="{StaticResource MutedBrush}"
+                        Content="{Binding DiagnosticLabel}"
+                        Command="{Binding DiagnosticsCommand}"
+                        AutomationProperties.AutomationId="Main.Status.Diagnostics" />
+                <TextBlock Grid.Column="2"
+                           Text="{Binding LastAction}"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center"
+                           Foreground="#667186"
+                           FontSize="11" />
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Prototype state" Style="{StaticResource MutedText}" FontSize="10" VerticalAlignment="Center" Margin="0,0,7,0" />
+                    <Button Style="{StaticResource ButtonBase}"
+                            Content="{Binding State}"
+                            Command="{Binding CycleStateCommand}"
+                            Width="160"
+                            Padding="6,2"
+                            FontSize="10"
+                            AutomationProperties.AutomationId="Main.Prototype.StatePicker" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

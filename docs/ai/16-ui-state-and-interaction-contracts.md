@@ -29,7 +29,7 @@ Preserve the previous Ready asset until replacement succeeds where practical.
 - Fit viewport after successful load.
 - Select remembered animation when valid, otherwise first animation.
 - No animations: display setup pose.
-- Auto-play is `TBD`; prototype both policies.
+- Auto-play the selected animation after successful load, as accepted by ADR-004.
 - Skin and advanced settings remain collapsed by default.
 - Warnings do not interrupt preview unless blocking.
 

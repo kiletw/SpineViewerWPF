@@ -68,7 +68,7 @@ Open/drop asset
 
 ## Open Product Decisions
 
-- auto-play after successful load
-- per-asset remembered animation, skin, and viewport
 - default dark/light/system theme
 - exact stop/reset semantics
+
+ADR-004 resolves auto-play and remembered state: auto-play the remembered or first animation, remember animation and skin per asset, and fit instead of restoring viewport pan/zoom on open.

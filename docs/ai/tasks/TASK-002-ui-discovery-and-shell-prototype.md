@@ -2,7 +2,7 @@
 
 ## Status
 
-Begin after TASK-000 captures v2 workflows. May run alongside TASK-001 only with fake Application state.
+Completed on 2026-07-26 with fake presentation state. TASK-001 remained isolated; the shell contains no Runtime, renderer, or export implementation.
 
 ## Objective
 
@@ -46,3 +46,25 @@ Validate the shortest understandable path from open/drop to visible animation wi
 - all required states render from fake data
 - open-to-preview interaction count is recorded
 - no View/ViewModel references official Runtime types
+
+## Completion Evidence
+
+- Review, wireframe, state table, command map, interaction count, and screenshots: [`../evidence/task-002/review.md`](../evidence/task-002/review.md)
+- Shell: `src/SpineViewerWPF.Wpf`
+- Validation: `scripts/test-ui-shell.ps1`
+- Measured compact window: 756 by 519 pixels with a 54-pixel collapsed browse rail
+- Exercised keyboard path: `Ctrl+O` from Empty to visible, fitted, auto-playing Ready state in one interaction
+
+## Validation
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-ui-shell.ps1
+```
+
+Expected result: build succeeds with zero warnings/errors, 14 stable automation IDs are present, and the compact warning state exposes its main window.
+
+## Known Gaps
+
+- All asset, animation, skin, playback, diagnostics, and export data is intentionally fake.
+- Drag/drop, file dialogs, persistence, real playback, and live renderer integration remain outside this task.
+- Final production renderer and visual toolkit decisions remain open.

@@ -52,4 +52,4 @@ Read `10-cli-contract.md`, `11-mcp-capability-map.md`, and UI documents only whe
 - Renderer: deterministic CPU spike accepted by ADR-005; production renderer remains undecided
 - CLI: 4.1 `inspect` and `render` implemented
 - MCP: capability planning only
-- UI: quick-browse direction selected, prototype not started
+- UI: TASK-002 fake-state quick-browse shell completed; live Runtime/renderer integration not started
