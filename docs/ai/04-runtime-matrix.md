@@ -62,6 +62,7 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 - Source patches: none
 - Verified input: project-authored JSON, atlas, and P3 PPM texture under `tests/fixtures/v41-minimal`
 - Verified metadata: export `4.1.00`, animation `move` at 1 second, skin `default`
+- WPF metadata path: TASK-005 verified the same fixture through the native file-open composition, Application inspect use case, isolated adapter, and presentation mapping
 - Verified render: 64 by 64 PNG at 0.5 seconds, SHA-256 `7178BBFA4315C36332AB5C4743A413FE6A7CD165D75C907BBC34D88DB846301E`
 - Still unverified: real editor exports, binary input, PMA, clipping, non-normal blend modes, multi-page atlases, and production texture formats
 

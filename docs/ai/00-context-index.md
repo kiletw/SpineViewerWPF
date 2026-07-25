@@ -54,6 +54,6 @@ Read `10-cli-contract.md`, `11-mcp-capability-map.md`, and UI documents only whe
 - Renderer: deterministic CPU spike accepted by ADR-005; production renderer remains undecided
 - CLI: 4.1 `inspect` and `render` implemented
 - MCP: capability planning only
-- UI: TASK-002 fake-state quick-browse shell completed; ADR-006 keeps that fast default while evolving the shell into a dockable workspace
+- UI: TASK-005 opens real 4.1 asset metadata through Application and the isolated Runtime adapter; preview rendering remains fake
 - Localization: resource boundary required now; runtime language switching remains deferred
-- Editing: TASK-004 adds fake-session Inspector editing, Undo/Redo, dirty state, and versioned `*.spineviewer.json` sidecar save; Spine source writing remains forbidden
+- Editing: TASK-004 adds Inspector editing, Undo/Redo, dirty state, and versioned `*.spineviewer.json` sidecar save; Spine source writing remains forbidden

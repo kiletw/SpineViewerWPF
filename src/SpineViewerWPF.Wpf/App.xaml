@@ -11,8 +11,11 @@
         <sys:String x:Key="Text.Inspector">Inspector</sys:String>
         <sys:String x:Key="Text.SaveProjectTitle">Save Viewer project</sys:String>
         <sys:String x:Key="Text.ProjectFilter">Spine Viewer project (*.spineviewer.json)|*.spineviewer.json</sys:String>
+        <sys:String x:Key="Text.OpenAssetTitle">Open Spine skeleton</sys:String>
+        <sys:String x:Key="Text.AssetFilter">Spine skeleton (*.json;*.skel)|*.json;*.skel|JSON skeleton (*.json)|*.json|Binary skeleton (*.skel)|*.skel</sys:String>
         <sys:String x:Key="Text.UnsavedTitle">Unsaved Viewer project</sys:String>
         <sys:String x:Key="Text.UnsavedPrompt">Save changes before closing?</sys:String>
+        <sys:String x:Key="Text.DiscardPrompt">Discard unsaved Viewer project changes and open another asset?</sys:String>
         <sys:String x:Key="Text.ModelTransform">MODEL TRANSFORM</sys:String>
         <sys:String x:Key="Text.PositionX">Position X</sys:String>
         <sys:String x:Key="Text.PositionY">Position Y</sys:String>

@@ -290,8 +290,8 @@
                         </Expander>
                         <Expander Header="Asset information" IsExpanded="False" Foreground="#DDE3EC">
                             <StackPanel Margin="4,8,0,0">
-                                <TextBlock Text="hero.json" />
-                                <TextBlock Text="hero.atlas · 2 textures" Style="{StaticResource MutedText}" Margin="0,3,0,0" />
+                                <TextBlock Text="{Binding SkeletonFileName}" />
+                                <TextBlock Text="{Binding AssetSummary}" Style="{StaticResource MutedText}" Margin="0,3,0,0" />
                             </StackPanel>
                         </Expander>
                     </StackPanel>

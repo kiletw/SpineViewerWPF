@@ -21,8 +21,8 @@ public enum WorkspaceState
 
 public sealed class ShellViewModel : INotifyPropertyChanged
 {
-    private static readonly string[] Animations = ["idle", "walk", "attack", "victory"];
-    private static readonly string[] SkinNames = ["default", "armor", "shadow"];
+    private static readonly string[] DefaultAnimations = ["idle", "walk", "attack", "victory"];
+    private static readonly string[] DefaultSkins = ["default", "armor", "shadow"];
     private static readonly IReadOnlyDictionary<WorkspaceState, StateDefinition> Definitions =
         new Dictionary<WorkspaceState, StateDefinition>
         {
@@ -36,19 +36,31 @@ public sealed class ShellViewModel : INotifyPropertyChanged
             [WorkspaceState.Exporting] = new("Exporting frame", "Writing hero-idle.png without blocking the current preview.", true, true, false)
         };
 
+    private readonly AssetService? assetService;
     private readonly ViewerProjectStore projectStore;
-    private readonly Func<string?> chooseProjectPath;
+    private readonly Func<string?> chooseAssetPath;
+    private readonly Func<string, string?> chooseProjectPath;
+    private readonly Func<bool> confirmDiscardChanges;
     // ponytail: in-memory history is enough for one fake document; cap or persist it with multi-document editing.
     private readonly Stack<EditorSnapshot> undo = [];
     private readonly Stack<EditorSnapshot> redo = [];
     private WorkspaceState state;
     private EditorSnapshot savedSnapshot;
+    private string[] animations = DefaultAnimations;
+    private string[] skinNames = DefaultSkins;
+    private Dictionary<string, double> animationDurations = new(StringComparer.Ordinal);
+    private string skeletonPath = "hero.json";
+    private string atlasPath = "hero.atlas";
+    private string runtimeLine = "4.1";
+    private int diagnosticCount;
+    private string? stateTitleOverride;
+    private string? stateDetailOverride;
     private bool isRailExpanded;
     private bool isInspectorVisible;
     private bool isPlaying;
     private string animationFilter = "";
-    private string? selectedAnimation = Animations[0];
-    private string selectedSkin = SkinNames[0];
+    private string? selectedAnimation = DefaultAnimations[0];
+    private string selectedSkin = DefaultSkins[0];
     private double position;
     private double modelX;
     private double modelY;
@@ -67,18 +79,30 @@ public sealed class ShellViewModel : INotifyPropertyChanged
         WorkspaceState initialState,
         bool expandedWorkspace,
         ViewerProjectStore? projectStore = null,
-        Func<string?>? chooseProjectPath = null)
+        Func<string, string?>? chooseProjectPath = null,
+        AssetService? assetService = null,
+        Func<string?>? chooseAssetPath = null,
+        Func<bool>? confirmDiscardChanges = null)
     {
         state = initialState;
         isRailExpanded = expandedWorkspace;
         isInspectorVisible = expandedWorkspace;
         isPlaying = initialState is WorkspaceState.Ready or WorkspaceState.ReadyWithWarnings;
         this.projectStore = projectStore ?? new ViewerProjectStore();
-        this.chooseProjectPath = chooseProjectPath ?? (() => null);
+        this.chooseProjectPath = chooseProjectPath ?? (_ => null);
+        this.assetService = assetService;
+        this.chooseAssetPath = chooseAssetPath ?? (() => null);
+        this.confirmDiscardChanges = confirmDiscardChanges ?? (() => false);
         savedSnapshot = Capture();
 
-        OpenAssetCommand = new RelayCommand(OpenFakeAsset);
-        ReloadCommand = new RelayCommand(() => LastAction = "Fake asset reloaded", () => HasAsset);
+        OpenAssetCommand = new RelayCommand(async () => await OpenAssetAsync(), () => !IsLoading);
+        ReloadCommand = new RelayCommand(async () =>
+        {
+            if (assetService is null)
+                LastAction = "Fake asset reloaded";
+            else
+                await OpenAssetAsync(skeletonPath);
+        }, () => HasAsset && !IsLoading);
         ExportCommand = new RelayCommand(() => State = WorkspaceState.Exporting, () => CanPlay);
         ScreenshotCommand = new RelayCommand(() => LastAction = "Screenshot command invoked", () => HasPreview);
         TogglePlayCommand = new RelayCommand(() => IsPlaying = !IsPlaying, () => CanPlay);
@@ -102,8 +126,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public IReadOnlyList<string> FilteredAnimations =>
-        Animations.Where(x => x.Contains(AnimationFilter, StringComparison.OrdinalIgnoreCase)).ToArray();
-    public IReadOnlyList<string> Skins { get; } = SkinNames;
+        animations.Where(x => x.Contains(AnimationFilter, StringComparison.OrdinalIgnoreCase)).ToArray();
+    public IReadOnlyList<string> Skins => skinNames;
     public IReadOnlyList<string> BackgroundModes { get; } = ["Checkerboard", "Dark", "Light"];
 
     public ICommand OpenAssetCommand { get; }
@@ -129,6 +153,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged
         {
             if (state == value) return;
             state = value;
+            stateTitleOverride = null;
+            stateDetailOverride = null;
             isPlaying = value is WorkspaceState.Ready or WorkspaceState.ReadyWithWarnings;
             position = 0;
             Changed(string.Empty);
@@ -185,13 +211,13 @@ public sealed class ShellViewModel : INotifyPropertyChanged
     public string? SelectedAnimation
     {
         get => selectedAnimation;
-        set => Edit(ref selectedAnimation, value, nameof(SelectedAnimation));
+        set => Edit(ref selectedAnimation, value, nameof(SelectedAnimation), nameof(Duration), nameof(StateDetail));
     }
 
     public string SelectedSkin
     {
         get => selectedSkin;
-        set => Edit(ref selectedSkin, value ?? SkinNames[0], nameof(SelectedSkin));
+        set => Edit(ref selectedSkin, value ?? DefaultSkins[0], nameof(SelectedSkin));
     }
 
     public double Position
@@ -282,19 +308,24 @@ public sealed class ShellViewModel : INotifyPropertyChanged
     public bool IsExporting => State == WorkspaceState.Exporting;
     public bool HasAsset => Definition.HasAsset;
     public bool HasPreview => Definition.HasPreview;
-    public bool CanPlay => Definition.CanPlay;
+    public bool CanPlay => Definition.CanPlay && SelectedAnimation is not null;
     public bool IsDirty => Capture() != savedSnapshot;
     public bool HasBlockingOverlay => State is WorkspaceState.Unsupported or WorkspaceState.Failed or WorkspaceState.RendererUnavailable;
-    public string StateTitle => Definition.Title;
-    public string StateDetail => Definition.Detail;
-    public string RuntimeLabel => HasAsset ? "Runtime 4.1" : "Runtime —";
+    public string StateTitle => stateTitleOverride ?? Definition.Title;
+    public string StateDetail => stateDetailOverride
+        ?? (State is WorkspaceState.Ready or WorkspaceState.ReadyWithWarnings
+            ? $"{SkeletonFileName} · {SelectedAnimation ?? "setup pose"}"
+            : Definition.Detail);
+    public string RuntimeLabel => HasAsset ? $"Runtime {runtimeLine}" : "Runtime —";
     public string DiagnosticLabel => IsWarning
-        ? "1 warning"
+        ? $"{diagnosticCount} warning{(diagnosticCount == 1 ? "" : "s")}"
         : State is WorkspaceState.Unsupported or WorkspaceState.Failed or WorkspaceState.RendererUnavailable
             ? "1 error"
             : "No issues";
     public string PlaybackLabel => IsPlaying ? "Pause" : "Play";
-    public string DocumentTitle => HasAsset ? $"hero.json{(IsDirty ? " *" : "")}" : "No document";
+    public string SkeletonFileName => Path.GetFileName(skeletonPath);
+    public string AssetSummary => $"{Path.GetFileName(atlasPath)} · Runtime {runtimeLine}";
+    public string DocumentTitle => HasAsset ? $"{SkeletonFileName}{(IsDirty ? " *" : "")}" : "No document";
     public string WindowTitle => $"Spine Viewer · {DocumentTitle}";
     public string ProjectPathLabel => ProjectPath ?? "Not saved";
     public string? ProjectPath => projectPath;
@@ -302,27 +333,104 @@ public sealed class ShellViewModel : INotifyPropertyChanged
     public double PreviewY => ModelY;
     public double PreviewScaleX => ModelScale * (FlipX ? -1 : 1);
     public double PreviewScaleY => ModelScale * (FlipY ? -1 : 1);
-    public double Duration => 1.8;
+    public double Duration => SelectedAnimation is not null && animationDurations.TryGetValue(SelectedAnimation, out var duration)
+        ? duration
+        : 0;
 
     public bool TrySave()
     {
-        var path = ProjectPath ?? chooseProjectPath();
+        var path = ProjectPath ?? chooseProjectPath(SuggestedProjectPath());
         return path is not null && SaveTo(path);
     }
 
     public bool TrySaveAs()
     {
-        var path = chooseProjectPath();
+        var path = chooseProjectPath(SuggestedProjectPath());
         return path is not null && SaveTo(path);
     }
 
     private StateDefinition Definition => Definitions[State];
 
-    private void OpenFakeAsset()
+    private string SuggestedProjectPath() => Path.Combine(
+        Path.GetDirectoryName(skeletonPath) ?? "",
+        $"{Path.GetFileNameWithoutExtension(SkeletonFileName)}{ViewerProjectStore.Extension}");
+
+    public async Task OpenAssetAsync(string? path = null)
     {
+        if (assetService is null)
+        {
+            ApplyFakeAsset();
+            return;
+        }
+
+        path ??= chooseAssetPath();
+        if (path is null || IsDirty && !confirmDiscardChanges()) return;
+
+        State = WorkspaceState.Loading;
+        stateTitleOverride = $"Opening {Path.GetFileName(path)}";
+        stateDetailOverride = "Resolving atlas, textures, and Runtime 4.1…";
+        Changed(nameof(StateTitle));
+        Changed(nameof(StateDetail));
+
+        try
+        {
+            var result = await Task.Run(() => assetService.Inspect(path, null, null));
+            ApplyAsset(result);
+        }
+        catch (NotSupportedException exception)
+        {
+            State = WorkspaceState.Unsupported;
+            stateDetailOverride = exception.Message;
+            LastAction = "Asset is not supported";
+            Changed(nameof(StateDetail));
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            State = WorkspaceState.Failed;
+            stateDetailOverride = exception.Message;
+            LastAction = "Asset open failed";
+            Changed(nameof(StateDetail));
+        }
+    }
+
+    private void ApplyFakeAsset()
+    {
+        animations = DefaultAnimations;
+        skinNames = DefaultSkins;
+        animationDurations = animations.ToDictionary(x => x, _ => 1.8, StringComparer.Ordinal);
+        skeletonPath = "hero.json";
+        atlasPath = "hero.atlas";
+        runtimeLine = "4.1";
+        diagnosticCount = 0;
+        selectedAnimation = animations[0];
+        selectedSkin = skinNames[0];
+        ResetEditor();
         State = WorkspaceState.Ready;
-        selectedAnimation = Animations[0];
-        selectedSkin = SkinNames[0];
+        LastAction = "Preview opened in 1 interaction";
+        Changed(string.Empty);
+        RefreshCommands();
+    }
+
+    private void ApplyAsset(InspectResult result)
+    {
+        animations = result.Animations.Select(x => x.Name).ToArray();
+        skinNames = result.Skins.Count == 0 ? [DefaultSkins[0]] : result.Skins.ToArray();
+        animationDurations = result.Animations.ToDictionary(x => x.Name, x => (double)x.DurationSeconds, StringComparer.Ordinal);
+        skeletonPath = result.Asset.SkeletonPath;
+        atlasPath = result.Asset.AtlasPath;
+        runtimeLine = result.Runtime.SelectedLine;
+        diagnosticCount = result.Diagnostics.Count;
+        selectedAnimation = animations.FirstOrDefault();
+        selectedSkin = skinNames[0];
+        ResetEditor();
+        State = diagnosticCount == 0 ? WorkspaceState.Ready : WorkspaceState.ReadyWithWarnings;
+        LastAction = $"Opened {SkeletonFileName}";
+        Changed(string.Empty);
+        RefreshCommands();
+    }
+
+    private void ResetEditor()
+    {
         modelX = modelY = modelRotation = 0;
         modelScale = playbackSpeed = trackAlpha = 1;
         flipX = flipY = false;
@@ -332,9 +440,6 @@ public sealed class ShellViewModel : INotifyPropertyChanged
         undo.Clear();
         redo.Clear();
         savedSnapshot = Capture();
-        LastAction = "Preview opened in 1 interaction";
-        Changed(string.Empty);
-        RefreshCommands();
     }
 
     private bool SaveTo(string path)
@@ -343,8 +448,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged
         {
             projectPath = projectStore.Save(path, new ViewerProjectDocument(
                 ViewerProjectStore.CurrentSchemaVersion,
-                "hero.json",
-                "hero.atlas",
+                skeletonPath,
+                atlasPath,
                 SelectedAnimation,
                 SelectedSkin,
                 ModelX,
@@ -427,7 +532,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged
     {
         foreach (var command in new[]
                  {
-                     ReloadCommand, ExportCommand, ScreenshotCommand, TogglePlayCommand, StopCommand, FitCommand,
+                     OpenAssetCommand, ReloadCommand, ExportCommand, ScreenshotCommand, TogglePlayCommand, StopCommand, FitCommand,
                      SaveCommand, SaveAsCommand, UndoCommand, RedoCommand
                  })
             ((RelayCommand)command).Refresh();

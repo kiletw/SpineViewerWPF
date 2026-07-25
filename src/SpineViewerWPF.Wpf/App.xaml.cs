@@ -1,4 +1,5 @@
 using Microsoft.Win32;
+using SpineRuntime.V41;
 using SpineViewerWPF.Application;
 using System.Windows;
 
@@ -14,7 +15,20 @@ public partial class App : System.Windows.Application
         if (stateArgument is not null)
             Enum.TryParse(stateArgument["--state=".Length..], true, out state);
 
-        string? ChooseProjectPath()
+        string? ChooseAssetPath()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = (string)FindResource("Text.OpenAssetTitle"),
+                Filter = (string)FindResource("Text.AssetFilter"),
+                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                CheckFileExists = true,
+                Multiselect = false
+            };
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
+
+        string? ChooseProjectPath(string suggestedPath)
         {
             var dialog = new SaveFileDialog
             {
@@ -22,10 +36,16 @@ public partial class App : System.Windows.Application
                 Filter = (string)FindResource("Text.ProjectFilter"),
                 DefaultExt = ViewerProjectStore.Extension,
                 AddExtension = true,
-                FileName = $"hero{ViewerProjectStore.Extension}"
+                FileName = suggestedPath
             };
             return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
+
+        bool ConfirmDiscardChanges() => MessageBox.Show(
+            (string)FindResource("Text.DiscardPrompt"),
+            (string)FindResource("Text.UnsavedTitle"),
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning) == MessageBoxResult.Yes;
 
         MainWindow = new MainWindow
         {
@@ -33,7 +53,10 @@ public partial class App : System.Windows.Application
                 state,
                 !e.Args.Contains("--compact", StringComparer.OrdinalIgnoreCase),
                 new ViewerProjectStore(),
-                ChooseProjectPath)
+                ChooseProjectPath,
+                new AssetService(new SpineV41Adapter()),
+                ChooseAssetPath,
+                ConfirmDiscardChanges)
         };
         MainWindow.Show();
     }

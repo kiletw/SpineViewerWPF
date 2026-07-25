@@ -9,5 +9,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../SpineViewerWPF.Application/SpineViewerWPF.Application.csproj" />
+    <ProjectReference Include="../../runtimes/SpineRuntime.V41/SpineRuntime.V41.csproj" />
   </ItemGroup>
 </Project>

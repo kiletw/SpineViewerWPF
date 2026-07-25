@@ -24,6 +24,8 @@ Empty/Ready
 
 Preserve the previous Ready asset until replacement succeeds where practical.
 
+TASK-005 keeps the previous document metadata when a replacement fails. During inspection the UI enters Loading, and then maps unsupported input to Unsupported and other expected open failures to Failed.
+
 ## Quick-Browse Defaults
 
 - Fit viewport after successful load.

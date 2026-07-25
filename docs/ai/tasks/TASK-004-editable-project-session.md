@@ -69,6 +69,6 @@ Preserved: TASK-002 states and automation identifiers, Runtime isolation, CLI be
 
 Validation: Application smoke, WPF shell script, CLI/runtime regression script, visual QA, and `git diff --check`.
 
-Known gaps: the shell still uses fake asset data; sidecar opening, autosave/recovery, multi-document tabs, real Runtime session editing, docking, and Spine source writing are not implemented.
+Known gaps: the renderer preview remains fake; sidecar opening, autosave/recovery, multi-document tabs, real Runtime session editing, docking, and Spine source writing are not implemented.
 
 Documentation: ADR-007, Application use cases, UI product direction, UI state contracts, and context index updated.
