@@ -8,6 +8,8 @@ The CLI validates that core capabilities are independent of WPF and provides a s
 
 `spineviewerwpf`
 
+TASK-001 implements `inspect` and `render` for Runtime 4.1. The other MVP commands remain planned.
+
 ## MVP Commands
 
 ```text

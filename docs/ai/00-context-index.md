@@ -48,8 +48,8 @@ Read `10-cli-contract.md`, `11-mcp-capability-map.md`, and UI documents only whe
 ## Current Status
 
 - Phase 0 baseline: completed on v2 commit `79c6135`; compatibility fixtures remain missing and explicit
-- v3 prototype: not started
-- Renderer: undecided
-- CLI: contract draft only
+- v3 prototype: TASK-001 one-Runtime vertical slice completed for project-authored 4.1 JSON input
+- Renderer: deterministic CPU spike accepted by ADR-005; production renderer remains undecided
+- CLI: 4.1 `inspect` and `render` implemented
 - MCP: capability planning only
 - UI: quick-browse direction selected, prototype not started

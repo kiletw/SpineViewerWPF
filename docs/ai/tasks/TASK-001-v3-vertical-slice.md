@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready. TASK-000 completed and ADR-001/002/003 were accepted on 2026-07-26. Implementation remains gated on a legally usable 4.1 fixture and an explicit renderer decision.
+Completed on 2026-07-26. The project-authored 4.1 fixture removed the redistribution blocker, and ADR-005 records the renderer spike decision and deterministic evidence.
 
 ## Objective
 
@@ -36,3 +36,29 @@ inspect → load → list metadata → render deterministic PNG
 - official Runtime source is unchanged or patch is documented
 - Runtime/GPU resources are disposed
 - rendered output is reproducible under recorded conditions
+
+## Completion Evidence
+
+- `inspect` and `render` run through Core/Application and the isolated 4.1 adapter without WPF.
+- `inspect` emits the required `inspect-result.schema.json` fields; render arguments map to `render-request.schema.json`.
+- Official Runtime source is pinned to tag `4.1.00`, commit `ab28b77c70e3aa766be5bdb759d7aedac9fd0bde`, with no source patches.
+- Atlas ownership is scoped and disposed by the adapter; the CPU renderer owns no persistent graphics resources.
+- `scripts/test-v3.ps1` builds, checks metadata, renders twice, validates the PNG signature, and compares SHA-256 output.
+
+## Validation
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-v3.ps1
+```
+
+Expected render SHA-256:
+
+```text
+7178BBFA4315C36332AB5C4743A413FE6A7CD165D75C907BBC34D88DB846301E
+```
+
+## Known Gaps
+
+- The committed fixture is valid project-authored Runtime input, not a Spine Editor export characterization asset.
+- Binary skeletons, PMA, clipping, non-normal blend modes, multi-page atlases, and production texture formats remain unverified.
+- The CPU renderer is prototype evidence, not the production WPF renderer selection.

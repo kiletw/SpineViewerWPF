@@ -32,7 +32,7 @@ Use fake presentation state for empty, loading, ready, warning, unsupported, fai
 - Maintain a manifest even when fixture files stay local.
 - Record source, export version, format, atlas shape, textures, expected animations/skins, and legal status.
 
-Current manifest: [`fixtures/manifest.json`](fixtures/manifest.json). All 14 v2 lines are currently marked missing; therefore build/startup is the only executable baseline and no compatibility or rendered-output claim is verified.
+Current manifest: [`fixtures/manifest.json`](fixtures/manifest.json). The 14 real v2 characterization assets remain missing. TASK-001 adds one project-authored 4.1 JSON fixture for v3 parser, metadata, and deterministic renderer validation; it does not prove Spine Editor export compatibility.
 
 ## Baseline Comparison
 

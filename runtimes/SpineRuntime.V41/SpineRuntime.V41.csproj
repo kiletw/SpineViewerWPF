@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="src/**/*.cs" />
+    <Compile Include="Adapter.cs" />
+    <Compile Include="CpuRenderer.cs" />
+    <Compile Include="PngWriter.cs" />
+    <ProjectReference Include="../../src/SpineViewerWPF.Application/SpineViewerWPF.Application.csproj" />
+  </ItemGroup>
+</Project>

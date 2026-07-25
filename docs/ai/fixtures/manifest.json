@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "repositoryBaseline": "kiletw/SpineViewerWPF@79c6135",
-  "assetsCommitted": false,
-  "note": "No Spine asset fixture is present. Add only redistributable assets to the repository; otherwise keep files outside Git and record hashes here.",
+  "assetsCommitted": true,
+  "note": "A project-authored synthetic 4.1 fixture is committed for the v3 vertical slice. Real v2/editor-export characterization assets remain missing.",
   "fixtures": [
     {
       "runtimeSelection": "2.1.08",
@@ -137,12 +137,25 @@
     {
       "runtimeSelection": "4.1.00",
       "officialTagCandidate": "4.1.00",
-      "json": "missing",
+      "json": "tests/fixtures/v41-minimal/minimal.json",
       "binary": "missing",
-      "atlas": "missing",
-      "textures": "missing",
-      "sha256": {},
-      "expectedLocalDirectory": "fixtures-local/4.1.00"
+      "atlas": "tests/fixtures/v41-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v41-minimal/minimal.ppm",
+      "sha256": {
+        "json": "05E3A44173072898D5371DAF518CD31F05FBB477DE23324A431FB106265632CF",
+        "atlas": "3E22B909F54991E15A83CC8C40FFC6FD579118099A1E30251E92EE001D16A33C",
+        "texture": "83C1C13A32583E56E33EAFAF162E210DDBDBC5DA02399F8A0A0CAFA636392A86",
+        "render64x64At0.5": "7178BBFA4315C36332AB5C4743A413FE6A7CD165D75C907BBC34D88DB846301E"
+      },
+      "expectedAnimation": {
+        "name": "move",
+        "durationSeconds": 1
+      },
+      "expectedSkins": [
+        "default"
+      ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/4.1.00-real-export"
     }
   ]
 }

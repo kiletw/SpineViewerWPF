@@ -21,7 +21,7 @@ May begin after Phase 0 has captured v2 workflows. Use fake state only.
 - design empty/loading/ready/warning/unsupported/error states
 - measure interactions to first visible animation
 
-## Phase 1 — One Vertical Slice
+## Phase 1 — One Vertical Slice (completed 2026-07-26)
 
 Use one Runtime line, provisionally 4.1:
 
@@ -30,6 +30,8 @@ inspect asset → load → list animation/skin → render one PNG
 ```
 
 Include a minimal machine-readable CLI. Do not add MCP yet.
+
+Result: the isolated official 4.1 Runtime, project-owned contracts, CLI `inspect`/`render`, project-authored fixture, and deterministic CPU renderer spike are implemented. Compatibility remains limited to the recorded fixture conditions.
 
 ## Phase 2 — Compatibility Expansion
 

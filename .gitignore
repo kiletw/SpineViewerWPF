@@ -1,3 +1,8 @@
 /SpineViewerWPF/bin
 /SpineViewerWPF/obj
 /packages
+/artifacts
+**/bin
+**/obj
+/runtimes/SpineRuntime.V41/src/**/*.meta
+/runtimes/SpineRuntime.V41/src/package.json

@@ -2,7 +2,7 @@
 
 ## Status
 
-Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified; actual asset compatibility, PMA output, and multi-page atlas behavior remain unverified because no fixtures are committed.
+Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified. A project-authored 4.1 JSON fixture now verifies the v3 adapter and deterministic CPU spike; editor-export compatibility, PMA output, binary input, and multi-page atlas behavior remain unverified.
 
 All snapshots are compiled into the WPF project under version-specific namespaces. License headers identify Esoteric Software Runtime source. Same-name official tags and their current Git object IDs were verified with `git ls-remote` on 2026-07-26, but file-for-file equality has not been proven after local namespace/XNA changes.
 
@@ -21,7 +21,7 @@ All snapshots are compiled into the WPF project under version-specific namespace
 | 3.8.95 | `spine-runtimes-3.8.95` | `3.8.95` / `3e93e2d` | Yes | Yes | Present | TBD | Missing | Second |
 | 4.0.31 | `spine-runtimes-4.0.31` | `4.0.31` / `8770e31` | Yes | Yes | Present | TBD | Missing | Second |
 | 4.0.64 | `spine-runtimes-4.0.64` | `4.0.64` / `01524d4` | Yes | Yes | Present | TBD | Missing | Second |
-| 4.1.00 | `spine-runtimes-4.1.00` | `4.1.00` / `ab28b77` | Yes | Yes | Present | TBD | Missing | Prototype |
+| 4.1.00 | `spine-runtimes-4.1.00` | `4.1.00` / `ab28b77` | Yes | Yes | Present | TBD | Synthetic JSON verified in v3; editor export TBD | Prototype complete |
 | 4.2 | none | none | No | No | No | No | Missing | Future |
 | 4.3 | none | current upstream line | No | No | No | No | Missing | Future |
 
@@ -55,6 +55,15 @@ For every vendored line:
 ```
 
 Fixture status and expected non-redistributable locations are tracked in [`fixtures/manifest.json`](fixtures/manifest.json).
+
+## v3 4.1 Vertical Slice
+
+- Official source: tag `4.1.00`, commit `ab28b77c70e3aa766be5bdb759d7aedac9fd0bde`
+- Source patches: none
+- Verified input: project-authored JSON, atlas, and P3 PPM texture under `tests/fixtures/v41-minimal`
+- Verified metadata: export `4.1.00`, animation `move` at 1 second, skin `default`
+- Verified render: 64 by 64 PNG at 0.5 seconds, SHA-256 `7178BBFA4315C36332AB5C4743A413FE6A7CD165D75C907BBC34D88DB846301E`
+- Still unverified: real editor exports, binary input, PMA, clipping, non-normal blend modes, multi-page atlases, and production texture formats
 
 ## Rules
 
