@@ -72,6 +72,6 @@ Preserved: fake preview renderer, TASK-002 presentation states and automation id
 
 Validation: real 4.1 fixture mapping, dirty replacement cancellation, missing/unsupported states, prior-document preservation, WPF build/launch, native picker visual QA, CLI/runtime regression, and `git diff --check`.
 
-Known gaps: only the project-authored 4.1 PPM fixture is verified; production PNG textures, editor-export fixtures, binary input, explicit atlas selection, drag/drop, sidecar opening, and live preview rendering remain unverified or unimplemented.
+Known gaps: TASK-006 later verified PNG metadata inspection, but PNG rendering, editor-export fixtures, binary input, explicit atlas selection, drag/drop, sidecar opening, and live preview rendering remain unverified or unimplemented.
 
 Documentation: context index, Runtime matrix, UI state contracts, and TASK-004 known gaps updated.

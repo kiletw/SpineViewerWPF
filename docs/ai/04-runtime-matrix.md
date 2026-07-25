@@ -2,7 +2,7 @@
 
 ## Status
 
-Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified. A project-authored 4.1 JSON fixture now verifies the v3 adapter and deterministic CPU spike; editor-export compatibility, PMA output, binary input, and multi-page atlas behavior remain unverified.
+Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified. A project-authored 4.1 JSON fixture verifies the v3 adapter and deterministic CPU spike; a test-generated valid PNG variant verifies metadata inspection only. Editor-export compatibility, PNG rendering, PMA output, binary input, and multi-page atlas behavior remain unverified.
 
 All snapshots are compiled into the WPF project under version-specific namespaces. License headers identify Esoteric Software Runtime source. Same-name official tags and their current Git object IDs were verified with `git ls-remote` on 2026-07-26, but file-for-file equality has not been proven after local namespace/XNA changes.
 
@@ -61,10 +61,11 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 - Official source: tag `4.1.00`, commit `ab28b77c70e3aa766be5bdb759d7aedac9fd0bde`
 - Source patches: none
 - Verified input: project-authored JSON, atlas, and P3 PPM texture under `tests/fixtures/v41-minimal`
+- Verified PNG metadata: TASK-006 uses a test-generated valid PNG page with the same project-authored skeleton and atlas data; pixel decoding and rendering are not claimed
 - Verified metadata: export `4.1.00`, animation `move` at 1 second, skin `default`
 - WPF metadata path: TASK-005 verified the same fixture through the native file-open composition, Application inspect use case, isolated adapter, and presentation mapping
 - Verified render: 64 by 64 PNG at 0.5 seconds, SHA-256 `7178BBFA4315C36332AB5C4743A413FE6A7CD165D75C907BBC34D88DB846301E`
-- Still unverified: real editor exports, binary input, PMA, clipping, non-normal blend modes, multi-page atlases, and production texture formats
+- Still unverified: real editor exports, binary input, PNG rendering, PMA, clipping, non-normal blend modes, multi-page atlases, and other production texture formats
 
 ## Rules
 
