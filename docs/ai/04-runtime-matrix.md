@@ -2,7 +2,7 @@
 
 ## Status
 
-Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified. A project-authored 4.1 JSON fixture verifies the v3 adapter, deterministic CPU spike, and WPF static-preview integration. Test-generated PNG variants verify bounded 8-bit non-interlaced texture decoding and static rendering. Editor-export compatibility, PMA output, binary input, and multi-page atlas behavior remain unverified.
+Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified. A project-authored 4.1 JSON fixture verifies the v3 adapter, deterministic CPU spike, and WPF static-preview integration. Test-generated PNG variants verify bounded 8-bit non-interlaced texture decoding and static rendering. TASK-009 verifies the official 4.1 `spineboy` JSON and binary example export through the CLI path. PMA output and multi-page atlas behavior remain unverified.
 
 All snapshots are compiled into the WPF project under version-specific namespaces. License headers identify Esoteric Software Runtime source. Same-name official tags and their current Git object IDs were verified with `git ls-remote` on 2026-07-26, but file-for-file equality has not been proven after local namespace/XNA changes.
 
@@ -21,7 +21,7 @@ All snapshots are compiled into the WPF project under version-specific namespace
 | 3.8.95 | `spine-runtimes-3.8.95` | `3.8.95` / `3e93e2d` | Yes | Yes | Present | TBD | Missing | Second |
 | 4.0.31 | `spine-runtimes-4.0.31` | `4.0.31` / `8770e31` | Yes | Yes | Present | TBD | Missing | Second |
 | 4.0.64 | `spine-runtimes-4.0.64` | `4.0.64` / `01524d4` | Yes | Yes | Present | TBD | Missing | Second |
-| 4.1.00 | `spine-runtimes-4.1.00` | `4.1.00` / `ab28b77` | Yes | Yes | Present | TBD | Synthetic JSON verified in v3; editor export TBD | Prototype complete |
+| 4.1.00 | `spine-runtimes-4.1.00` | `4.1.00` / `ab28b77` | Yes | Yes | Present | TBD | Synthetic fixture plus official `spineboy` JSON/binary export smoke | Prototype complete |
 | 4.2 | none | none | No | No | No | No | Missing | Future |
 | 4.3 | none | current upstream line | No | No | No | No | Missing | Future |
 
@@ -63,11 +63,12 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 - Verified input: project-authored JSON, atlas, and P3 PPM texture under `tests/fixtures/v41-minimal`
 - Verified PNG metadata: TASK-006 uses a test-generated PNG page with the same project-authored skeleton and atlas data
 - Verified PNG texture decoding: TASK-008 covers 8-bit non-interlaced grayscale, RGB, indexed with palette transparency, grayscale-alpha, and RGBA data, scanline filters 0 through 4, CRC validation, and deterministic static rendering
+- Verified official example compatibility: TASK-009 loads `examples/spineboy/export/spineboy-pro.json` and `.skel` with `spineboy.atlas` and `spineboy.png` from pinned commit `ab28b77c70e3aa766be5bdb759d7aedac9fd0bde`; both formats report 11 animations and render the `walk` animation
 - Verified metadata: export `4.1.00`, animation `move` at 1 second, skin `default`
 - WPF metadata path: TASK-005 verified the same fixture through the native file-open composition, Application inspect use case, isolated adapter, and presentation mapping
 - WPF static preview: TASK-007 reuses the Application render use case off the UI thread; TASK-008 verifies the same Ready path for a generated PNG atlas texture
 - Verified render: 64 by 64 PNG at 0.5 seconds, SHA-256 `7178BBFA4315C36332AB5C4743A413FE6A7CD165D75C907BBC34D88DB846301E`
-- Still unverified: real editor exports, binary input, interlaced or non-8-bit PNG, PMA, clipping, non-normal blend modes, multi-page atlases, and other production texture formats
+- Still unverified: interlaced or non-8-bit PNG, PMA, clipping, non-normal blend modes, multi-page atlases, bounds-aware fit, and other production texture formats
 
 ## Rules
 

@@ -69,7 +69,7 @@ Preserved: official Runtime `src/**`, Core/Application/WPF/CLI source, P3 PPM lo
 
 Validation: seven generated PNG variants cover every supported color type, palette transparency, filters 0 through 4, equivalent filtered pixels, and split IDAT chunks; direct Application and WPF render paths produce matching output; corrupt CRC, truncated header, and zero dimensions fail deterministically; all regressions pass with zero warnings or errors.
 
-Known gaps: only 8-bit non-interlaced PNG is supported. The reader limits dimensions to 8192 and decoded/encoded working data to 128 MiB; real editor exports, multi-page atlases, PMA, clipping, and non-normal blending remain unverified.
+Known gaps: only 8-bit non-interlaced PNG is supported. The reader limits dimensions to 8192 and decoded/encoded working data to 128 MiB; TASK-009 now covers the official 4.1 JSON/binary `spineboy` example, while multi-page atlases, PMA, clipping, and non-normal blending remain unverified.
 
 Risks: decoding allocates compressed, reconstructed, and pixel buffers concurrently. Interactive rendering still needs a production renderer decision.
 

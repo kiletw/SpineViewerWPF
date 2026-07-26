@@ -3,6 +3,29 @@
   "repositoryBaseline": "kiletw/SpineViewerWPF@79c6135",
   "assetsCommitted": true,
   "note": "A project-authored synthetic 4.1 fixture is committed for the v3 vertical slice. Real v2/editor-export characterization assets remain missing.",
+  "officialCaches": [
+    {
+      "runtimeSelection": "4.1.00",
+      "sourceCommit": "ab28b77c70e3aa766be5bdb759d7aedac9fd0bde",
+      "path": "artifacts/official-v41/spineboy",
+      "downloadScript": "scripts/test-official-v41.ps1",
+      "files": {
+        "json": "spineboy-pro.json",
+        "binary": "spineboy-pro.skel",
+        "atlas": "spineboy.atlas",
+        "texture": "spineboy.png",
+        "license": "license.txt"
+      },
+      "sha256": {
+        "json": "719AD3DA48EF93C1BBE3927EBB2FD1E861B409478CCB552690C2C8142E154442",
+        "binary": "5ABFC213ADFB64380C13D7E60B03F306E7D88C846B930C6DB7DCFA4FB376A266",
+        "atlas": "FDC4BBC4BE5F1A638FA0FF384271007B1F2DF72855DD80B4B239BCFE8A4AC31E",
+        "texture": "1932938CA3F4B97F59F2FE6AE8A84B3F27F420C038EC9687B8D2AB60281E9602",
+        "license": "E10E34D4F3B31A4AD76FF08A3B2BD1581B74C1A143F096103A93EE4C16EF4857"
+      },
+      "legalStatus": "Official example cache; keep license.txt beside the files; do not commit binaries."
+    }
+  ],
   "fixtures": [
     {
       "runtimeSelection": "2.1.08",
