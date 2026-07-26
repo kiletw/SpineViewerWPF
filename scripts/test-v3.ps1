@@ -9,7 +9,18 @@ $artifacts = Join-Path $repository 'artifacts\v3-smoke'
 $first = Join-Path $artifacts 'frame-a.png'
 $second = Join-Path $artifacts 'frame-b.png'
 
-dotnet build $project -c Release
+$buildMutex = [Threading.Mutex]::new($false, 'SpineViewerWPF.Build')
+$buildHeld = $false
+try {
+    try { $buildHeld = $buildMutex.WaitOne([TimeSpan]::FromMinutes(5)) }
+    catch [Threading.AbandonedMutexException] { $buildHeld = $true }
+    if (-not $buildHeld) { throw 'Timed out waiting for the shared MSBuild lock.' }
+    dotnet build $project -c Release
+}
+finally {
+    if ($buildHeld) { $buildMutex.ReleaseMutex() }
+    $buildMutex.Dispose()
+}
 if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 
 New-Item -ItemType Directory -Path $artifacts -Force | Out-Null

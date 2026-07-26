@@ -6,7 +6,18 @@ $xaml = Join-Path $repository 'src\SpineViewerWPF.Wpf\MainWindow.xaml'
 $output = Join-Path $repository 'artifacts\ui-shell-smoke'
 $executable = Join-Path $output 'bin\Release\net8.0-windows\SpineViewerWPF.exe'
 
-dotnet build $project -c Release -p:BaseOutputPath="$output\bin\"
+$buildMutex = [Threading.Mutex]::new($false, 'SpineViewerWPF.Build')
+$buildHeld = $false
+try {
+    try { $buildHeld = $buildMutex.WaitOne([TimeSpan]::FromMinutes(5)) }
+    catch [Threading.AbandonedMutexException] { $buildHeld = $true }
+    if (-not $buildHeld) { throw 'Timed out waiting for the shared MSBuild lock.' }
+    dotnet build $project -c Release -p:BaseOutputPath="$output\bin\"
+}
+finally {
+    if ($buildHeld) { $buildMutex.ReleaseMutex() }
+    $buildMutex.Dispose()
+}
 if ($LASTEXITCODE -ne 0) { throw 'WPF shell build failed.' }
 
 $automationIds = @(

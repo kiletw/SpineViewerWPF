@@ -77,7 +77,18 @@ $png = Get-OfficialAsset $assets[3]
 $license = Get-OfficialAsset $assets[4]
 if (-not (Test-Path -LiteralPath $license)) { throw 'Official license file is missing.' }
 
-dotnet build $project -c Release
+$buildMutex = [Threading.Mutex]::new($false, 'SpineViewerWPF.Build')
+$buildHeld = $false
+try {
+    try { $buildHeld = $buildMutex.WaitOne([TimeSpan]::FromMinutes(5)) }
+    catch [Threading.AbandonedMutexException] { $buildHeld = $true }
+    if (-not $buildHeld) { throw 'Timed out waiting for the shared MSBuild lock.' }
+    dotnet build $project -c Release
+}
+finally {
+    if ($buildHeld) { $buildMutex.ReleaseMutex() }
+    $buildMutex.Dispose()
+}
 if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 
 $jsonInspect = Invoke-Inspect $json $null
