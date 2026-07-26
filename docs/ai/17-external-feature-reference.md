@@ -19,7 +19,7 @@ The competitor documents the following useful ideas:
 | Import | drag/drop, paste, file and folder loading | retain as product input; implement through Application use cases |
 | Browse | models, browser, canvas, focus and centering | Asset Browser panel candidate |
 | Playback | animation and skin groups, multiple tracks, speed and track alpha | post-MVP candidates; no implied commitment |
-| Scene | multiple skeletons, ordering and non-overlap layout | deferred |
+| Scene | multiple skeletons, ordering and non-overlap layout | TASK-018 bounded layer preview; full scene editing remains separate |
 | Diagnostics | debug rendering and compatibility visibility | retain diagnostics direction |
 | Export | still image, GIF, video, PSD layers and FFmpeg options | separate export tasks |
 | Media | non-PNG textures and wallpaper mode | separate compatibility/product tasks |

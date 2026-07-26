@@ -72,6 +72,20 @@ public sealed class ViewerProjectStore
             throw new InvalidDataException("Track alpha must be between 0 and 1.");
         if (document.BackgroundMode is not ("Checkerboard" or "Dark" or "Light"))
             throw new InvalidDataException($"Unsupported background mode: {document.BackgroundMode}.");
+        if (document.SceneLayers is not null)
+        {
+            if (document.SceneLayers.Count is < 1 or > 8)
+                throw new InvalidDataException("A scene must contain between one and eight layers.");
+            foreach (var layer in document.SceneLayers)
+            {
+                if (string.IsNullOrWhiteSpace(layer.SkeletonPath) || string.IsNullOrWhiteSpace(layer.Animation) || string.IsNullOrWhiteSpace(layer.SelectedSkin))
+                    throw new InvalidDataException("Scene layers require a skeleton, animation, and skin.");
+                if (!Finite(layer.ModelX, layer.ModelY, layer.ModelScale, layer.ModelRotation, layer.Opacity))
+                    throw new InvalidDataException("Scene layer contains a non-finite numeric value.");
+                if (layer.ModelScale is <= 0 or > 100 || layer.Opacity is < 0 or > 1)
+                    throw new InvalidDataException("Scene layer transform or opacity is outside the supported range.");
+            }
+        }
     }
 
     private static bool Finite(params double[] values) => values.All(double.IsFinite);

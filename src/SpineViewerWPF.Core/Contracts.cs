@@ -32,6 +32,39 @@ public sealed record RenderRequest(
     bool Pma,
     IReadOnlyList<string> Skins);
 
+public sealed record SceneLayerRenderRequest(
+    string SkeletonPath,
+    string? AtlasPath,
+    string? RuntimeOverride,
+    string Animation,
+    float TimeSeconds,
+    string OutputPath,
+    bool Overwrite,
+    bool Pma,
+    IReadOnlyList<string> Skins);
+
+public sealed record SceneLayerOpenResult(
+    InspectResult Inspection,
+    string Animation,
+    string SelectedSkin,
+    string PreviewPath);
+
+public sealed record SceneLayerDocument(
+    string SkeletonPath,
+    string? AtlasPath,
+    string? RuntimeOverride,
+    string Animation,
+    string SelectedSkin,
+    double ModelX,
+    double ModelY,
+    double ModelScale,
+    double ModelRotation,
+    bool FlipX,
+    bool FlipY,
+    bool IsVisible,
+    double Opacity,
+    int ZIndex);
+
 public sealed record AnimationExportRequest(
     string SkeletonPath,
     string? AtlasPath,
@@ -69,4 +102,5 @@ public sealed record ViewerProjectDocument(
     bool Loop,
     double PlaybackSpeed,
     double TrackAlpha,
-    string BackgroundMode);
+    string BackgroundMode,
+    IReadOnlyList<SceneLayerDocument>? SceneLayers = null);

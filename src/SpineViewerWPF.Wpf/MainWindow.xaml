@@ -34,6 +34,8 @@
         <SolidColorBrush x:Key="MutedBrush" Color="#929BAD" />
         <SolidColorBrush x:Key="AccentBrush" Color="#68E0C1" />
         <local:PreviewImageConverter x:Key="PreviewImageConverter" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <local:BooleanScaleConverter x:Key="BooleanScaleConverter" />
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="#E8ECF3" />
@@ -296,6 +298,84 @@
                                 <TextBlock Text="{Binding AssetSummary}" Style="{StaticResource MutedText}" Margin="0,3,0,0" />
                             </StackPanel>
                         </Expander>
+                        <Separator Margin="0,12" Background="{StaticResource BorderBrush}" />
+                        <TextBlock Text="{DynamicResource Text.SceneLayers}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,8" />
+                        <ListBox ItemsSource="{Binding SceneLayers}"
+                                 SelectedItem="{Binding SelectedSceneLayer}"
+                                 MinHeight="70"
+                                 AutomationProperties.AutomationId="Main.Scene.LayerList">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel>
+                                        <CheckBox DockPanel.Dock="Right"
+                                                  IsChecked="{Binding IsVisible, Mode=TwoWay}"
+                                                  ToolTip="Visible"
+                                                  AutomationProperties.AutomationId="Main.Scene.LayerVisibility" />
+                                        <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <Button Style="{StaticResource ButtonBase}"
+                                    Content="{DynamicResource Text.AddLayer}"
+                                    Padding="8,4"
+                                    Command="{Binding AddLayerCommand}"
+                                    AutomationProperties.AutomationId="Main.Scene.AddLayer" />
+                            <Button Style="{StaticResource ButtonBase}"
+                                    Content="{DynamicResource Text.RemoveLayer}"
+                                    Padding="8,4"
+                                    Margin="6,0,0,0"
+                                    Command="{Binding RemoveLayerCommand}"
+                                    AutomationProperties.AutomationId="Main.Scene.RemoveLayer" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <Button Style="{StaticResource ButtonBase}"
+                                    Content="↑"
+                                    Padding="10,3"
+                                    ToolTip="{DynamicResource Text.LayerUp}"
+                                    Command="{Binding MoveLayerUpCommand}"
+                                    AutomationProperties.AutomationId="Main.Scene.LayerUp" />
+                            <Button Style="{StaticResource ButtonBase}"
+                                    Content="↓"
+                                    Padding="10,3"
+                                    Margin="6,0,0,0"
+                                    ToolTip="{DynamicResource Text.LayerDown}"
+                                    Command="{Binding MoveLayerDownCommand}"
+                                    AutomationProperties.AutomationId="Main.Scene.LayerDown" />
+                        </StackPanel>
+                        <Expander Header="Selected layer" IsExpanded="False" IsEnabled="{Binding HasSelectedSceneLayer}" Foreground="#DDE3EC" Margin="0,8,0,0">
+                            <StackPanel Margin="4,8,0,0">
+                                <TextBlock Text="Position X" />
+                                <Slider Minimum="-64" Maximum="64" TickFrequency="4"
+                                        IsSnapToTickEnabled="True"
+                                        Value="{Binding SelectedSceneLayer.ModelX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        AutomationProperties.AutomationId="Main.Scene.LayerX" />
+                                <TextBlock Text="{Binding SelectedSceneLayer.ModelX, StringFormat={}{0:0}}"
+                                           Style="{StaticResource MutedText}" HorizontalAlignment="Right" />
+                                <TextBlock Text="Position Y" Margin="0,6,0,0" />
+                                <Slider Minimum="-64" Maximum="64" TickFrequency="4"
+                                        IsSnapToTickEnabled="True"
+                                        Value="{Binding SelectedSceneLayer.ModelY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        AutomationProperties.AutomationId="Main.Scene.LayerY" />
+                                <TextBlock Text="{Binding SelectedSceneLayer.ModelY, StringFormat={}{0:0}}"
+                                           Style="{StaticResource MutedText}" HorizontalAlignment="Right" />
+                                <TextBlock Text="Scale" Margin="0,6,0,0" />
+                                <Slider Minimum="0.25" Maximum="4" TickFrequency="0.25"
+                                        IsSnapToTickEnabled="True"
+                                        Value="{Binding SelectedSceneLayer.ModelScale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        AutomationProperties.AutomationId="Main.Scene.LayerScale" />
+                                <TextBlock Text="{Binding SelectedSceneLayer.ModelScale, StringFormat={}{0:0.00}}"
+                                           Style="{StaticResource MutedText}" HorizontalAlignment="Right" />
+                                <TextBlock Text="Opacity" Margin="0,6,0,0" />
+                                <Slider Minimum="0" Maximum="1" TickFrequency="0.05"
+                                        IsSnapToTickEnabled="True"
+                                        Value="{Binding SelectedSceneLayer.Opacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        AutomationProperties.AutomationId="Main.Scene.LayerOpacity" />
+                                <TextBlock Text="{Binding SelectedSceneLayer.Opacity, StringFormat={}{0:0.00}}"
+                                           Style="{StaticResource MutedText}" HorizontalAlignment="Right" />
+                            </StackPanel>
+                        </Expander>
                     </StackPanel>
 
                     <StackPanel HorizontalAlignment="Center" Margin="0,14">
@@ -346,30 +426,42 @@
                         </Style>
                     </Border.Style>
                     <Grid>
-                    <Image Margin="26"
-                           Source="{Binding PreviewImagePath, Converter={StaticResource PreviewImageConverter}}"
-                           Stretch="Uniform"
-                           RenderOptions.BitmapScalingMode="NearestNeighbor"
-                           RenderTransformOrigin="0.5,0.5"
-                           AutomationProperties.AutomationId="Main.Viewport.RenderedPreview">
-                        <Image.Style>
-                            <Style TargetType="Image">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasRenderedPreview}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
+                    <ItemsControl ItemsSource="{Binding SceneLayers}"
+                                  IsHitTestVisible="False"
+                                  AutomationProperties.AutomationId="Main.Viewport.SceneLayers">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <Grid />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Panel.ZIndex" Value="{Binding ZIndex}" />
                             </Style>
-                        </Image.Style>
-                        <Image.RenderTransform>
-                            <TransformGroup>
-                                <ScaleTransform ScaleX="{Binding PreviewScaleX}" ScaleY="{Binding PreviewScaleY}" />
-                                <RotateTransform Angle="{Binding ModelRotation}" />
-                                <TranslateTransform X="{Binding PreviewX}" Y="{Binding PreviewY}" />
-                            </TransformGroup>
-                        </Image.RenderTransform>
-                    </Image>
+                        </ItemsControl.ItemContainerStyle>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Image Margin="26"
+                                       Source="{Binding PreviewImagePath, Converter={StaticResource PreviewImageConverter}}"
+                                       Stretch="Uniform"
+                                       Opacity="{Binding Opacity}"
+                                       Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                       RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                       RenderTransformOrigin="0.5,0.5"
+                                       AutomationProperties.AutomationId="Main.Viewport.RenderedPreview">
+                                    <Image.RenderTransform>
+                                        <TransformGroup>
+                                            <ScaleTransform ScaleX="{Binding ModelScale}" ScaleY="{Binding ModelScale}" />
+                                            <ScaleTransform ScaleX="{Binding FlipX, Converter={StaticResource BooleanScaleConverter}}"
+                                                            ScaleY="{Binding FlipY, Converter={StaticResource BooleanScaleConverter}}" />
+                                            <RotateTransform Angle="{Binding ModelRotation}" />
+                                            <TranslateTransform X="{Binding ModelX}" Y="{Binding ModelY}" />
+                                        </TransformGroup>
+                                    </Image.RenderTransform>
+                                </Image>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
 
                     <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="26">
                         <Viewbox.Style>

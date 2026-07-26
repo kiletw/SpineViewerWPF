@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
@@ -47,6 +48,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private readonly Func<string> createPreviewPath;
     private readonly DispatcherTimer playbackTimer;
     private readonly CancellationTokenSource playbackCancellation = new();
+    private readonly ObservableCollection<SceneLayerViewModel> sceneLayers = [];
     // ponytail: in-memory history is enough for one fake document; cap or persist it with multi-document editing.
     private readonly Stack<EditorSnapshot> undo = [];
     private readonly Stack<EditorSnapshot> redo = [];
@@ -70,8 +72,11 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private int exportInProgress;
     private int exportCompletedFrames;
     private int exportTotalFrames;
+    private int sceneLayerOperationInProgress;
     private CancellationTokenSource? exportCancellation;
     private bool disposed;
+    private bool sceneDirty;
+    private SceneLayerViewModel? selectedSceneLayer;
     private string animationFilter = "";
     private string? selectedAnimation = DefaultAnimations[0];
     private string selectedSkin = DefaultSkins[0];
@@ -134,6 +139,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         }, () => HasAsset && !IsLoading);
         ExportCommand = new RelayCommand(StartExport, () => CanExport);
         CancelExportCommand = new RelayCommand(CancelExport, () => IsExporting);
+        AddLayerCommand = new RelayCommand(StartAddLayer, () => CanAddLayer);
+        RemoveLayerCommand = new RelayCommand(RemoveSelectedLayer, () => CanRemoveLayer);
+        MoveLayerUpCommand = new RelayCommand(() => MoveSelectedLayer(-1), () => CanMoveSelectedLayer(-1));
+        MoveLayerDownCommand = new RelayCommand(() => MoveSelectedLayer(1), () => CanMoveSelectedLayer(1));
         ScreenshotCommand = new RelayCommand(CaptureScreenshot, () => HasRenderedPreview && CanPlay);
         TogglePlayCommand = new RelayCommand(() => IsPlaying = !IsPlaying, () => CanPlay);
         StopCommand = new RelayCommand(() =>
@@ -159,12 +168,30 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public IReadOnlyList<string> FilteredAnimations =>
         animations.Where(x => x.Contains(AnimationFilter, StringComparison.OrdinalIgnoreCase)).ToArray();
     public IReadOnlyList<string> Skins => skinNames;
+    public ObservableCollection<SceneLayerViewModel> SceneLayers => sceneLayers;
+    public SceneLayerViewModel? SelectedSceneLayer
+    {
+        get => selectedSceneLayer;
+        set
+        {
+            if (ReferenceEquals(selectedSceneLayer, value)) return;
+            selectedSceneLayer = value;
+            Changed();
+            Changed(nameof(HasSelectedSceneLayer));
+            RefreshCommands();
+        }
+    }
+    public bool HasSelectedSceneLayer => selectedSceneLayer is not null;
     public IReadOnlyList<string> BackgroundModes { get; } = ["Checkerboard", "Dark", "Light"];
 
     public ICommand OpenAssetCommand { get; }
     public ICommand ReloadCommand { get; }
     public ICommand ExportCommand { get; }
     public ICommand CancelExportCommand { get; }
+    public ICommand AddLayerCommand { get; }
+    public ICommand RemoveLayerCommand { get; }
+    public ICommand MoveLayerUpCommand { get; }
+    public ICommand MoveLayerDownCommand { get; }
     public ICommand ScreenshotCommand { get; }
     public ICommand TogglePlayCommand { get; }
     public ICommand StopCommand { get; }
@@ -252,6 +279,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         {
             if (selectedAnimation == value) return;
             Edit(ref selectedAnimation, value, nameof(SelectedAnimation), nameof(Duration), nameof(PlaybackTimeLabel), nameof(StateDetail));
+            SyncPrimaryLayerPlayback();
             Position = 0;
             QueuePreviewRender();
         }
@@ -265,6 +293,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             var next = value ?? DefaultSkins[0];
             if (selectedSkin == next) return;
             Edit(ref selectedSkin, next, nameof(SelectedSkin));
+            SyncPrimaryLayerPlayback();
             QueuePreviewRender();
         }
     }
@@ -285,37 +314,61 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public double ModelX
     {
         get => modelX;
-        set => Edit(ref modelX, value, nameof(ModelX), nameof(PreviewX));
+        set
+        {
+            Edit(ref modelX, value, nameof(ModelX), nameof(PreviewX));
+            SyncPrimaryLayerTransform();
+        }
     }
 
     public double ModelY
     {
         get => modelY;
-        set => Edit(ref modelY, value, nameof(ModelY), nameof(PreviewY));
+        set
+        {
+            Edit(ref modelY, value, nameof(ModelY), nameof(PreviewY));
+            SyncPrimaryLayerTransform();
+        }
     }
 
     public double ModelScale
     {
         get => modelScale;
-        set => Edit(ref modelScale, value, nameof(ModelScale), nameof(PreviewScaleX), nameof(PreviewScaleY));
+        set
+        {
+            Edit(ref modelScale, value, nameof(ModelScale), nameof(PreviewScaleX), nameof(PreviewScaleY));
+            SyncPrimaryLayerTransform();
+        }
     }
 
     public double ModelRotation
     {
         get => modelRotation;
-        set => Edit(ref modelRotation, value, nameof(ModelRotation));
+        set
+        {
+            Edit(ref modelRotation, value, nameof(ModelRotation));
+            SyncPrimaryLayerTransform();
+        }
     }
 
     public bool FlipX
     {
         get => flipX;
-        set => Edit(ref flipX, value, nameof(FlipX), nameof(PreviewScaleX));
+        set
+        {
+            Edit(ref flipX, value, nameof(FlipX), nameof(PreviewScaleX));
+            SyncPrimaryLayerTransform();
+        }
     }
 
     public bool FlipY
     {
         get => flipY;
-        set => Edit(ref flipY, value, nameof(FlipY), nameof(PreviewScaleY));
+        set
+        {
+            Edit(ref flipY, value, nameof(FlipY), nameof(PreviewScaleY));
+            SyncPrimaryLayerTransform();
+        }
     }
 
     public bool Loop
@@ -375,11 +428,13 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public bool HasPrototypePreview => HasPreview && isPrototypePreview;
     public bool CanPlay => Definition.CanPlay && SelectedAnimation is not null;
     public bool CanExport => assetService is not null && CanPlay && !IsExporting && Volatile.Read(ref exportInProgress) == 0;
+    public bool CanAddLayer => assetService is not null && sceneLayers.Count < 8 && !IsLoading && Volatile.Read(ref sceneLayerOperationInProgress) == 0;
+    public bool CanRemoveLayer => selectedSceneLayer is not null && sceneLayers.Count > 1 && !IsLoading;
     public double ExportProgress => exportTotalFrames == 0 ? 0 : (double)exportCompletedFrames / exportTotalFrames;
     public string ExportProgressLabel => exportTotalFrames == 0
         ? "Exporting…"
         : $"Exporting {exportCompletedFrames}/{exportTotalFrames}";
-    public bool IsDirty => Capture() != savedSnapshot;
+    public bool IsDirty => sceneDirty || Capture() != savedSnapshot;
     public bool HasBlockingOverlay => State is WorkspaceState.Unsupported or WorkspaceState.Failed or WorkspaceState.RendererUnavailable;
     public string StateTitle => stateTitleOverride ?? Definition.Title;
     public string StateDetail => stateDetailOverride
@@ -508,6 +563,145 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         _ = ExportSequenceAsync(target);
     }
 
+    private void StartAddLayer()
+    {
+        if (disposed || Interlocked.Exchange(ref sceneLayerOperationInProgress, 1) != 0) return;
+        var target = chooseAssetPath();
+        if (target is null)
+        {
+            Interlocked.Exchange(ref sceneLayerOperationInProgress, 0);
+            return;
+        }
+
+        if (sceneLayers.Count == 0 || !HasAsset)
+        {
+            Interlocked.Exchange(ref sceneLayerOperationInProgress, 0);
+            _ = OpenAssetAsync(target);
+            return;
+        }
+
+        _ = AddLayerAsync(target);
+    }
+
+    private async Task AddLayerAsync(string path)
+    {
+        try
+        {
+            var layer = await Task.Run(() => InspectAndRenderLayer(path));
+            var offset = sceneLayers.Count % 2 == 0 ? 16 : -16;
+            layer.SetTransform(offset, sceneLayers.Count % 3 == 0 ? 8 : 0, 1, 0, false, false);
+            sceneLayers.Add(layer);
+            RefreshLayerZIndices();
+            SelectedSceneLayer = layer;
+            MarkSceneEdited();
+            LastAction = $"Added layer {layer.DisplayName}";
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            SetDiagnostics([new Diagnostic("error", "LAYER_OPEN_FAILED", exception.Message, path)]);
+            LastAction = "Layer add failed";
+        }
+        finally
+        {
+            Interlocked.Exchange(ref sceneLayerOperationInProgress, 0);
+            RefreshCommands();
+        }
+    }
+
+    private SceneLayerViewModel InspectAndRenderLayer(string path)
+    {
+        var previewPath = createPreviewPath();
+        try
+        {
+            var opened = assetService!.OpenSceneLayer(path, null, null, 64, 64, previewPath);
+            var result = opened.Inspection;
+            return new SceneLayerViewModel(
+                result.Asset.SkeletonPath,
+                result.Asset.AtlasPath,
+                result.Runtime.SelectedLine,
+                opened.Animation,
+                opened.SelectedSkin,
+                opened.PreviewPath,
+                sceneLayers.Count,
+                MarkSceneEdited);
+        }
+        catch
+        {
+            DeletePreview(previewPath);
+            throw;
+        }
+    }
+
+    private void RemoveSelectedLayer()
+    {
+        var layer = selectedSceneLayer;
+        if (layer is null || sceneLayers.Count <= 1) return;
+        var index = sceneLayers.IndexOf(layer);
+        sceneLayers.RemoveAt(index);
+        DeletePreview(layer.PreviewImagePath);
+        RefreshLayerZIndices();
+        SelectedSceneLayer = sceneLayers[Math.Min(index, sceneLayers.Count - 1)];
+        previewImagePath = sceneLayers[0].PreviewImagePath;
+        Changed(nameof(PreviewImagePath));
+        MarkSceneEdited();
+        LastAction = $"Removed layer {layer.DisplayName}";
+    }
+
+    private void MoveSelectedLayer(int delta)
+    {
+        if (!CanMoveSelectedLayer(delta) || selectedSceneLayer is null) return;
+        var index = sceneLayers.IndexOf(selectedSceneLayer);
+        sceneLayers.Move(index, index + delta);
+        RefreshLayerZIndices();
+        MarkSceneEdited();
+    }
+
+    private bool CanMoveSelectedLayer(int delta)
+    {
+        if (selectedSceneLayer is null) return false;
+        var index = sceneLayers.IndexOf(selectedSceneLayer);
+        return index >= 0 && index + delta >= 0 && index + delta < sceneLayers.Count;
+    }
+
+    private void RefreshLayerZIndices()
+    {
+        for (var index = 0; index < sceneLayers.Count; index++)
+            sceneLayers[index].SetZIndex(index);
+        Changed(nameof(SceneLayers));
+        RefreshCommands();
+    }
+
+    private void MarkSceneEdited()
+    {
+        if (disposed) return;
+        sceneDirty = true;
+        Changed(nameof(IsDirty));
+        Changed(nameof(DocumentTitle));
+        Changed(nameof(WindowTitle));
+        RefreshCommands();
+    }
+
+    private void SyncPrimaryLayerPlayback()
+    {
+        sceneLayers.FirstOrDefault()?.SetPlayback(SelectedAnimation ?? DefaultAnimations[0], SelectedSkin);
+    }
+
+    private void SyncPrimaryLayerTransform()
+    {
+        sceneLayers.FirstOrDefault()?.SetTransform(ModelX, ModelY, ModelScale, ModelRotation, FlipX, FlipY);
+    }
+
+    private void ClearSceneLayers()
+    {
+        foreach (var layer in sceneLayers)
+            DeletePreview(layer.PreviewImagePath);
+        sceneLayers.Clear();
+        selectedSceneLayer = null;
+        Changed(nameof(SceneLayers));
+        Changed(nameof(SelectedSceneLayer));
+        Changed(nameof(HasSelectedSceneLayer));
+    }
+
     private void CancelExport() => exportCancellation?.Cancel();
 
     private async Task ExportSequenceAsync(string target)
@@ -621,6 +815,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     private void ApplyFakeAsset()
     {
+        ClearSceneLayers();
         ReplacePreview(null);
         isPrototypePreview = true;
         animations = DefaultAnimations;
@@ -672,6 +867,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     private void ApplyAsset(InspectResult result, string? previewPath, string? renderError)
     {
+        ClearSceneLayers();
         ReplacePreview(previewPath);
         isPrototypePreview = false;
         animations = result.Animations.Select(x => x.Name).ToArray();
@@ -685,6 +881,22 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             : [.. result.Diagnostics, new Diagnostic("error", "RENDER_FAILED", renderError, result.Asset.SkeletonPath)]);
         selectedAnimation = animations.FirstOrDefault();
         selectedSkin = skinNames[0];
+        if (renderError is null && previewPath is not null && selectedAnimation is not null)
+        {
+            var layer = new SceneLayerViewModel(
+                result.Asset.SkeletonPath,
+                result.Asset.AtlasPath,
+                result.Runtime.SelectedLine,
+                selectedAnimation,
+                selectedSkin,
+                previewPath,
+                0,
+                MarkSceneEdited);
+            sceneLayers.Add(layer);
+            selectedSceneLayer = layer;
+            Changed(nameof(SceneLayers));
+            Changed(nameof(SelectedSceneLayer));
+        }
         ResetEditor();
         State = renderError is not null
             ? WorkspaceState.RendererUnavailable
@@ -755,29 +967,32 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         try
         {
-            var preview = previewImagePath;
-            var animation = SelectedAnimation;
-            if (preview is null || animation is null) return;
-            var skeleton = skeletonPath;
-            var atlas = atlasPath;
-            var runtime = runtimeLine;
             var time = (float)Position;
-            var skin = SelectedSkin;
-            await Task.Run(() => assetService!.Render(
-                skeleton,
-                atlas,
-                runtime,
-                animation,
-                time,
-                64,
-                64,
-                preview,
-                true,
-                false,
-                string.IsNullOrWhiteSpace(skin) ? [] : [skin],
-                playbackCancellation.Token), playbackCancellation.Token);
-            if (preview == previewImagePath && !playbackCancellation.IsCancellationRequested)
+            var layers = sceneLayers
+                .Where(layer => layer.PreviewImagePath is not null && layer.IsVisible)
+                .ToArray();
+            var requests = layers
+                .Select(layer => new SceneLayerRenderRequest(
+                    layer.SkeletonPath,
+                    layer.AtlasPath,
+                    layer.RuntimeOverride,
+                    layer.Animation,
+                    time,
+                    layer.PreviewImagePath!,
+                    true,
+                    false,
+                    string.IsNullOrWhiteSpace(layer.SelectedSkin) ? [] : [layer.SelectedSkin]))
+                .ToArray();
+            if (requests.Length == 0) return;
+            await Task.Run(
+                () => assetService!.RenderScene(requests, 64, 64, playbackCancellation.Token),
+                playbackCancellation.Token);
+            if (!playbackCancellation.IsCancellationRequested)
+            {
+                foreach (var layer in layers)
+                    layer.RefreshPreview();
                 Changed(nameof(PreviewImagePath));
+            }
         }
         catch (OperationCanceledException)
         {
@@ -827,6 +1042,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         exportCancellation?.Cancel();
         playbackCancellation.Cancel();
         playbackCancellation.Dispose();
+        ClearSceneLayers();
         ReplacePreview(null);
     }
 
@@ -841,6 +1057,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         loop = true;
         backgroundMode = "Checkerboard";
         projectPath = null;
+        sceneDirty = false;
+        SyncPrimaryLayerPlayback();
+        SyncPrimaryLayerTransform();
         undo.Clear();
         redo.Clear();
         savedSnapshot = Capture();
@@ -850,6 +1069,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         try
         {
+            SyncPrimaryLayerPlayback();
+            SyncPrimaryLayerTransform();
             projectPath = projectStore.Save(path, new ViewerProjectDocument(
                 ViewerProjectStore.CurrentSchemaVersion,
                 skeletonPath,
@@ -865,8 +1086,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 Loop,
                 PlaybackSpeed,
                 TrackAlpha,
-                BackgroundMode));
+                BackgroundMode,
+                sceneLayers.Count == 0 ? null : sceneLayers.Select(layer => layer.ToDocument()).ToArray()));
             savedSnapshot = Capture();
+            sceneDirty = false;
             LastAction = $"Saved {Path.GetFileName(projectPath)}";
             Changed(nameof(ProjectPath));
             Changed(nameof(ProjectPathLabel));
@@ -937,6 +1160,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         foreach (var command in new[]
                  {
                      OpenAssetCommand, ReloadCommand, ExportCommand, CancelExportCommand, ScreenshotCommand, TogglePlayCommand, StopCommand, FitCommand,
+                     AddLayerCommand, RemoveLayerCommand, MoveLayerUpCommand, MoveLayerDownCommand,
                      SaveCommand, SaveAsCommand, UndoCommand, RedoCommand
                  })
             ((RelayCommand)command).Refresh();

@@ -34,7 +34,17 @@ $automationIds = @(
     'Main.Inspector.ModelScale',
     'Main.Inspector.ExportFps',
     'Main.Inspector.Background',
-    'Main.Inspector.ProjectPath'
+    'Main.Inspector.ProjectPath',
+    'Main.Scene.LayerList',
+    'Main.Scene.AddLayer',
+    'Main.Scene.RemoveLayer',
+    'Main.Scene.LayerUp',
+    'Main.Scene.LayerDown',
+    'Main.Scene.LayerX',
+    'Main.Scene.LayerY',
+    'Main.Scene.LayerScale',
+    'Main.Scene.LayerOpacity',
+    'Main.Viewport.SceneLayers'
 )
 $markup = Get-Content -LiteralPath $xaml -Raw
 foreach ($automationId in $automationIds) {

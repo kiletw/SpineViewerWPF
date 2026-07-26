@@ -51,6 +51,76 @@ public sealed class AssetService(IRuntimeAdapter runtime)
         return output;
     }
 
+    public IReadOnlyList<string> RenderScene(
+        IReadOnlyList<SceneLayerRenderRequest> requests,
+        int width,
+        int height,
+        CancellationToken cancellationToken = default)
+    {
+        if (requests is null) throw new ArgumentNullException(nameof(requests));
+        if (requests.Count > 8) throw new ArgumentOutOfRangeException(nameof(requests), "A scene is limited to eight layers.");
+        if (width is < 1 or > 16384 || height is < 1 or > 16384)
+            throw new ArgumentOutOfRangeException(nameof(width), "Dimensions must be between 1 and 16384.");
+
+        var outputs = new string[requests.Count];
+        for (var index = 0; index < requests.Count; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var request = requests[index] ?? throw new ArgumentException("Scene layer request is required.", nameof(requests));
+            outputs[index] = Render(
+                request.SkeletonPath,
+                request.AtlasPath,
+                request.RuntimeOverride,
+                request.Animation,
+                request.TimeSeconds,
+                width,
+                height,
+                request.OutputPath,
+                request.Overwrite,
+                request.Pma,
+                request.Skins ?? [],
+                cancellationToken);
+        }
+        return outputs;
+    }
+
+    public SceneLayerOpenResult OpenSceneLayer(
+        string skeletonPath,
+        string? atlasPath,
+        string? runtimeOverride,
+        int width,
+        int height,
+        string outputPath,
+        CancellationToken cancellationToken = default)
+    {
+        var inspection = Inspect(skeletonPath, atlasPath, runtimeOverride, cancellationToken);
+        var animation = inspection.Animations.FirstOrDefault()
+            ?? throw new InvalidDataException("The current renderer requires an animation.");
+        var skin = inspection.Skins.FirstOrDefault() ?? "default";
+        try
+        {
+            Render(
+                inspection.Asset.SkeletonPath,
+                inspection.Asset.AtlasPath,
+                inspection.Runtime.SelectedLine,
+                animation.Name,
+                animation.DurationSeconds / 2,
+                width,
+                height,
+                outputPath,
+                true,
+                false,
+                [skin],
+                cancellationToken);
+            return new SceneLayerOpenResult(inspection, animation.Name, skin, Path.GetFullPath(outputPath));
+        }
+        catch
+        {
+            TryDelete(outputPath);
+            throw;
+        }
+    }
+
     public AnimationExportResult Export(
         AnimationExportRequest request,
         CancellationToken cancellationToken = default,

@@ -166,16 +166,32 @@ try
     }
     Assert(!Directory.EnumerateFiles(Path.Combine(root, "sequence-canceled"), "*.png").Any(), "Canceled export left partial frames.");
 
+    var sceneOutputs = pngService.RenderScene(
+        [
+            new SceneLayerRenderRequest(pngSkeleton, pngAtlas, null, "move", 0.5f, Path.Combine(root, "scene-a.png"), true, false, ["default"]),
+            new SceneLayerRenderRequest(pngSkeleton, pngAtlas, null, "move", 0.5f, Path.Combine(root, "scene-b.png"), true, false, ["default"])
+        ],
+        64,
+        64);
+    Assert(sceneOutputs.Count == 2 && sceneOutputs.All(File.Exists), "Scene layer rendering did not produce both layer previews.");
+    Assert(
+        SHA256.HashData(File.ReadAllBytes(sceneOutputs[0])).SequenceEqual(SHA256.HashData(File.ReadAllBytes(sceneOutputs[1]))),
+        "Repeated scene layers did not use the deterministic renderer path.");
+
     var realProject = Path.Combine(root, "real.spineviewer.json");
     var pngPreviewPath = Path.Combine(root, "png-preview.png");
     var exportPrefix = Path.Combine(root, "exported", "move.png");
+    var previewCounter = 0;
     using var realViewModel = new ShellViewModel(
         WorkspaceState.Empty,
         true,
         store,
         _ => realProject,
         pngService,
-        createPreviewPath: () => pngPreviewPath,
+        chooseAssetPath: () => pngSkeleton,
+        createPreviewPath: () => ++previewCounter == 1
+            ? pngPreviewPath
+            : Path.Combine(root, $"layer-{previewCounter}.png"),
         chooseExportPath: () => exportPrefix);
     await realViewModel.OpenAssetAsync(pngSkeleton);
     Assert(
@@ -188,12 +204,14 @@ try
     Assert(realViewModel.FilteredAnimations.SequenceEqual(["move"]), "Real animation metadata was not mapped.");
     Assert(realViewModel.Skins.SequenceEqual(["default"]), "Real skin metadata was not mapped.");
     Assert(realViewModel.RuntimeLabel == "Runtime 4.1" && realViewModel.Duration == 1, "Runtime or duration was not mapped.");
+    Assert(realViewModel.SceneLayers.Count == 1, "Opening an asset did not create the initial scene layer.");
     Assert(Math.Abs(realViewModel.ExportFramesPerSecond - 30) < 0.001, "Export FPS default was not 30.");
     realViewModel.ExportFramesPerSecond = 10;
     Assert(Math.Abs(realViewModel.ExportFramesPerSecond - 10) < 0.001 && !realViewModel.IsDirty, "Export FPS did not change without dirtying the project.");
     Assert(
         SHA256.HashData(File.ReadAllBytes(pngPreviewPath)).SequenceEqual(SHA256.HashData(File.ReadAllBytes(directPngPreview))),
         "PNG-backed preview was not deterministic.");
+    realViewModel.IsPlaying = false;
     realViewModel.IsPlaying = true;
     var playbackBefore = SHA256.HashData(File.ReadAllBytes(pngPreviewPath));
     var frame = new DispatcherFrame();
@@ -215,10 +233,19 @@ try
         await Task.Delay(10);
     Assert(!realViewModel.IsExporting && File.Exists(Path.Combine(root, "exported", "move-0000.png")), "WPF Export command did not finish a PNG sequence.");
     Assert(realViewModel.LastAction == "Exported 11 frames", "WPF Export command did not use the custom FPS.");
+    realViewModel.AddLayerCommand.Execute(null);
+    for (var attempt = 0; attempt < 100 && realViewModel.SceneLayers.Count < 2; attempt++)
+        await Task.Delay(10);
+    Assert(realViewModel.SceneLayers.Count == 2, "Add layer did not create a second scene layer.");
+    Assert(realViewModel.SceneLayers.All(layer => layer.PreviewImagePath is not null && File.Exists(layer.PreviewImagePath)), "Scene layer previews were not rendered.");
+    Assert(realViewModel.IsDirty, "Adding a scene layer did not mark the project dirty.");
+    realViewModel.MoveLayerUpCommand.Execute(null);
+    Assert(realViewModel.SceneLayers[0].ZIndex == 0 && realViewModel.SceneLayers[1].ZIndex == 1, "Scene layer reorder did not update z-order.");
     realViewModel.ModelX = 12;
     realViewModel.SaveCommand.Execute(null);
     var realDocument = store.Load(realProject);
     Assert(realDocument.SkeletonPath == Path.GetFullPath(pngSkeleton), "Real skeleton path was not saved.");
+    Assert(realDocument.SceneLayers?.Count == 2, "Saved Viewer project did not preserve scene layers.");
 
     realViewModel.ModelY = 4;
     await realViewModel.OpenAssetAsync(Path.Combine(root, "missing.json"));
