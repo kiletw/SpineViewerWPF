@@ -44,6 +44,8 @@ $automationIds = @(
     'Main.Scene.LayerY',
     'Main.Scene.LayerScale',
     'Main.Scene.LayerOpacity',
+    'Main.Scene.LayerAnimation',
+    'Main.Scene.LayerSkin',
     'Main.Viewport.SceneLayers'
 )
 $markup = Get-Content -LiteralPath $xaml -Raw

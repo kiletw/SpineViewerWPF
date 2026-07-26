@@ -34,7 +34,7 @@ Modify a session through stable state transitions.
 
 ### `RenderFrame`
 
-Renders a deterministic frame from explicit dimensions, time, transform, background, and PMA settings. `RenderScene` applies the same contract to a bounded list of independent scene layers.
+Renders a deterministic frame from explicit dimensions, time, transform, background, and PMA settings. `RenderScene` applies the same contract to a bounded list of independent scene layers, each with its own animation and skin selection.
 
 ### `ExportAnimation`
 

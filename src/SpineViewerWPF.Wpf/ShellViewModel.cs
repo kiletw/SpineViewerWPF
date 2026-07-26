@@ -616,14 +616,12 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             var opened = assetService!.OpenSceneLayer(path, null, null, 64, 64, previewPath);
             var result = opened.Inspection;
             return new SceneLayerViewModel(
-                result.Asset.SkeletonPath,
-                result.Asset.AtlasPath,
-                result.Runtime.SelectedLine,
+                result,
                 opened.Animation,
                 opened.SelectedSkin,
                 opened.PreviewPath,
                 sceneLayers.Count,
-                MarkSceneEdited);
+                SceneLayerChanged);
         }
         catch
         {
@@ -679,6 +677,12 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         Changed(nameof(DocumentTitle));
         Changed(nameof(WindowTitle));
         RefreshCommands();
+    }
+
+    private void SceneLayerChanged()
+    {
+        MarkSceneEdited();
+        QueuePreviewRender();
     }
 
     private void SyncPrimaryLayerPlayback()
@@ -884,14 +888,12 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         if (renderError is null && previewPath is not null && selectedAnimation is not null)
         {
             var layer = new SceneLayerViewModel(
-                result.Asset.SkeletonPath,
-                result.Asset.AtlasPath,
-                result.Runtime.SelectedLine,
+                result,
                 selectedAnimation,
                 selectedSkin,
                 previewPath,
                 0,
-                MarkSceneEdited);
+                SceneLayerChanged);
             sceneLayers.Add(layer);
             selectedSceneLayer = layer;
             Changed(nameof(SceneLayers));
@@ -977,7 +979,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                     layer.AtlasPath,
                     layer.RuntimeOverride,
                     layer.Animation,
-                    time,
+                    Math.Min(time, (float)layer.Duration),
                     layer.PreviewImagePath!,
                     true,
                     false,

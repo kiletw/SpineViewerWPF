@@ -8,6 +8,9 @@ namespace SpineViewerWPF.Wpf;
 public sealed class SceneLayerViewModel : INotifyPropertyChanged
 {
     private readonly Action? changed;
+    private readonly IReadOnlyDictionary<string, double> animationDurations;
+    private string animation;
+    private string selectedSkin;
     private string? previewImagePath;
     private double modelX;
     private double modelY;
@@ -20,20 +23,21 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged
     private int zIndex;
 
     internal SceneLayerViewModel(
-        string skeletonPath,
-        string atlasPath,
-        string runtimeOverride,
+        InspectResult inspection,
         string animation,
         string selectedSkin,
         string previewImagePath,
         int zIndex,
         Action? changed = null)
     {
-        SkeletonPath = skeletonPath;
-        AtlasPath = atlasPath;
-        RuntimeOverride = runtimeOverride;
-        Animation = animation;
-        SelectedSkin = selectedSkin;
+        SkeletonPath = inspection.Asset.SkeletonPath;
+        AtlasPath = inspection.Asset.AtlasPath;
+        RuntimeOverride = inspection.Runtime.SelectedLine;
+        Animations = inspection.Animations.Select(item => item.Name).ToArray();
+        Skins = inspection.Skins.Count == 0 ? ["default"] : inspection.Skins.ToArray();
+        animationDurations = inspection.Animations.ToDictionary(item => item.Name, item => (double)item.DurationSeconds, StringComparer.Ordinal);
+        this.animation = animation;
+        this.selectedSkin = selectedSkin;
         this.previewImagePath = previewImagePath;
         this.zIndex = zIndex;
         this.changed = changed;
@@ -44,8 +48,34 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged
     public string SkeletonPath { get; }
     public string AtlasPath { get; }
     public string RuntimeOverride { get; }
-    public string Animation { get; private set; }
-    public string SelectedSkin { get; private set; }
+    public IReadOnlyList<string> Animations { get; }
+    public IReadOnlyList<string> Skins { get; }
+    public string Animation
+    {
+        get => animation;
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value) || !animationDurations.ContainsKey(value) || animation == value) return;
+            animation = value;
+            Changed(nameof(Animation));
+            Changed(nameof(Duration));
+            changed?.Invoke();
+        }
+    }
+
+    public string SelectedSkin
+    {
+        get => selectedSkin;
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value) || !Skins.Contains(value, StringComparer.Ordinal) || selectedSkin == value) return;
+            selectedSkin = value;
+            Changed(nameof(SelectedSkin));
+            changed?.Invoke();
+        }
+    }
+
+    public double Duration => animationDurations.TryGetValue(Animation, out var duration) ? duration : 0;
     public string DisplayName => Path.GetFileName(SkeletonPath);
     public string? PreviewImagePath => previewImagePath;
 
@@ -101,10 +131,11 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged
 
     internal void SetPlayback(string animation, string selectedSkin)
     {
-        Animation = animation;
-        SelectedSkin = selectedSkin;
+        this.animation = animation;
+        this.selectedSkin = selectedSkin;
         Changed(nameof(Animation));
         Changed(nameof(SelectedSkin));
+        Changed(nameof(Duration));
     }
 
     internal void SetTransform(double x, double y, double scale, double rotation, bool flipX, bool flipY)

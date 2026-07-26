@@ -346,6 +346,14 @@
                         </StackPanel>
                         <Expander Header="Selected layer" IsExpanded="False" IsEnabled="{Binding HasSelectedSceneLayer}" Foreground="#DDE3EC" Margin="0,8,0,0">
                             <StackPanel Margin="4,8,0,0">
+                                <TextBlock Text="Animation" />
+                                <ComboBox ItemsSource="{Binding SelectedSceneLayer.Animations}"
+                                          SelectedItem="{Binding SelectedSceneLayer.Animation, Mode=TwoWay}"
+                                          AutomationProperties.AutomationId="Main.Scene.LayerAnimation" />
+                                <TextBlock Text="Skin" Margin="0,6,0,0" />
+                                <ComboBox ItemsSource="{Binding SelectedSceneLayer.Skins}"
+                                          SelectedItem="{Binding SelectedSceneLayer.SelectedSkin, Mode=TwoWay}"
+                                          AutomationProperties.AutomationId="Main.Scene.LayerSkin" />
                                 <TextBlock Text="Position X" />
                                 <Slider Minimum="-64" Maximum="64" TickFrequency="4"
                                         IsSnapToTickEnabled="True"

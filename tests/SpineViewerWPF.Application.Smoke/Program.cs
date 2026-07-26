@@ -239,6 +239,9 @@ try
     Assert(realViewModel.SceneLayers.Count == 2, "Add layer did not create a second scene layer.");
     Assert(realViewModel.SceneLayers.All(layer => layer.PreviewImagePath is not null && File.Exists(layer.PreviewImagePath)), "Scene layer previews were not rendered.");
     Assert(realViewModel.IsDirty, "Adding a scene layer did not mark the project dirty.");
+    Assert(realViewModel.SceneLayers.All(layer => layer.Animations.SequenceEqual(["move"]) && layer.Skins.SequenceEqual(["default"])), "Scene layers did not retain independent animation and skin metadata.");
+    realViewModel.SceneLayers[1].Opacity = 0.5;
+    Assert(realViewModel.SceneLayers[1].Opacity == 0.5 && realViewModel.SceneLayers[0].Opacity == 1, "Scene layer properties were not independent.");
     realViewModel.MoveLayerUpCommand.Execute(null);
     Assert(realViewModel.SceneLayers[0].ZIndex == 0 && realViewModel.SceneLayers[1].ZIndex == 1, "Scene layer reorder did not update z-order.");
     realViewModel.ModelX = 12;
@@ -246,6 +249,7 @@ try
     var realDocument = store.Load(realProject);
     Assert(realDocument.SkeletonPath == Path.GetFullPath(pngSkeleton), "Real skeleton path was not saved.");
     Assert(realDocument.SceneLayers?.Count == 2, "Saved Viewer project did not preserve scene layers.");
+    Assert(realDocument.SceneLayers?[0].Opacity == 0.5, "Saved Viewer project did not preserve per-layer opacity.");
 
     realViewModel.ModelY = 4;
     await realViewModel.OpenAssetAsync(Path.Combine(root, "missing.json"));
