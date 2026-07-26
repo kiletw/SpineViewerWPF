@@ -669,7 +669,7 @@
                             Value="{Binding Position}"
                             IsEnabled="{Binding CanPlay}"
                             AutomationProperties.AutomationId="Main.Playback.Timeline" />
-                    <TextBlock Text="0:00 / 0:01.8" Style="{StaticResource MutedText}" FontSize="10" HorizontalAlignment="Right" />
+                    <TextBlock Text="{Binding PlaybackTimeLabel}" Style="{StaticResource MutedText}" FontSize="10" HorizontalAlignment="Right" />
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <CheckBox Content="Loop"

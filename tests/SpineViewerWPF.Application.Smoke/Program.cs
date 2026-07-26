@@ -4,6 +4,7 @@ using SpineViewerWPF.Core;
 using SpineViewerWPF.Wpf;
 using System.Globalization;
 using System.Security.Cryptography;
+using System.Windows.Threading;
 
 var root = Path.Combine(Path.GetTempPath(), $"SpineViewerWPF-{Guid.NewGuid():N}");
 Directory.CreateDirectory(root);
@@ -136,6 +137,22 @@ try
     Assert(
         SHA256.HashData(File.ReadAllBytes(pngPreviewPath)).SequenceEqual(SHA256.HashData(File.ReadAllBytes(directPngPreview))),
         "PNG-backed preview was not deterministic.");
+    realViewModel.IsPlaying = false;
+    realViewModel.IsPlaying = true;
+    var playbackBefore = SHA256.HashData(File.ReadAllBytes(pngPreviewPath));
+    var frame = new DispatcherFrame();
+    var stopFrame = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
+    stopFrame.Tick += (_, _) =>
+    {
+        stopFrame.Stop();
+        frame.Continue = false;
+    };
+    stopFrame.Start();
+    Dispatcher.PushFrame(frame);
+    await Task.Delay(100);
+    Assert(realViewModel.Position > 0, "Playback timer did not advance the real preview.");
+    Assert(realViewModel.PlaybackTimeLabel.StartsWith("0:00.", StringComparison.Ordinal), "Playback time label was not updated.");
+    Assert(!playbackBefore.SequenceEqual(SHA256.HashData(File.ReadAllBytes(pngPreviewPath))), "Playback did not publish a new preview frame.");
     realViewModel.ModelX = 12;
     realViewModel.SaveCommand.Execute(null);
     var realDocument = store.Load(realProject);

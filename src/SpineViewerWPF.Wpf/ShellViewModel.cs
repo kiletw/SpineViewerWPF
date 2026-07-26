@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using System.Windows.Threading;
 using SpineViewerWPF.Application;
 using SpineViewerWPF.Core;
 
@@ -42,6 +43,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private readonly Func<string, string?> chooseProjectPath;
     private readonly Func<bool> confirmDiscardChanges;
     private readonly Func<string> createPreviewPath;
+    private readonly DispatcherTimer playbackTimer;
+    private readonly CancellationTokenSource playbackCancellation = new();
     // ponytail: in-memory history is enough for one fake document; cap or persist it with multi-document editing.
     private readonly Stack<EditorSnapshot> undo = [];
     private readonly Stack<EditorSnapshot> redo = [];
@@ -59,6 +62,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private bool isRailExpanded;
     private bool isInspectorVisible;
     private bool isPlaying;
+    private DateTime lastPlaybackTick;
+    private int previewRenderInProgress;
+    private bool disposed;
     private string animationFilter = "";
     private string? selectedAnimation = DefaultAnimations[0];
     private string selectedSkin = DefaultSkins[0];
@@ -99,6 +105,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         this.confirmDiscardChanges = confirmDiscardChanges ?? (() => false);
         this.createPreviewPath = createPreviewPath ?? (() =>
             Path.Combine(Path.GetTempPath(), "SpineViewerWPF", $"{Guid.NewGuid():N}.png"));
+        playbackTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
+        playbackTimer.Tick += AdvancePlayback;
         savedSnapshot = Capture();
 
         OpenAssetCommand = new RelayCommand(async () => await OpenAssetAsync(), () => !IsLoading);
@@ -127,6 +135,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         RedoCommand = new RelayCommand(Redo, () => redo.Count > 0);
         CycleStateCommand = new RelayCommand(() =>
             State = (WorkspaceState)(((int)State + 1) % Enum.GetValues<WorkspaceState>().Length));
+        UpdatePlaybackTimer();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -162,8 +171,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             stateTitleOverride = null;
             stateDetailOverride = null;
             isPlaying = value is WorkspaceState.Ready or WorkspaceState.ReadyWithWarnings;
+            lastPlaybackTick = DateTime.UtcNow;
             position = 0;
             Changed(string.Empty);
+            UpdatePlaybackTimer();
             RefreshCommands();
         }
     }
@@ -197,6 +208,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         {
             if (isPlaying == value) return;
             isPlaying = value;
+            lastPlaybackTick = DateTime.UtcNow;
+            UpdatePlaybackTimer();
             Changed();
             Changed(nameof(PlaybackLabel));
         }
@@ -217,13 +230,25 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public string? SelectedAnimation
     {
         get => selectedAnimation;
-        set => Edit(ref selectedAnimation, value, nameof(SelectedAnimation), nameof(Duration), nameof(StateDetail));
+        set
+        {
+            if (selectedAnimation == value) return;
+            Edit(ref selectedAnimation, value, nameof(SelectedAnimation), nameof(Duration), nameof(PlaybackTimeLabel), nameof(StateDetail));
+            Position = 0;
+            QueuePreviewRender();
+        }
     }
 
     public string SelectedSkin
     {
         get => selectedSkin;
-        set => Edit(ref selectedSkin, value ?? DefaultSkins[0], nameof(SelectedSkin));
+        set
+        {
+            var next = value ?? DefaultSkins[0];
+            if (selectedSkin == next) return;
+            Edit(ref selectedSkin, next, nameof(SelectedSkin));
+            QueuePreviewRender();
+        }
     }
 
     public double Position
@@ -232,8 +257,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         set
         {
             if (Math.Abs(position - value) < 0.001) return;
-            position = value;
+            position = Duration > 0 ? Math.Clamp(value, 0, Duration) : Math.Max(0, value);
             Changed();
+            Changed(nameof(PlaybackTimeLabel));
+            QueuePreviewRender();
         }
     }
 
@@ -345,6 +372,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public double Duration => SelectedAnimation is not null && animationDurations.TryGetValue(SelectedAnimation, out var duration)
         ? duration
         : 0;
+    public string PlaybackTimeLabel => $"{FormatTime(Position)} / {FormatTime(Duration)}";
 
     public bool TrySave()
     {
@@ -490,6 +518,100 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         Changed(nameof(HasPrototypePreview));
     }
 
+    private void AdvancePlayback(object? sender, EventArgs e)
+    {
+        if (!IsPlaying || !CanPlay) return;
+        var duration = Duration;
+        if (duration <= 0)
+        {
+            IsPlaying = false;
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        var elapsed = Math.Clamp((now - lastPlaybackTick).TotalSeconds, 0, 0.25);
+        lastPlaybackTick = now;
+        var next = Position + elapsed * Math.Max(0.01, PlaybackSpeed);
+        if (next >= duration)
+        {
+            if (Loop)
+                next %= duration;
+            else
+            {
+                next = duration;
+                IsPlaying = false;
+            }
+        }
+        Position = next;
+    }
+
+    private void UpdatePlaybackTimer()
+    {
+        if (assetService is not null && IsPlaying && CanPlay)
+            playbackTimer.Start();
+        else
+            playbackTimer.Stop();
+    }
+
+    private void QueuePreviewRender()
+    {
+        if (disposed || assetService is null || !HasRenderedPreview || !CanPlay) return;
+        if (Interlocked.Exchange(ref previewRenderInProgress, 1) != 0) return;
+        _ = RenderPreviewAsync();
+    }
+
+    private async Task RenderPreviewAsync()
+    {
+        try
+        {
+            var preview = previewImagePath;
+            var animation = SelectedAnimation;
+            if (preview is null || animation is null) return;
+            var skeleton = skeletonPath;
+            var atlas = atlasPath;
+            var runtime = runtimeLine;
+            var time = (float)Position;
+            var skin = SelectedSkin;
+            await Task.Run(() => assetService!.Render(
+                skeleton,
+                atlas,
+                runtime,
+                animation,
+                time,
+                64,
+                64,
+                preview,
+                true,
+                false,
+                string.IsNullOrWhiteSpace(skin) ? [] : [skin],
+                playbackCancellation.Token), playbackCancellation.Token);
+            if (preview == previewImagePath && !playbackCancellation.IsCancellationRequested)
+                Changed(nameof(PreviewImagePath));
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception exception)
+        {
+            if (disposed) return;
+            IsPlaying = false;
+            State = WorkspaceState.RendererUnavailable;
+            stateDetailOverride = exception.Message;
+            Changed(nameof(StateDetail));
+        }
+        finally
+        {
+            Interlocked.Exchange(ref previewRenderInProgress, 0);
+        }
+    }
+
+    private static string FormatTime(double seconds)
+    {
+        if (!double.IsFinite(seconds) || seconds < 0) seconds = 0;
+        var time = TimeSpan.FromSeconds(seconds);
+        return $"{(int)time.TotalMinutes}:{time.Seconds:00}.{time.Milliseconds / 100}";
+    }
+
     private static void DeletePreview(string? path)
     {
         if (path is null) return;
@@ -505,12 +627,21 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    public void Dispose() => ReplacePreview(null);
+    public void Dispose()
+    {
+        if (disposed) return;
+        disposed = true;
+        playbackTimer.Stop();
+        playbackCancellation.Cancel();
+        playbackCancellation.Dispose();
+        ReplacePreview(null);
+    }
 
     private void ResetEditor()
     {
         modelX = modelY = modelRotation = 0;
         modelScale = playbackSpeed = trackAlpha = 1;
+        position = 0;
         flipX = flipY = false;
         loop = true;
         backgroundMode = "Checkerboard";

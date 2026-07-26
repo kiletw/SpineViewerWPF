@@ -66,6 +66,7 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 - Verified official example compatibility: TASK-009 loads `examples/spineboy/export/spineboy-pro.json` and `.skel` with `spineboy.atlas` and `spineboy.png` from pinned commit `ab28b77c70e3aa766be5bdb759d7aedac9fd0bde`; both formats report 11 animations and render the `walk` animation
 - Verified atlas discovery: TASK-011 resolves the official `-pro` skeletons to their base-stem atlas when the caller omits an explicit atlas path
 - Verified bounds-aware fit: TASK-010 keeps the 64 by 64 synthetic baseline unchanged and records deterministic 512 by 512 official JSON/binary renders with the full `spineboy` pose visible
+- Verified WPF playback: TASK-012 advances a real asset on a dispatcher tick, updates the timeline label, and re-renders through the existing Application path
 - Verified metadata: export `4.1.00`, animation `move` at 1 second, skin `default`
 - WPF metadata path: TASK-005 verified the same fixture through the native file-open composition, Application inspect use case, isolated adapter, and presentation mapping
 - WPF static preview: TASK-007 reuses the Application render use case off the UI thread; TASK-008 verifies the same Ready path for a generated PNG atlas texture
