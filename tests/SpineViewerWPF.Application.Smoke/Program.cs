@@ -73,26 +73,61 @@ try
             .Replace("size: 2, 2", "size: 1, 1")
             .Replace("bounds: 0, 0, 2, 2", "bounds: 0, 0, 1, 1"));
     var validPng = Convert.FromBase64String(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+R16vcwAAAABJRU5ErkJggg==");
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==");
     File.WriteAllBytes(pngTexture, validPng);
 
     var pngService = assetService;
     var pngInspect = pngService.Inspect(pngSkeleton, null, null);
     Assert(pngInspect.Asset.Textures.SequenceEqual([Path.GetFullPath(pngTexture)]), "PNG texture path was not inspected.");
+    var pngVariants = new[]
+    {
+        "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAAAAABX3VL4AAAADklEQVR4nGPk4mISEQEAAKgAQMS3sfYAAAAASUVORK5CYII=",
+        "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGP8z8DA+J+BiZHh/3+G/wAeHAUBO0YLBwAAAABJRU5ErkJggg==",
+        "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAMAAABFaP0WAAAABlBMVEX/AAAA/wDSh+9xAAAAAnRSTlP/AOW3MEoAAAAOSURBVHicY2ZgZGH8DwABKQEJTiJzbQAAAABJRU5ErkJggg==",
+        "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAQAAADYv8WvAAAAEklEQVR4nGPh+s/VyCLiyHUAAA3LArwHXQLTAAAAAElFTkSuQmCC",
+        "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAGUlEQVR4nGP8z8Dwn/E/QyMLI8N/RyDnAAA8NwaF+/WO+wAAAABJRU5ErkJggg==",
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABklEQVR4nGP4z8CGMy/JAAAAB0lEQVTwHwAFAAH/3G9/TQAAAABJRU5ErkJggg==",
+        "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAF0lEQVR4nGP4z8DwHwgbGIC0w////xkAQBgHuub96GQAAAAASUVORK5CYII="
+    };
+    for (var i = 0; i < pngVariants.Length; i++)
+    {
+        File.WriteAllBytes(pngTexture, Convert.FromBase64String(pngVariants[i]));
+        pngService.Render(
+            pngSkeleton, pngAtlas, null, "move", 0.5f, 64, 64,
+            Path.Combine(root, $"png-variant-{i}.png"), true, false, ["default"]);
+    }
+    Assert(
+        SHA256.HashData(File.ReadAllBytes(Path.Combine(root, "png-variant-4.png")))
+            .SequenceEqual(SHA256.HashData(File.ReadAllBytes(Path.Combine(root, "png-variant-6.png")))),
+        "PNG scanline filters changed decoded pixels.");
+    File.WriteAllBytes(pngTexture, validPng);
+
+    var directPngPreview = Path.Combine(root, "png-preview-direct.png");
+    pngService.Render(pngSkeleton, pngAtlas, null, "move", 0.5f, 64, 64, directPngPreview, true, false, ["default"]);
 
     var realProject = Path.Combine(root, "real.spineviewer.json");
-    var realViewModel = new ShellViewModel(
+    var pngPreviewPath = Path.Combine(root, "png-preview.png");
+    using var realViewModel = new ShellViewModel(
         WorkspaceState.Empty,
         true,
         store,
         _ => realProject,
-        pngService);
+        pngService,
+        createPreviewPath: () => pngPreviewPath);
     await realViewModel.OpenAssetAsync(pngSkeleton);
-    Assert(realViewModel.State == WorkspaceState.RendererUnavailable, "PNG metadata did not expose renderer unavailability.");
-    Assert(realViewModel.PreviewImagePath is null, "Unsupported PNG rendering exposed a fake preview.");
+    Assert(
+        realViewModel.State == WorkspaceState.Ready,
+        $"PNG fixture did not reach Ready: {realViewModel.State}: {realViewModel.StateDetail}");
+    Assert(realViewModel.PreviewImagePath == pngPreviewPath && File.Exists(pngPreviewPath), "PNG preview was not rendered.");
+    Assert(
+        new PreviewImageConverter().Convert(pngPreviewPath, typeof(object), null, CultureInfo.InvariantCulture) is not null,
+        "WPF could not load the PNG-backed preview.");
     Assert(realViewModel.FilteredAnimations.SequenceEqual(["move"]), "Real animation metadata was not mapped.");
     Assert(realViewModel.Skins.SequenceEqual(["default"]), "Real skin metadata was not mapped.");
     Assert(realViewModel.RuntimeLabel == "Runtime 4.1" && realViewModel.Duration == 1, "Runtime or duration was not mapped.");
+    Assert(
+        SHA256.HashData(File.ReadAllBytes(pngPreviewPath)).SequenceEqual(SHA256.HashData(File.ReadAllBytes(directPngPreview))),
+        "PNG-backed preview was not deterministic.");
     realViewModel.ModelX = 12;
     realViewModel.SaveCommand.Execute(null);
     var realDocument = store.Load(realProject);
@@ -100,12 +135,20 @@ try
 
     realViewModel.ModelY = 4;
     await realViewModel.OpenAssetAsync(Path.Combine(root, "missing.json"));
-    Assert(realViewModel.State == WorkspaceState.RendererUnavailable && realViewModel.IsDirty, "Dirty replacement was not canceled.");
+    Assert(realViewModel.State == WorkspaceState.Ready && realViewModel.IsDirty, "Dirty replacement was not canceled.");
     realViewModel.UndoCommand.Execute(null);
 
     await realViewModel.OpenAssetAsync(Path.Combine(root, "missing.json"));
     Assert(realViewModel.State == WorkspaceState.Failed, "Missing input did not reach Failed.");
     Assert(realViewModel.SkeletonFileName == "png.json", "Failed replacement discarded the prior document.");
+
+    var corruptPng = validPng.ToArray();
+    corruptPng[42] ^= 1;
+    File.WriteAllBytes(pngTexture, corruptPng);
+    pngService.Inspect(pngSkeleton, pngAtlas, null);
+    var corruptRender = Expect<Exception>(() =>
+        pngService.Render(pngSkeleton, pngAtlas, null, "move", 0.5f, 64, 64, Path.Combine(root, "corrupt.png"), true, false, []));
+    Assert(corruptRender.InnerException is InvalidDataException, "Corrupt PNG render did not preserve its validation error.");
 
     File.WriteAllBytes(pngTexture, [137, 80, 78, 71]);
     var malformedPng = Expect<Exception>(() => pngService.Inspect(pngSkeleton, pngAtlas, null));
@@ -131,7 +174,7 @@ try
     File.WriteAllText(project, File.ReadAllText(project).Replace("\"schemaVersion\": 1", "\"schemaVersion\": 2"));
     Expect<InvalidDataException>(() => store.Load(project));
 
-    Console.WriteLine("Viewer project, static preview, PNG fallback, edit history, and source isolation passed.");
+    Console.WriteLine("Viewer project, PNG render preview, edit history, validation, and source isolation passed.");
 }
 finally
 {

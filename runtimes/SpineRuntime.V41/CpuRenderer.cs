@@ -10,7 +10,7 @@ internal readonly record struct Pixel(byte R, byte G, byte B, byte A);
 
 internal sealed class TextureData
 {
-    private TextureData(int width, int height, Pixel[] pixels)
+    internal TextureData(int width, int height, Pixel[] pixels)
     {
         Width = width;
         Height = height;
@@ -50,6 +50,8 @@ internal sealed class TextureData
         }
         return new TextureData(width, height, pixels);
     }
+
+    public static TextureData LoadPng(string path) => PngReader.Load(path);
 }
 
 internal static class CpuRenderer

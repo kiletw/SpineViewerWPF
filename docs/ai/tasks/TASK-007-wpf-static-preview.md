@@ -76,7 +76,7 @@ Preserved: Core, Application, CLI, Runtime adapter and official source, source a
 
 Validation: the WPF smoke path verifies the real preview path, PNG loading, exact SHA-256, failed-replacement retention, disposal cleanup, and PNG renderer fallback; UI shell and CLI regressions pass with zero warnings or errors.
 
-Known gaps: this is one static 64 by 64 frame. Animation selection, timeline, playback, fit, capture, PNG pixel decoding, unsupported CPU-renderer features, and production renderer selection remain incomplete.
+Known gaps: this is one static 64 by 64 frame. Animation selection, timeline, playback, fit, capture, unsupported CPU-renderer features, and production renderer selection remain incomplete. TASK-008 later adds bounded PNG pixel decoding.
 
 Risks: unverified real assets may clip because the renderer has no bounds-based fit. Preview file deletion is best-effort if another process holds the file.
 

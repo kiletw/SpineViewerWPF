@@ -9,6 +9,7 @@
     <Compile Include="src/**/*.cs" />
     <Compile Include="Adapter.cs" />
     <Compile Include="CpuRenderer.cs" />
+    <Compile Include="PngReader.cs" />
     <Compile Include="PngWriter.cs" />
     <ProjectReference Include="../../src/SpineViewerWPF.Application/SpineViewerWPF.Application.csproj" />
   </ItemGroup>

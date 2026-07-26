@@ -51,9 +51,9 @@ Read `10-cli-contract.md`, `11-mcp-capability-map.md`, and UI documents only whe
 
 - Phase 0 baseline: completed on v2 commit `79c6135`; compatibility fixtures remain missing and explicit
 - v3 prototype: TASK-001 one-Runtime vertical slice completed for project-authored 4.1 JSON input
-- Renderer: deterministic CPU spike accepted by ADR-005; production renderer remains undecided
+- Renderer: deterministic CPU spike accepts P3 PPM and bounded 8-bit non-interlaced PNG textures; production renderer remains undecided
 - CLI: 4.1 `inspect` and `render` implemented
 - MCP: capability planning only
-- UI: TASK-007 shows the verified 4.1 PPM fixture as a real deterministic static frame; PNG metadata opens with an explicit renderer-unavailable state
+- UI: TASK-008 shows generated 4.1 PPM and PNG variants as real deterministic static frames
 - Localization: resource boundary required now; runtime language switching remains deferred
 - Editing: TASK-004 adds Inspector editing, Undo/Redo, dirty state, and versioned `*.spineviewer.json` sidecar save; Spine source writing remains forbidden

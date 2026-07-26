@@ -35,7 +35,7 @@ public sealed class SpineV41Adapter : IRuntimeAdapter
     public void Render(RenderRequest request, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var textureLoader = new PpmTextureLoader();
+        var textureLoader = new RenderTextureLoader();
         using var asset = LoadedAsset.Open(request.SkeletonPath, request.AtlasPath, textureLoader, textureLoader.Paths);
         var animation = asset.Data.FindAnimation(request.Animation)
             ?? throw new InvalidDataException($"Animation not found: {request.Animation}");
@@ -157,7 +157,7 @@ internal sealed class MetadataTextureLoader : TextureLoader
     }
 }
 
-internal sealed class PpmTextureLoader : TextureLoader
+internal sealed class RenderTextureLoader : TextureLoader
 {
     private readonly List<string> paths = new();
     public IReadOnlyList<string> Paths => paths;
@@ -165,7 +165,12 @@ internal sealed class PpmTextureLoader : TextureLoader
     public void Load(AtlasPage page, string path)
     {
         var fullPath = Path.GetFullPath(path);
-        page.rendererObject = TextureData.LoadP3(fullPath);
+        page.rendererObject = Path.GetExtension(fullPath).ToLowerInvariant() switch
+        {
+            ".png" => TextureData.LoadPng(fullPath),
+            ".ppm" => TextureData.LoadP3(fullPath),
+            _ => throw new NotSupportedException($"Render texture format is not supported: {fullPath}")
+        };
         page.width = ((TextureData)page.rendererObject).Width;
         page.height = ((TextureData)page.rendererObject).Height;
         paths.Add(fullPath);

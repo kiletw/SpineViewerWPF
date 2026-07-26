@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted on 2026-07-26 after the TASK-001 prototype produced identical PNG bytes across repeated renders.
+Accepted on 2026-07-26 after the TASK-001 prototype produced identical PNG bytes across repeated renders. Amended by TASK-008 to include bounded standard-library PNG texture decoding without selecting a production renderer.
 
 ## Context
 
@@ -10,9 +10,9 @@ TASK-001 needs one deterministic, non-WPF render path. Selecting and distributin
 
 ## Decision
 
-Use a small standard-library CPU triangle rasterizer for the 4.1 vertical slice. It supports region and mesh attachments, normal alpha blending, P3 PPM test textures, and deterministic PNG output.
+Use a small standard-library CPU triangle rasterizer for the 4.1 vertical slice. It supports region and mesh attachments, normal alpha blending, P3 PPM test textures, bounded 8-bit non-interlaced PNG textures, and deterministic PNG output.
 
-Treat PMA, clipping attachments, non-normal blend modes, production image decoding, and interactive rendering as explicitly unsupported. This spike does not select the production WPF renderer.
+Treat PMA, clipping attachments, non-normal blend modes, interlaced or non-8-bit PNG, other production image formats, and interactive rendering as explicitly unsupported. This spike does not select the production WPF renderer.
 
 ## Prototype Evidence
 
@@ -30,5 +30,6 @@ Two consecutive renders produced the same hash.
 ## Consequences
 
 - The CLI path is deterministic and has no new rendering dependency.
+- Common generated PNG texture variants render through the same bounded CPU path without a package dependency.
 - Unsupported renderer features fail explicitly.
 - A production renderer still requires separate prototype evidence and an ADR update or replacement.

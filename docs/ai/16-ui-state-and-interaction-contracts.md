@@ -26,7 +26,7 @@ Preserve the previous Ready asset until replacement succeeds where practical.
 
 TASK-005 keeps the previous document metadata when a replacement fails. During inspection the UI enters Loading, and then maps unsupported input to Unsupported and other expected open failures to Failed.
 
-TASK-007 keeps the prior rendered frame until replacement succeeds. A real PPM render reaches Ready; an asset whose metadata loads but whose texture or attachment the CPU renderer rejects reaches RendererUnavailable without discarding metadata or project-save behavior.
+TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM and TASK-008 PNG renders reach Ready; an asset whose metadata loads but whose texture or attachment the CPU renderer rejects reaches RendererUnavailable without discarding metadata or project-save behavior.
 
 ## Quick-Browse Defaults
 
