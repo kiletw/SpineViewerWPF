@@ -150,11 +150,24 @@
     {
       "runtimeSelection": "4.0.64",
       "officialTagCandidate": "4.0.64",
-      "json": "missing",
+      "json": "tests/fixtures/v40-minimal/minimal.json",
       "binary": "missing",
-      "atlas": "missing",
-      "textures": "missing",
-      "sha256": {},
+      "atlas": "tests/fixtures/v40-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v40-minimal/minimal.ppm",
+      "sha256": {
+        "json": "B29967EF703DD470B5201CF46B335368416AEE078A4AABD3F01FB8AEEDF126A6",
+        "atlas": "3E22B909F54991E15A83CC8C40FFC6FD579118099A1E30251E92EE001D16A33C",
+        "texture": "BB2744BC0A12DD09CA4538CC1DF4F39332D3451AB103DEBA5E0A50607B5D85A4",
+        "render64x64At0.5": "E16719DD53FB8CACED7D8C28E4BDD50DBEB8812483B041EC640913C13C09D28B"
+      },
+      "expectedAnimation": {
+        "name": "move",
+        "durationSeconds": 1
+      },
+      "expectedSkins": [
+        "default"
+      ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
       "expectedLocalDirectory": "fixtures-local/4.0.64"
     },
     {

@@ -2,7 +2,7 @@
 
 ## Status
 
-Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified. A project-authored 4.1 JSON fixture verifies the v3 adapter, deterministic CPU spike, and WPF static-preview integration. Test-generated PNG variants verify bounded 8-bit non-interlaced texture decoding and static rendering. TASK-009 verifies the official 4.1 `spineboy` JSON and binary example export through the CLI path. PMA output and multi-page atlas behavior remain unverified.
+Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified. Project-authored 4.0.64 and 4.1 JSON fixtures verify the v3 adapters, deterministic CPU spike, and WPF static-preview integration. Test-generated PNG variants verify bounded 8-bit non-interlaced texture decoding and static rendering. TASK-009 verifies the official 4.1 `spineboy` JSON and binary example export through the CLI path. PMA output and multi-page atlas behavior remain unverified.
 
 All snapshots are compiled into the WPF project under version-specific namespaces. License headers identify Esoteric Software Runtime source. Same-name official tags and their current Git object IDs were verified with `git ls-remote` on 2026-07-26, but file-for-file equality has not been proven after local namespace/XNA changes.
 
@@ -20,7 +20,7 @@ All snapshots are compiled into the WPF project under version-specific namespace
 | 3.7.94 | `spine-runtimes-3.7.94` | `3.7.94` / `45b8125` | Yes | Yes | Present | TBD | Missing | Later |
 | 3.8.95 | `spine-runtimes-3.8.95` | `3.8.95` / `3e93e2d` | Yes | Yes | Present | TBD | Missing | Second |
 | 4.0.31 | `spine-runtimes-4.0.31` | `4.0.31` / `8770e31` | Yes | Yes | Present | TBD | Missing | Second |
-| 4.0.64 | `spine-runtimes-4.0.64` | `4.0.64` / `01524d4` | Yes | Yes | Present | TBD | Missing | Second |
+| 4.0.64 | `spine-runtimes-4.0.64` | `4.0.64` / `01524d4` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
 | 4.1.00 | `spine-runtimes-4.1.00` | `4.1.00` / `ab28b77` | Yes | Yes | Present | TBD | Synthetic fixture plus official `spineboy` JSON/binary export smoke | Prototype complete |
 | 4.2 | none | none | No | No | No | No | Missing | Future |
 | 4.3 | none | current upstream line | No | No | No | No | Missing | Future |
@@ -80,3 +80,11 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 - Do not copy these namespace-renamed sources into v3 as provenance-proof snapshots.
 - Pin a clean official upstream commit and record any adapter patch before adding a Runtime to v3.
 - Patch-level consolidation requires JSON and binary fixture evidence where both formats exist.
+
+## v3 4.0.64 Compatibility Slice
+
+- Official source candidate: legacy vendored snapshot `4.0.64`, commit candidate `01524d4`
+- Source patches: no vendored source edits; project-owned `System.Text.Json` decoder bridge and shared deterministic CPU renderer bridge
+- Verified input: project-authored JSON, atlas, and P3 PPM texture under `tests/fixtures/v40-minimal`
+- Verified behavior: auto-selection, explicit `4.0`/`4.0.64` selection, metadata inspect, deterministic 64 by 64 PNG render, and Application smoke coverage
+- Still unverified: official 4.0.64 Editor exports, binary `.skel`, PMA, clipping, non-normal blend modes, multi-page atlases, and production texture formats

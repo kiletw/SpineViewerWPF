@@ -1,3 +1,4 @@
+using SpineRuntime.V40;
 using SpineRuntime.V41;
 using SpineViewerWPF.Application;
 using SpineViewerWPF.Core;
@@ -39,9 +40,19 @@ try
     Assert(store.Load(uiProject).SelectedAnimation == "walk", "UI edit was not saved.");
 
     var fixtureDirectory = Path.Combine(Directory.GetCurrentDirectory(), "tests", "fixtures", "v41-minimal");
-    var assetService = new AssetService(new SpineV41Adapter());
+    var assetService = new AssetService(new IRuntimeAdapter[] { new SpineV40Adapter(), new SpineV41Adapter() });
     var discovered = assetService.Inspect(Path.Combine(fixtureDirectory, "minimal.json"), null, null);
     Assert(discovered.Asset.AtlasPath == Path.GetFullPath(Path.Combine(fixtureDirectory, "minimal.atlas")), "Same-stem atlas discovery failed.");
+    var v40Directory = Path.Combine(Directory.GetCurrentDirectory(), "tests", "fixtures", "v40-minimal");
+    var v40Skeleton = Path.Combine(v40Directory, "minimal.json");
+    var v40Inspection = assetService.Inspect(v40Skeleton, null, null);
+    Assert(v40Inspection.Runtime.SelectedLine == "4.0" && v40Inspection.Runtime.DetectedExportVersion is { } version && version.StartsWith("4.0.64", StringComparison.Ordinal), "4.0.64 Runtime selection failed.");
+    var v40First = Path.Combine(root, "v40-a.png");
+    var v40Second = Path.Combine(root, "v40-b.png");
+    foreach (var output in new[] { v40First, v40Second })
+        assetService.Render(v40Skeleton, null, "4.0.64", "move", 0.5f, 64, 64, output, true, false, ["default"]);
+    Assert(File.ReadAllBytes(v40First).SequenceEqual(File.ReadAllBytes(v40Second)), "4.0.64 render was not deterministic.");
+    Expect<NotSupportedException>(() => assetService.Inspect(v40Skeleton, null, "4.1"));
     var ambiguousDirectory = Path.Combine(root, "ambiguous-atlas");
     Directory.CreateDirectory(ambiguousDirectory);
     File.Copy(Path.Combine(fixtureDirectory, "minimal.json"), Path.Combine(ambiguousDirectory, "scene.json"));

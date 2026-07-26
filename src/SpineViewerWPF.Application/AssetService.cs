@@ -9,16 +9,30 @@ public interface IRuntimeAdapter
     void Render(RenderRequest request, CancellationToken cancellationToken);
 }
 
-public sealed class AssetService(IRuntimeAdapter runtime)
+public sealed class AssetService
 {
+    private readonly IReadOnlyList<IRuntimeAdapter> runtimes;
+
+    public AssetService(IRuntimeAdapter runtime)
+        : this([runtime])
+    {
+    }
+
+    public AssetService(IEnumerable<IRuntimeAdapter> runtimes)
+    {
+        this.runtimes = runtimes?.Where(item => item is not null).ToArray()
+            ?? throw new ArgumentNullException(nameof(runtimes));
+        if (this.runtimes.Count == 0) throw new ArgumentException("At least one Runtime adapter is required.", nameof(runtimes));
+    }
+
     public InspectResult Inspect(
         string skeletonPath,
         string? atlasPath,
         string? runtimeOverride,
         CancellationToken cancellationToken = default)
     {
-        var paths = ValidateInput(skeletonPath, atlasPath, runtimeOverride);
-        return runtime.Inspect(paths.Skeleton, paths.Atlas, runtimeOverride is not null, cancellationToken);
+        var paths = ValidateInput(skeletonPath, atlasPath);
+        return InspectWithRuntime(paths, runtimeOverride, cancellationToken).Result;
     }
 
     public string Render(
@@ -35,7 +49,7 @@ public sealed class AssetService(IRuntimeAdapter runtime)
         IReadOnlyList<string> skins,
         CancellationToken cancellationToken = default)
     {
-        var paths = ValidateInput(skeletonPath, atlasPath, runtimeOverride);
+        var paths = ValidateInput(skeletonPath, atlasPath);
         if (string.IsNullOrWhiteSpace(animation)) throw new ArgumentException("Animation is required.");
         if (!float.IsFinite(timeSeconds) || timeSeconds < 0) throw new ArgumentOutOfRangeException(nameof(timeSeconds));
         if (width is < 1 or > 16384 || height is < 1 or > 16384)
@@ -45,7 +59,7 @@ public sealed class AssetService(IRuntimeAdapter runtime)
         if (File.Exists(output) && !overwrite) throw new IOException($"Output exists: {output}");
         Directory.CreateDirectory(Path.GetDirectoryName(output) ?? ".");
 
-        runtime.Render(
+        InspectWithRuntime(paths, runtimeOverride, cancellationToken).Adapter.Render(
             new RenderRequest(paths.Skeleton, paths.Atlas, animation, timeSeconds, width, height, output, overwrite, pma, skins),
             cancellationToken);
         return output;
@@ -199,10 +213,48 @@ public sealed class AssetService(IRuntimeAdapter runtime)
         catch (UnauthorizedAccessException) { }
     }
 
-    private (string Skeleton, string Atlas) ValidateInput(string skeletonPath, string? atlasPath, string? runtimeOverride)
+    private (IRuntimeAdapter Adapter, InspectResult Result) InspectWithRuntime(
+        (string Skeleton, string Atlas) paths,
+        string? runtimeOverride,
+        CancellationToken cancellationToken)
     {
-        if (runtimeOverride is not null && runtimeOverride is not ("4.1" or "4.1.00"))
-            throw new NotSupportedException($"Runtime '{runtimeOverride}' is not supported by this slice.");
+        var candidates = runtimes
+            .Where(item => runtimeOverride is null || MatchesRuntime(item, runtimeOverride))
+            .ToArray();
+        if (candidates.Length == 0)
+            throw new NotSupportedException($"Runtime '{runtimeOverride}' is not supported.");
+
+        Exception? last = null;
+        foreach (var candidate in candidates)
+        {
+            try
+            {
+                return (candidate, candidate.Inspect(paths.Skeleton, paths.Atlas, runtimeOverride is not null, cancellationToken));
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                last = exception;
+                if (runtimeOverride is not null) break;
+            }
+        }
+
+        if (last is not null) throw last;
+        throw new NotSupportedException(
+            runtimeOverride is null
+                ? "No installed Runtime adapter could read this export."
+                : $"Runtime '{runtimeOverride}' could not read this export.");
+    }
+
+    private static bool MatchesRuntime(IRuntimeAdapter runtime, string requested) =>
+        string.Equals(requested, runtime.RuntimeLine, StringComparison.OrdinalIgnoreCase)
+        || requested.StartsWith(runtime.RuntimeLine + ".", StringComparison.OrdinalIgnoreCase);
+
+    private (string Skeleton, string Atlas) ValidateInput(string skeletonPath, string? atlasPath)
+    {
 
         var skeleton = Path.GetFullPath(skeletonPath);
         if (!File.Exists(skeleton)) throw new FileNotFoundException("Skeleton file not found.", skeleton);

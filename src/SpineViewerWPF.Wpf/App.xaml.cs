@@ -1,4 +1,5 @@
 using Microsoft.Win32;
+using SpineRuntime.V40;
 using SpineRuntime.V41;
 using SpineViewerWPF.Application;
 using System.Windows;
@@ -96,7 +97,7 @@ public partial class App : System.Windows.Application
                 !e.Args.Contains("--compact", StringComparer.OrdinalIgnoreCase),
                 new ViewerProjectStore(),
                 ChooseProjectPath,
-                new AssetService(new SpineV41Adapter()),
+                new AssetService(new IRuntimeAdapter[] { new SpineV40Adapter(), new SpineV41Adapter() }),
                 ChooseAssetPath,
                 ConfirmDiscardChanges,
                 chooseScreenshotPath: ChooseScreenshotPath,

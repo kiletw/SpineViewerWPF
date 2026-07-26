@@ -4,7 +4,11 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 
+#if SPINE_V40
+namespace SpineRuntime.V40;
+#else
 namespace SpineRuntime.V41;
+#endif
 
 internal static class PngReader
 {

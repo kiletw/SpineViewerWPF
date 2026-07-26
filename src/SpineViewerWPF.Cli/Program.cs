@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using SpineRuntime.V40;
 using SpineRuntime.V41;
 using SpineViewerWPF.Application;
 
@@ -19,7 +20,7 @@ static class Cli
         try
         {
             if (args.Length < 2) throw new ArgumentException(Usage);
-            var service = new AssetService(new SpineV41Adapter());
+            var service = new AssetService(new IRuntimeAdapter[] { new SpineV40Adapter(), new SpineV41Adapter() });
             return command switch
             {
                 "inspect" => Inspect(service, args[1], Options.Parse(args[2..], ["atlas", "runtime", "format"])),
@@ -66,6 +67,7 @@ static class Cli
 
     private static int Render(AssetService service, string skeleton, Options options)
     {
+        var inspection = service.Inspect(skeleton, options.Get("atlas"), options.Get("runtime"));
         var output = service.Render(
             skeleton,
             options.Get("atlas"),
@@ -83,7 +85,7 @@ static class Cli
         {
             success = true,
             outputPath = output,
-            runtime = "4.1"
+            runtime = inspection.Runtime.SelectedLine
         }, Json));
         return 0;
     }
@@ -101,9 +103,9 @@ static class Cli
     private const string Usage =
         """
         Usage:
-          spineviewerwpf inspect <skeleton> [--atlas <path>] [--runtime 4.1] [--format json]
+          spineviewerwpf inspect <skeleton> [--atlas <path>] [--runtime 4.0|4.1] [--format json]
           spineviewerwpf render <skeleton> --animation <name> --time <seconds> --output <png>
-              [--atlas <path>] [--runtime 4.1] [--width <pixels>] [--height <pixels>]
+              [--atlas <path>] [--runtime 4.0|4.1] [--width <pixels>] [--height <pixels>]
               [--skin <name>] [--overwrite] [--pma]
         """;
 }

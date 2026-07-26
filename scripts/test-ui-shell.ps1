@@ -81,7 +81,7 @@ foreach ($shortcut in $shortcuts) {
 $process = $null
 try {
     $process = Start-Process -FilePath $executable -ArgumentList '--state=ReadyWithWarnings --compact' -PassThru
-    foreach ($attempt in 1..20) {
+    foreach ($attempt in 1..50) {
         Start-Sleep -Milliseconds 200
         $process.Refresh()
         if ($process.HasExited -or $process.MainWindowTitle) { break }

@@ -2,9 +2,13 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+#if SPINE_V40
+using Spine4_0_64;
+namespace SpineRuntime.V40;
+#else
 using Spine;
-
 namespace SpineRuntime.V41;
+#endif
 
 internal readonly record struct Pixel(byte R, byte G, byte B, byte A);
 
@@ -87,10 +91,14 @@ internal static class CpuRenderer
                 case RegionAttachment region:
                 {
                     var positions = new float[8];
+                    #if SPINE_V40
+                    region.ComputeWorldVertices(slot.Bone, positions, 0);
+                    #else
                     region.ComputeWorldVertices(slot, positions, 0);
+                    #endif
                     Draw(
                         pixels, width, height, positions, region.UVs, QuadTriangles,
-                        GetTexture(region.Region),
+                        GetTexture(region),
                         skeleton.R * slot.R * region.R,
                         skeleton.G * slot.G * region.G,
                         skeleton.B * slot.B * region.B,
@@ -104,7 +112,7 @@ internal static class CpuRenderer
                     mesh.ComputeWorldVertices(slot, 0, positions.Length, positions, 0);
                     Draw(
                         pixels, width, height, positions, mesh.UVs, mesh.Triangles,
-                        GetTexture(mesh.Region),
+                        GetTexture(mesh),
                         skeleton.R * slot.R * mesh.R,
                         skeleton.G * slot.G * mesh.G,
                         skeleton.B * slot.B * mesh.B,
@@ -120,10 +128,25 @@ internal static class CpuRenderer
         PngWriter.Write(outputPath, width, height, pixels, overwrite);
     }
 
+#if SPINE_V40
+    private static TextureData GetTexture(RegionAttachment attachment) =>
+        attachment.RendererObject is AtlasRegion { page.rendererObject: TextureData texture }
+            ? texture
+            : throw new InvalidDataException("Attachment has no loaded atlas texture.");
+
+    private static TextureData GetTexture(MeshAttachment attachment) =>
+        attachment.RendererObject is AtlasRegion { page.rendererObject: TextureData texture }
+            ? texture
+            : throw new InvalidDataException("Attachment has no loaded atlas texture.");
+#else
+    private static TextureData GetTexture(RegionAttachment attachment) => GetTexture(attachment.Region);
+    private static TextureData GetTexture(MeshAttachment attachment) => GetTexture(attachment.Region);
+
     private static TextureData GetTexture(TextureRegion region) =>
         region is AtlasRegion { page.rendererObject: TextureData texture }
             ? texture
             : throw new InvalidDataException("Attachment has no loaded atlas texture.");
+#endif
 
     private static void Draw(
         Pixel[] target,

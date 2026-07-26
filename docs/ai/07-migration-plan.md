@@ -39,6 +39,8 @@ Result: the isolated official 4.1 Runtime, project-owned contracts, CLI `inspect
 
 Add 4.0 and 3.8, then remaining lines based on fixture value and demand. Introduce Runtime registry and version detection only as needed by verified lines.
 
+Progress: TASK-023 adds the isolated 4.0.64 adapter, explicit/automatic selection, and a project-authored JSON fixture. Official 4.0.64 JSON/binary fixtures and 3.8.95 remain pending.
+
 ## Phase 3 — Quick-Browse WPF Replacement
 
 Connect the validated WPF shell to Application use cases:

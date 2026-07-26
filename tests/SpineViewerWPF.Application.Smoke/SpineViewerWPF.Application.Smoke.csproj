@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/SpineViewerWPF.Wpf/SpineViewerWPF.Wpf.csproj" />
+    <ProjectReference Include="../../runtimes/SpineRuntime.V40/SpineRuntime.V40.csproj" />
   </ItemGroup>
 </Project>
