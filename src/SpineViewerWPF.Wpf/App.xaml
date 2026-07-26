@@ -14,7 +14,9 @@
         <sys:String x:Key="Text.Undo">Undo</sys:String>
         <sys:String x:Key="Text.Redo">Redo</sys:String>
         <sys:String x:Key="Text.Inspector">Inspector</sys:String>
+        <sys:String x:Key="Text.OpenProject">Open project</sys:String>
         <sys:String x:Key="Text.SaveProjectTitle">Save Viewer project</sys:String>
+        <sys:String x:Key="Text.OpenProjectTitle">Open Viewer project</sys:String>
         <sys:String x:Key="Text.ProjectFilter">Spine Viewer project (*.spineviewer.json)|*.spineviewer.json</sys:String>
         <sys:String x:Key="Text.ScreenshotTitle">Save screenshot</sys:String>
         <sys:String x:Key="Text.PngFilter">PNG image (*.png)|*.png</sys:String>

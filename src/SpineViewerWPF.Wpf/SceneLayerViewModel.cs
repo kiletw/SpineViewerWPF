@@ -154,6 +154,20 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged
         Changed(nameof(FlipY));
     }
 
+    internal void ApplyDocument(SceneLayerDocument document)
+    {
+        modelX = document.ModelX;
+        modelY = document.ModelY;
+        modelScale = document.ModelScale;
+        modelRotation = document.ModelRotation;
+        flipX = document.FlipX;
+        flipY = document.FlipY;
+        isVisible = document.IsVisible;
+        opacity = document.Opacity;
+        zIndex = document.ZIndex;
+        Changed(string.Empty);
+    }
+
     internal void SetPosition(double x, double y)
     {
         modelX = x;

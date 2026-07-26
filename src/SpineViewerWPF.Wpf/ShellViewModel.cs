@@ -42,6 +42,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private readonly ViewerProjectStore projectStore;
     private readonly Func<string?> chooseAssetPath;
     private readonly Func<string, string?> chooseProjectPath;
+    private readonly Func<string?> chooseProjectPathToOpen;
     private readonly Func<string?> chooseScreenshotPath;
     private readonly Func<string?> chooseExportPath;
     private readonly Func<IReadOnlyList<string>?> chooseAssetPaths;
@@ -112,7 +113,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         Func<string>? createPreviewPath = null,
         Func<string?>? chooseScreenshotPath = null,
         Func<string?>? chooseExportPath = null,
-        Func<IReadOnlyList<string>?>? chooseAssetPaths = null)
+        Func<IReadOnlyList<string>?>? chooseAssetPaths = null,
+        Func<string?>? chooseProjectPathToOpen = null)
     {
         state = initialState;
         isRailExpanded = expandedWorkspace;
@@ -120,6 +122,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         isPlaying = initialState is WorkspaceState.Ready or WorkspaceState.ReadyWithWarnings;
         this.projectStore = projectStore ?? new ViewerProjectStore();
         this.chooseProjectPath = chooseProjectPath ?? (_ => null);
+        this.chooseProjectPathToOpen = chooseProjectPathToOpen ?? (() => null);
         this.chooseScreenshotPath = chooseScreenshotPath ?? (() => null);
         this.chooseExportPath = chooseExportPath ?? (() => null);
         this.chooseAssetPaths = chooseAssetPaths ?? (() =>
@@ -137,6 +140,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         savedSnapshot = Capture();
 
         OpenAssetCommand = new RelayCommand(async () => await OpenAssetAsync(), () => !IsLoading);
+        OpenProjectCommand = new RelayCommand(async () => await OpenProjectAsync(), () => !IsLoading);
         ReloadCommand = new RelayCommand(async () =>
         {
             if (assetService is null)
@@ -193,6 +197,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public IReadOnlyList<string> BackgroundModes { get; } = ["Checkerboard", "Dark", "Light"];
 
     public ICommand OpenAssetCommand { get; }
+    public ICommand OpenProjectCommand { get; }
     public ICommand ReloadCommand { get; }
     public ICommand ExportCommand { get; }
     public ICommand CancelExportCommand { get; }
@@ -869,6 +874,176 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    public async Task OpenProjectAsync(string? path = null)
+    {
+        if (assetService is null)
+        {
+            LastAction = "Project open requires a Runtime adapter";
+            return;
+        }
+
+        path ??= chooseProjectPathToOpen();
+        if (path is null || IsDirty && !confirmDiscardChanges()) return;
+
+        var previousState = State;
+        State = WorkspaceState.Loading;
+        stateTitleOverride = $"Opening {Path.GetFileName(path)}";
+        stateDetailOverride = "Loading Viewer project and rendering scene layers…";
+        Changed(nameof(StateTitle));
+        Changed(nameof(StateDetail));
+
+        try
+        {
+            var loaded = await Task.Run(() => LoadProject(path));
+            ApplyProject(path, loaded.Project, loaded.Layers);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            SetDiagnostics([new Diagnostic("error", "PROJECT_OPEN_FAILED", exception.Message, path)]);
+            State = previousState;
+            stateDetailOverride = exception.Message;
+            LastAction = "Project open failed";
+            Changed(nameof(StateDetail));
+        }
+    }
+
+    private (ViewerProjectDocument Project, IReadOnlyList<(SceneLayerViewModel Layer, InspectResult Inspection)> Layers) LoadProject(string path)
+    {
+        var project = projectStore.Load(path);
+        var documents = project.SceneLayers ??
+        [
+            new SceneLayerDocument(
+                project.SkeletonPath,
+                project.AtlasPath,
+                null,
+                project.SelectedAnimation ?? "idle",
+                project.SelectedSkin,
+                project.ModelX,
+                project.ModelY,
+                project.ModelScale,
+                project.ModelRotation,
+                project.FlipX,
+                project.FlipY,
+                true,
+                1,
+                0)
+        ];
+        var layers = new List<(SceneLayerViewModel Layer, InspectResult Inspection)>(documents.Count);
+        try
+        {
+            foreach (var document in documents)
+            {
+                var previewPath = createPreviewPath();
+                try
+                {
+                    var opened = assetService!.OpenSceneLayer(
+                        document.SkeletonPath,
+                        document.AtlasPath,
+                        document.RuntimeOverride,
+                        64,
+                        64,
+                        previewPath);
+                    var animation = opened.Inspection.Animations.Any(item => item.Name == document.Animation)
+                        ? document.Animation
+                        : opened.Animation;
+                    var skin = opened.Inspection.Skins.Contains(document.SelectedSkin, StringComparer.Ordinal)
+                        ? document.SelectedSkin
+                        : opened.SelectedSkin;
+                    if (animation != opened.Animation || skin != opened.SelectedSkin)
+                    {
+                        var duration = opened.Inspection.Animations.First(item => item.Name == animation).DurationSeconds;
+                        assetService.Render(
+                            opened.Inspection.Asset.SkeletonPath,
+                            opened.Inspection.Asset.AtlasPath,
+                            opened.Inspection.Runtime.SelectedLine,
+                            animation,
+                            duration / 2,
+                            64,
+                            64,
+                            previewPath,
+                            true,
+                            false,
+                            [skin]);
+                    }
+
+                    var layer = new SceneLayerViewModel(
+                        opened.Inspection,
+                        animation,
+                        skin,
+                        previewPath,
+                        document.ZIndex,
+                        SceneLayerChanged);
+                    layer.ApplyDocument(document with { Animation = animation, SelectedSkin = skin });
+                    layers.Add((layer, opened.Inspection));
+                }
+                catch
+                {
+                    DeletePreview(previewPath);
+                    throw;
+                }
+            }
+
+            return (project, layers);
+        }
+        catch
+        {
+            foreach (var loaded in layers)
+                DeletePreview(loaded.Layer.PreviewImagePath);
+            throw;
+        }
+    }
+
+    private void ApplyProject(
+        string path,
+        ViewerProjectDocument project,
+        IReadOnlyList<(SceneLayerViewModel Layer, InspectResult Inspection)> loaded)
+    {
+        var primary = loaded[0].Inspection;
+        ClearSceneLayers();
+        ReplacePreview(null);
+        isPrototypePreview = false;
+        animations = primary.Animations.Select(item => item.Name).ToArray();
+        skinNames = primary.Skins.Count == 0 ? ["default"] : primary.Skins.ToArray();
+        animationDurations = primary.Animations.ToDictionary(item => item.Name, item => (double)item.DurationSeconds, StringComparer.Ordinal);
+        skeletonPath = primary.Asset.SkeletonPath;
+        atlasPath = primary.Asset.AtlasPath;
+        runtimeLine = primary.Runtime.SelectedLine;
+        selectedAnimation = animations.Contains(project.SelectedAnimation, StringComparer.Ordinal)
+            ? project.SelectedAnimation
+            : animations.FirstOrDefault();
+        selectedSkin = skinNames.Contains(project.SelectedSkin, StringComparer.Ordinal)
+            ? project.SelectedSkin
+            : skinNames[0];
+        modelX = project.ModelX;
+        modelY = project.ModelY;
+        modelScale = project.ModelScale;
+        modelRotation = project.ModelRotation;
+        flipX = project.FlipX;
+        flipY = project.FlipY;
+        loop = project.Loop;
+        playbackSpeed = project.PlaybackSpeed;
+        trackAlpha = project.TrackAlpha;
+        backgroundMode = project.BackgroundMode;
+        position = 0;
+        viewportZoom = 1;
+        viewportPanX = viewportPanY = 0;
+        foreach (var loadedLayer in loaded)
+            sceneLayers.Add(loadedLayer.Layer);
+        SelectedSceneLayer = sceneLayers[0];
+        ReplacePreview(sceneLayers[0].PreviewImagePath);
+        projectPath = Path.GetFullPath(path);
+        sceneDirty = false;
+        undo.Clear();
+        redo.Clear();
+        savedSnapshot = Capture();
+        SetDiagnostics(loaded.SelectMany(item => item.Inspection.Diagnostics).ToArray());
+        State = diagnostics.Count == 0 ? WorkspaceState.Ready : WorkspaceState.ReadyWithWarnings;
+        LastAction = $"Opened {Path.GetFileName(projectPath)}";
+        Changed(nameof(SceneLayers));
+        Changed(string.Empty);
+        RefreshCommands();
+    }
+
     private void ApplyFakeAsset()
     {
         ClearSceneLayers();
@@ -1213,7 +1388,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         foreach (var command in new[]
                  {
-                     OpenAssetCommand, ReloadCommand, ExportCommand, CancelExportCommand, ScreenshotCommand, TogglePlayCommand, StopCommand, FitCommand,
+                     OpenAssetCommand, OpenProjectCommand, ReloadCommand, ExportCommand, CancelExportCommand, ScreenshotCommand, TogglePlayCommand, StopCommand, FitCommand,
                      AddLayerCommand, AutoLayoutCommand, RemoveLayerCommand, MoveLayerUpCommand, MoveLayerDownCommand,
                      SaveCommand, SaveAsCommand, UndoCommand, RedoCommand
                  })

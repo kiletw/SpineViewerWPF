@@ -22,6 +22,7 @@ if ($LASTEXITCODE -ne 0) { throw 'WPF shell build failed.' }
 
 $automationIds = @(
     'Main.Command.OpenAsset',
+    'Main.Command.OpenProject',
     'Main.Command.Reload',
     'Main.Command.SaveProject',
     'Main.Command.SaveProjectAs',

@@ -44,6 +44,18 @@ public partial class App : System.Windows.Application
             return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
 
+        string? ChooseProjectPathToOpen()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = (string)FindResource("Text.OpenProjectTitle"),
+                Filter = (string)FindResource("Text.ProjectFilter"),
+                CheckFileExists = true,
+                Multiselect = false
+            };
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
+
         string? ChooseScreenshotPath()
         {
             var dialog = new SaveFileDialog
@@ -89,7 +101,8 @@ public partial class App : System.Windows.Application
                 ConfirmDiscardChanges,
                 chooseScreenshotPath: ChooseScreenshotPath,
                 chooseExportPath: ChooseExportPath,
-                chooseAssetPaths: ChooseAssetPaths)
+                chooseAssetPaths: ChooseAssetPaths,
+                chooseProjectPathToOpen: ChooseProjectPathToOpen)
         };
         MainWindow.Show();
     }

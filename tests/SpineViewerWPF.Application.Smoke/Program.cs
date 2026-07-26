@@ -256,6 +256,23 @@ try
     Assert(realDocument.SceneLayers?.Count == 3, "Saved Viewer project did not preserve scene layers.");
     Assert(realDocument.SceneLayers?[1].Opacity == 0.5, "Saved Viewer project did not preserve per-layer opacity.");
 
+    using var reopenedViewModel = new ShellViewModel(
+        WorkspaceState.Empty,
+        true,
+        store,
+        assetService: pngService,
+        createPreviewPath: () => Path.Combine(root, $"reopened-{Guid.NewGuid():N}.png"),
+        chooseProjectPathToOpen: () => realProject);
+    await reopenedViewModel.OpenProjectAsync();
+    Assert(reopenedViewModel.State == WorkspaceState.Ready && !reopenedViewModel.IsDirty, "Saved Viewer project did not reopen cleanly.");
+    Assert(reopenedViewModel.ProjectPath == Path.GetFullPath(realProject), "Reopened project path was not restored.");
+    Assert(reopenedViewModel.SceneLayers.Count == 3, "Reopened Viewer project did not restore scene layers.");
+    Assert(reopenedViewModel.ModelX == 12 && reopenedViewModel.SceneLayers[1].Opacity == 0.5, "Reopened Viewer project did not restore edits.");
+    Assert(reopenedViewModel.SceneLayers.All(layer => layer.PreviewImagePath is not null && File.Exists(layer.PreviewImagePath)), "Reopened scene previews were not rendered.");
+    await reopenedViewModel.OpenProjectAsync(Path.Combine(root, "missing.spineviewer.json"));
+    Assert(reopenedViewModel.State == WorkspaceState.Ready && reopenedViewModel.SceneLayers.Count == 3 && reopenedViewModel.ModelX == 12,
+        "Failed project open did not preserve the current session.");
+
     realViewModel.ModelY = 4;
     await realViewModel.OpenAssetAsync(Path.Combine(root, "missing.json"));
     Assert(realViewModel.State == WorkspaceState.Ready && realViewModel.IsDirty, "Dirty replacement was not canceled.");

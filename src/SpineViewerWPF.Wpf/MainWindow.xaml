@@ -14,6 +14,7 @@
         AutomationProperties.AutomationId="Main.Window">
     <Window.InputBindings>
         <KeyBinding Key="O" Modifiers="Control" Command="{Binding OpenAssetCommand}" />
+        <KeyBinding Key="O" Modifiers="Control+Shift" Command="{Binding OpenProjectCommand}" />
         <KeyBinding Key="S" Modifiers="Control" Command="{Binding SaveCommand}" />
         <KeyBinding Key="S" Modifiers="Control+Shift" Command="{Binding SaveAsCommand}" />
         <KeyBinding Key="Z" Modifiers="Control" Command="{Binding UndoCommand}" />
@@ -195,6 +196,11 @@
                             Content="_Open asset"
                             Command="{Binding OpenAssetCommand}"
                             AutomationProperties.AutomationId="Main.Command.OpenAsset" />
+                    <Button Style="{StaticResource ButtonBase}"
+                            Content="{DynamicResource Text.OpenProject}"
+                            Margin="8,0,0,0"
+                            Command="{Binding OpenProjectCommand}"
+                            AutomationProperties.AutomationId="Main.Command.OpenProject" />
                     <Button Style="{StaticResource ButtonBase}"
                             Content="_Reload"
                             Margin="8,0,0,0"
