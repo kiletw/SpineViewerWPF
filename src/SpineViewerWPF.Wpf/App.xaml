@@ -7,6 +7,8 @@
         <sys:String x:Key="Text.Save">_Save</sys:String>
         <sys:String x:Key="Text.SaveAs">Save _As</sys:String>
         <sys:String x:Key="Text.Screenshot">Screenshot</sys:String>
+        <sys:String x:Key="Text.Export">Export</sys:String>
+        <sys:String x:Key="Text.Cancel">Cancel</sys:String>
         <sys:String x:Key="Text.Diagnostics">Diagnostics</sys:String>
         <sys:String x:Key="Text.Close">Close</sys:String>
         <sys:String x:Key="Text.Undo">Undo</sys:String>
@@ -16,6 +18,8 @@
         <sys:String x:Key="Text.ProjectFilter">Spine Viewer project (*.spineviewer.json)|*.spineviewer.json</sys:String>
         <sys:String x:Key="Text.ScreenshotTitle">Save screenshot</sys:String>
         <sys:String x:Key="Text.PngFilter">PNG image (*.png)|*.png</sys:String>
+        <sys:String x:Key="Text.ExportTitle">Export PNG sequence</sys:String>
+        <sys:String x:Key="Text.ExportPngFilter">PNG sequence prefix (*.png)|*.png</sys:String>
         <sys:String x:Key="Text.OpenAssetTitle">Open Spine skeleton</sys:String>
         <sys:String x:Key="Text.AssetFilter">Spine skeleton (*.json;*.skel)|*.json;*.skel|JSON skeleton (*.json)|*.json|Binary skeleton (*.skel)|*.skel</sys:String>
         <sys:String x:Key="Text.UnsavedTitle">Unsaved Viewer project</sys:String>

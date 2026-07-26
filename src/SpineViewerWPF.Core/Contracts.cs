@@ -32,6 +32,28 @@ public sealed record RenderRequest(
     bool Pma,
     IReadOnlyList<string> Skins);
 
+public sealed record AnimationExportRequest(
+    string SkeletonPath,
+    string? AtlasPath,
+    string? RuntimeOverride,
+    string Animation,
+    float DurationSeconds,
+    float FramesPerSecond,
+    int Width,
+    int Height,
+    string OutputDirectory,
+    string FilePrefix,
+    bool Overwrite,
+    bool Pma,
+    IReadOnlyList<string> Skins);
+
+public sealed record AnimationExportResult(
+    IReadOnlyList<string> OutputPaths,
+    int FrameCount,
+    float DurationSeconds);
+
+public readonly record struct AnimationExportProgress(int CompletedFrames, int TotalFrames);
+
 public sealed record ViewerProjectDocument(
     int SchemaVersion,
     string SkeletonPath,

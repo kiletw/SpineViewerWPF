@@ -38,7 +38,7 @@ Renders a deterministic frame from explicit dimensions, time, transform, backgro
 
 ### `ExportAnimation`
 
-Produces a sequence or encoded output with progress, cancellation, overwrite policy, and diagnostics.
+Produces a deterministic PNG sequence with progress, cancellation, overwrite policy, and diagnostics. Encoded GIF/video/PSD output remains deferred.
 
 ### `LoadViewerProject`, `SaveViewerProject`
 

@@ -230,7 +230,7 @@
                             Command="{Binding ScreenshotCommand}"
                             AutomationProperties.AutomationId="Main.Command.Screenshot" />
                     <Button Style="{StaticResource ButtonBase}"
-                            Content="Export"
+                            Content="{DynamicResource Text.Export}"
                             Margin="8,0,0,0"
                             Command="{Binding ExportCommand}"
                             AutomationProperties.AutomationId="Main.Command.Export" />
@@ -550,8 +550,14 @@
                             </Style>
                         </Border.Style>
                         <StackPanel Orientation="Horizontal">
-                            <ProgressBar Width="70" Height="4" IsIndeterminate="True" Margin="0,0,9,0" />
-                            <TextBlock Text="Exporting…" />
+                            <ProgressBar Width="70" Height="4" Minimum="0" Maximum="1" Value="{Binding ExportProgress, Mode=OneWay}" Margin="0,0,9,0" />
+                            <TextBlock Text="{Binding ExportProgressLabel}" />
+                            <Button Style="{StaticResource ButtonBase}"
+                                    Content="{DynamicResource Text.Cancel}"
+                                    Padding="8,2"
+                                    Margin="10,0,0,0"
+                                    Command="{Binding CancelExportCommand}"
+                                    AutomationProperties.AutomationId="Main.Export.Cancel" />
                         </StackPanel>
                     </Border>
 

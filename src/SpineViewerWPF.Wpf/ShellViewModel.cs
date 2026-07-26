@@ -42,6 +42,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private readonly Func<string?> chooseAssetPath;
     private readonly Func<string, string?> chooseProjectPath;
     private readonly Func<string?> chooseScreenshotPath;
+    private readonly Func<string?> chooseExportPath;
     private readonly Func<bool> confirmDiscardChanges;
     private readonly Func<string> createPreviewPath;
     private readonly DispatcherTimer playbackTimer;
@@ -66,6 +67,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private bool isPlaying;
     private DateTime lastPlaybackTick;
     private int previewRenderInProgress;
+    private int exportInProgress;
+    private int exportCompletedFrames;
+    private int exportTotalFrames;
+    private CancellationTokenSource? exportCancellation;
     private bool disposed;
     private string animationFilter = "";
     private string? selectedAnimation = DefaultAnimations[0];
@@ -98,7 +103,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         Func<string?>? chooseAssetPath = null,
         Func<bool>? confirmDiscardChanges = null,
         Func<string>? createPreviewPath = null,
-        Func<string?>? chooseScreenshotPath = null)
+        Func<string?>? chooseScreenshotPath = null,
+        Func<string?>? chooseExportPath = null)
     {
         state = initialState;
         isRailExpanded = expandedWorkspace;
@@ -107,6 +113,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         this.projectStore = projectStore ?? new ViewerProjectStore();
         this.chooseProjectPath = chooseProjectPath ?? (_ => null);
         this.chooseScreenshotPath = chooseScreenshotPath ?? (() => null);
+        this.chooseExportPath = chooseExportPath ?? (() => null);
         this.assetService = assetService;
         this.chooseAssetPath = chooseAssetPath ?? (() => null);
         this.confirmDiscardChanges = confirmDiscardChanges ?? (() => false);
@@ -124,7 +131,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             else
                 await OpenAssetAsync(skeletonPath);
         }, () => HasAsset && !IsLoading);
-        ExportCommand = new RelayCommand(() => State = WorkspaceState.Exporting, () => CanPlay);
+        ExportCommand = new RelayCommand(StartExport, () => CanExport);
+        CancelExportCommand = new RelayCommand(CancelExport, () => IsExporting);
         ScreenshotCommand = new RelayCommand(CaptureScreenshot, () => HasRenderedPreview && CanPlay);
         TogglePlayCommand = new RelayCommand(() => IsPlaying = !IsPlaying, () => CanPlay);
         StopCommand = new RelayCommand(() =>
@@ -155,6 +163,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public ICommand OpenAssetCommand { get; }
     public ICommand ReloadCommand { get; }
     public ICommand ExportCommand { get; }
+    public ICommand CancelExportCommand { get; }
     public ICommand ScreenshotCommand { get; }
     public ICommand TogglePlayCommand { get; }
     public ICommand StopCommand { get; }
@@ -352,6 +361,11 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public bool HasRenderedPreview => PreviewImagePath is not null;
     public bool HasPrototypePreview => HasPreview && isPrototypePreview;
     public bool CanPlay => Definition.CanPlay && SelectedAnimation is not null;
+    public bool CanExport => assetService is not null && CanPlay && !IsExporting && Volatile.Read(ref exportInProgress) == 0;
+    public double ExportProgress => exportTotalFrames == 0 ? 0 : (double)exportCompletedFrames / exportTotalFrames;
+    public string ExportProgressLabel => exportTotalFrames == 0
+        ? "Exporting…"
+        : $"Exporting {exportCompletedFrames}/{exportTotalFrames}";
     public bool IsDirty => Capture() != savedSnapshot;
     public bool HasBlockingOverlay => State is WorkspaceState.Unsupported or WorkspaceState.Failed or WorkspaceState.RendererUnavailable;
     public string StateTitle => stateTitleOverride ?? Definition.Title;
@@ -466,6 +480,83 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             stateDetailOverride = exception.Message;
             Changed(nameof(StateDetail));
             LastAction = "Screenshot failed";
+        }
+    }
+
+    private void StartExport()
+    {
+        if (disposed || Interlocked.Exchange(ref exportInProgress, 1) != 0) return;
+        var target = chooseExportPath();
+        if (target is null)
+        {
+            Interlocked.Exchange(ref exportInProgress, 0);
+            return;
+        }
+        _ = ExportSequenceAsync(target);
+    }
+
+    private void CancelExport() => exportCancellation?.Cancel();
+
+    private async Task ExportSequenceAsync(string target)
+    {
+        var previousState = State;
+        var wasPlaying = IsPlaying;
+        using var cancellation = new CancellationTokenSource();
+        exportCancellation = cancellation;
+        try
+        {
+            State = WorkspaceState.Exporting;
+            exportCompletedFrames = 0;
+            exportTotalFrames = 0;
+            Changed(string.Empty);
+
+            var output = Path.GetFullPath(target);
+            var request = new AnimationExportRequest(
+                skeletonPath,
+                atlasPath,
+                runtimeLine,
+                SelectedAnimation ?? throw new InvalidOperationException("Animation is required."),
+                (float)Duration,
+                30,
+                64,
+                64,
+                Path.GetDirectoryName(output) ?? ".",
+                Path.GetFileName(output),
+                false,
+                false,
+                string.IsNullOrWhiteSpace(SelectedSkin) ? [] : [SelectedSkin]);
+            var progress = new Progress<AnimationExportProgress>(value =>
+            {
+                exportCompletedFrames = value.CompletedFrames;
+                exportTotalFrames = value.TotalFrames;
+                Changed(nameof(ExportProgress));
+                Changed(nameof(ExportProgressLabel));
+            });
+            var result = await Task.Run(
+                () => assetService!.Export(request, cancellation.Token, progress),
+                cancellation.Token);
+            LastAction = $"Exported {result.FrameCount} frames";
+        }
+        catch (OperationCanceledException)
+        {
+            LastAction = "Export canceled";
+        }
+        catch (Exception exception)
+        {
+            SetDiagnostics([new Diagnostic("error", "EXPORT_FAILED", exception.Message, target)]);
+            LastAction = "Export failed";
+        }
+        finally
+        {
+            exportCancellation = null;
+            if (!disposed)
+            {
+                State = previousState;
+                IsPlaying = wasPlaying;
+                Changed(string.Empty);
+                RefreshCommands();
+            }
+            Interlocked.Exchange(ref exportInProgress, 0);
         }
     }
 
@@ -720,6 +811,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         if (disposed) return;
         disposed = true;
         playbackTimer.Stop();
+        exportCancellation?.Cancel();
         playbackCancellation.Cancel();
         playbackCancellation.Dispose();
         ReplacePreview(null);
@@ -831,7 +923,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         foreach (var command in new[]
                  {
-                     OpenAssetCommand, ReloadCommand, ExportCommand, ScreenshotCommand, TogglePlayCommand, StopCommand, FitCommand,
+                     OpenAssetCommand, ReloadCommand, ExportCommand, CancelExportCommand, ScreenshotCommand, TogglePlayCommand, StopCommand, FitCommand,
                      SaveCommand, SaveAsCommand, UndoCommand, RedoCommand
                  })
             ((RelayCommand)command).Refresh();

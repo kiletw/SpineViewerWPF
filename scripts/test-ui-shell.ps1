@@ -17,6 +17,7 @@ $automationIds = @(
     'Main.Command.Undo',
     'Main.Command.Redo',
     'Main.Command.Export',
+    'Main.Export.Cancel',
     'Main.Asset.AnimationSearch',
     'Main.Asset.AnimationList',
     'Main.Asset.SkinList',

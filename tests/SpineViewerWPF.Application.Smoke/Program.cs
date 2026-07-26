@@ -135,15 +135,48 @@ try
     var directPngPreview = Path.Combine(root, "png-preview-direct.png");
     pngService.Render(pngSkeleton, pngAtlas, null, "move", 0.5f, 64, 64, directPngPreview, true, false, ["default"]);
 
+    var sequenceRequest = new AnimationExportRequest(
+        pngSkeleton,
+        pngAtlas,
+        null,
+        "move",
+        1,
+        10,
+        64,
+        64,
+        Path.Combine(root, "sequence-a"),
+        "move.png",
+        false,
+        false,
+        ["default"]);
+    var sequence = pngService.Export(sequenceRequest);
+    Assert(sequence.FrameCount == 11 && sequence.OutputPaths.Count == 11, "PNG sequence frame count was not deterministic.");
+    Assert(sequence.OutputPaths[0].EndsWith("move-0000.png", StringComparison.Ordinal), "PNG sequence naming was not stable.");
+    var repeatedSequence = pngService.Export(sequenceRequest with { OutputDirectory = Path.Combine(root, "sequence-b") });
+    Assert(sequence.OutputPaths.Zip(repeatedSequence.OutputPaths).All(pair =>
+        SHA256.HashData(File.ReadAllBytes(pair.First)).SequenceEqual(SHA256.HashData(File.ReadAllBytes(pair.Second)))),
+        "PNG sequence output was not deterministic.");
+    Expect<IOException>(() => pngService.Export(sequenceRequest));
+    using (var canceledExport = new CancellationTokenSource())
+    {
+        canceledExport.Cancel();
+        Expect<OperationCanceledException>(() => pngService.Export(
+            sequenceRequest with { OutputDirectory = Path.Combine(root, "sequence-canceled") },
+            canceledExport.Token));
+    }
+    Assert(!Directory.EnumerateFiles(Path.Combine(root, "sequence-canceled"), "*.png").Any(), "Canceled export left partial frames.");
+
     var realProject = Path.Combine(root, "real.spineviewer.json");
     var pngPreviewPath = Path.Combine(root, "png-preview.png");
+    var exportPrefix = Path.Combine(root, "exported", "move.png");
     using var realViewModel = new ShellViewModel(
         WorkspaceState.Empty,
         true,
         store,
         _ => realProject,
         pngService,
-        createPreviewPath: () => pngPreviewPath);
+        createPreviewPath: () => pngPreviewPath,
+        chooseExportPath: () => exportPrefix);
     await realViewModel.OpenAssetAsync(pngSkeleton);
     Assert(
         realViewModel.State == WorkspaceState.Ready,
@@ -158,7 +191,6 @@ try
     Assert(
         SHA256.HashData(File.ReadAllBytes(pngPreviewPath)).SequenceEqual(SHA256.HashData(File.ReadAllBytes(directPngPreview))),
         "PNG-backed preview was not deterministic.");
-    realViewModel.IsPlaying = false;
     realViewModel.IsPlaying = true;
     var playbackBefore = SHA256.HashData(File.ReadAllBytes(pngPreviewPath));
     var frame = new DispatcherFrame();
@@ -174,6 +206,12 @@ try
     Assert(realViewModel.Position > 0, "Playback timer did not advance the real preview.");
     Assert(realViewModel.PlaybackTimeLabel.StartsWith("0:00.", StringComparison.Ordinal), "Playback time label was not updated.");
     Assert(!playbackBefore.SequenceEqual(SHA256.HashData(File.ReadAllBytes(pngPreviewPath))), "Playback did not publish a new preview frame.");
+    realViewModel.IsPlaying = false;
+    realViewModel.ExportCommand.Execute(null);
+    for (var attempt = 0; attempt < 100 && realViewModel.IsExporting; attempt++)
+        await Task.Delay(10);
+    Assert(!realViewModel.IsExporting && File.Exists(Path.Combine(root, "exported", "move-0000.png")), "WPF Export command did not finish a PNG sequence.");
+    Assert(realViewModel.LastAction == "Exported 31 frames", "WPF Export command reported an unexpected frame count.");
     realViewModel.ModelX = 12;
     realViewModel.SaveCommand.Execute(null);
     var realDocument = store.Load(realProject);

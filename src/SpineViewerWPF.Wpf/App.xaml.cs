@@ -54,6 +54,20 @@ public partial class App : System.Windows.Application
             return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
 
+        string? ChooseExportPath()
+        {
+            var dialog = new SaveFileDialog
+            {
+                Title = (string)FindResource("Text.ExportTitle"),
+                Filter = (string)FindResource("Text.ExportPngFilter"),
+                DefaultExt = ".png",
+                AddExtension = true,
+                OverwritePrompt = true,
+                FileName = "spine-animation.png"
+            };
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
+
         bool ConfirmDiscardChanges() => MessageBox.Show(
             (string)FindResource("Text.DiscardPrompt"),
             (string)FindResource("Text.UnsavedTitle"),
@@ -70,7 +84,8 @@ public partial class App : System.Windows.Application
                 new AssetService(new SpineV41Adapter()),
                 ChooseAssetPath,
                 ConfirmDiscardChanges,
-                chooseScreenshotPath: ChooseScreenshotPath)
+                chooseScreenshotPath: ChooseScreenshotPath,
+                chooseExportPath: ChooseExportPath)
         };
         MainWindow.Show();
     }

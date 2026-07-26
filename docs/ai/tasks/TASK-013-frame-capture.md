@@ -67,6 +67,6 @@ Preserved: current asset, playback position, preview path, source files, project
 
 Validation: Application smoke, WPF shell, and v3 CLI regressions pass with zero build errors; `git diff --check` passes.
 
-Known ceiling: this captures the current 64 by 64 CPU preview PNG. Full viewport capture, frame sequences, GIF/video encoding, progress, and overwrite policy remain separate export work.
+Known ceiling: this captures the current 64 by 64 CPU preview PNG. Full viewport capture, GIF/video encoding, and PSD output remain separate export work; TASK-016 now covers deterministic 64 by 64 PNG sequences.
 
 Documentation: context index and migration plan now record current-frame capture as complete.
