@@ -54,7 +54,10 @@ function Get-OfficialAsset([hashtable]$asset) {
 }
 
 function Invoke-Inspect([string]$skeleton, [string]$atlas) {
-    $output = & dotnet run --project $project -c Release --no-build -- inspect $skeleton --atlas $atlas --runtime 4.1 --format json
+    $arguments = @('--project', $project, '-c', 'Release', '--no-build', '--', 'inspect', $skeleton)
+    if (-not [string]::IsNullOrWhiteSpace($atlas)) { $arguments += @('--atlas', $atlas) }
+    $arguments += @('--runtime', '4.1', '--format', 'json')
+    $output = & dotnet run @arguments
     if ($LASTEXITCODE -ne 0) { throw "Inspect failed: $skeleton" }
     return ($output -join "`n" | ConvertFrom-Json)
 }
@@ -77,13 +80,16 @@ if (-not (Test-Path -LiteralPath $license)) { throw 'Official license file is mi
 dotnet build $project -c Release
 if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 
-$jsonInspect = Invoke-Inspect $json $atlas
-$skelInspect = Invoke-Inspect $skel $atlas
+$jsonInspect = Invoke-Inspect $json $null
+$skelInspect = Invoke-Inspect $skel $null
 foreach ($inspect in @($jsonInspect, $skelInspect)) {
     if (-not $inspect.success -or $inspect.runtime.selectedLine -ne '4.1' -or
         -not $inspect.runtime.detectedExportVersion.StartsWith('4.1', [StringComparison]::Ordinal) -or
         $inspect.animations.Count -lt 1 -or $inspect.skins -notcontains 'default') {
         throw 'Official 4.1 inspect contract failed.'
+    }
+    if ([IO.Path]::GetFullPath($inspect.asset.atlasPath) -ne [IO.Path]::GetFullPath($atlas)) {
+        throw 'Official atlas discovery selected the wrong file.'
     }
 }
 

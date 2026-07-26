@@ -60,10 +60,35 @@ public sealed class AssetService(IRuntimeAdapter runtime)
         if (!File.Exists(skeleton)) throw new FileNotFoundException("Skeleton file not found.", skeleton);
 
         var atlas = atlasPath is null
-            ? Path.ChangeExtension(skeleton, ".atlas")
+            ? FindAtlas(skeleton)
             : Path.GetFullPath(atlasPath);
         if (!File.Exists(atlas)) throw new FileNotFoundException("Atlas file not found.", atlas);
 
         return (skeleton, atlas);
+    }
+
+    private static string FindAtlas(string skeleton)
+    {
+        var directory = Path.GetDirectoryName(skeleton) ?? ".";
+        var stem = Path.GetFileNameWithoutExtension(skeleton);
+        var exact = Path.ChangeExtension(skeleton, ".atlas");
+        if (File.Exists(exact)) return exact;
+
+        foreach (var suffix in new[] { "-pro", "-ess" })
+        {
+            if (!stem.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) continue;
+            var baseAtlas = Path.Combine(directory, stem[..^suffix.Length] + ".atlas");
+            if (File.Exists(baseAtlas)) return baseAtlas;
+        }
+
+        var nearby = Directory.EnumerateFiles(directory, "*.atlas", SearchOption.TopDirectoryOnly)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        return nearby.Length switch
+        {
+            1 => nearby[0],
+            > 1 => throw new InvalidDataException($"Multiple atlas files found beside '{skeleton}'. Specify an atlas explicitly."),
+            _ => throw new FileNotFoundException("Atlas file not found beside skeleton.", exact)
+        };
     }
 }

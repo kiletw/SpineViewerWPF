@@ -39,6 +39,14 @@ try
 
     var fixtureDirectory = Path.Combine(Directory.GetCurrentDirectory(), "tests", "fixtures", "v41-minimal");
     var assetService = new AssetService(new SpineV41Adapter());
+    var discovered = assetService.Inspect(Path.Combine(fixtureDirectory, "minimal.json"), null, null);
+    Assert(discovered.Asset.AtlasPath == Path.GetFullPath(Path.Combine(fixtureDirectory, "minimal.atlas")), "Same-stem atlas discovery failed.");
+    var ambiguousDirectory = Path.Combine(root, "ambiguous-atlas");
+    Directory.CreateDirectory(ambiguousDirectory);
+    File.Copy(Path.Combine(fixtureDirectory, "minimal.json"), Path.Combine(ambiguousDirectory, "scene.json"));
+    File.Copy(Path.Combine(fixtureDirectory, "minimal.atlas"), Path.Combine(ambiguousDirectory, "first.atlas"));
+    File.Copy(Path.Combine(fixtureDirectory, "minimal.atlas"), Path.Combine(ambiguousDirectory, "second.atlas"));
+    Expect<InvalidDataException>(() => assetService.Inspect(Path.Combine(ambiguousDirectory, "scene.json"), null, null));
     var previewPath = Path.Combine(root, "preview.png");
     var previewViewModel = new ShellViewModel(
         WorkspaceState.Empty,
