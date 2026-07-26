@@ -50,7 +50,7 @@ Connect the validated WPF shell to Application use cases:
 - viewport controls
 - diagnostics and capture
 
-Progress: TASK-005 connected real metadata opening, TASK-007 connected one deterministic static PPM frame, TASK-008 added bounded PNG texture decoding, TASK-010 added static fit, TASK-011 added atlas discovery, TASK-012 added WPF playback, TASK-013 added current-frame PNG capture, TASK-014 added bounded viewport pan/zoom and Fit, TASK-015 exposed actionable diagnostics, TASK-016 added deterministic PNG sequence export, TASK-017 added a customizable export FPS control, TASK-018 added bounded multi-skeleton scene layers, and TASK-019 added per-layer animation and skin selection. GIF/video/PSD export remains incomplete.
+Progress: TASK-005 connected real metadata opening, TASK-007 connected one deterministic static PPM frame, TASK-008 added bounded PNG texture decoding, TASK-010 added static fit, TASK-011 added atlas discovery, TASK-012 added WPF playback, TASK-013 added current-frame PNG capture, TASK-014 added bounded viewport pan/zoom and Fit, TASK-015 exposed actionable diagnostics, TASK-016 added deterministic PNG sequence export, TASK-017 added a customizable export FPS control, TASK-018 added bounded multi-skeleton scene layers, TASK-019 added per-layer animation and skin selection, and TASK-020 added batch scene import and deterministic auto layout. GIF/video/PSD export remains incomplete.
 
 ## Phase 4 — Export Replacement
 

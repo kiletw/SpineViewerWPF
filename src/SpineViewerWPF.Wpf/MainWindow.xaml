@@ -344,6 +344,13 @@
                                     Command="{Binding MoveLayerDownCommand}"
                                     AutomationProperties.AutomationId="Main.Scene.LayerDown" />
                         </StackPanel>
+                        <Button Style="{StaticResource ButtonBase}"
+                                Content="{DynamicResource Text.AutoLayout}"
+                                HorizontalAlignment="Left"
+                                Padding="8,4"
+                                Margin="0,6,0,0"
+                                Command="{Binding AutoLayoutCommand}"
+                                AutomationProperties.AutomationId="Main.Scene.AutoLayout" />
                         <Expander Header="Selected layer" IsExpanded="False" IsEnabled="{Binding HasSelectedSceneLayer}" Foreground="#DDE3EC" Margin="0,8,0,0">
                             <StackPanel Margin="4,8,0,0">
                                 <TextBlock Text="Animation" />

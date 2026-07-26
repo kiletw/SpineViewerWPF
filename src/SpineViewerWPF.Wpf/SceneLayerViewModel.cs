@@ -154,6 +154,14 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged
         Changed(nameof(FlipY));
     }
 
+    internal void SetPosition(double x, double y)
+    {
+        modelX = x;
+        modelY = y;
+        Changed(nameof(ModelX));
+        Changed(nameof(ModelY));
+    }
+
     internal void SetZIndex(int value)
     {
         if (zIndex == value) return;

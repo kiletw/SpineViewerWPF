@@ -40,6 +40,7 @@ $automationIds = @(
     'Main.Scene.RemoveLayer',
     'Main.Scene.LayerUp',
     'Main.Scene.LayerDown',
+    'Main.Scene.AutoLayout',
     'Main.Scene.LayerX',
     'Main.Scene.LayerY',
     'Main.Scene.LayerScale',

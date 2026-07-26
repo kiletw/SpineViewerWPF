@@ -16,6 +16,9 @@ public partial class App : System.Windows.Application
             Enum.TryParse(stateArgument["--state=".Length..], true, out state);
 
         string? ChooseAssetPath()
+            => ChooseAssetPaths()?.FirstOrDefault();
+
+        IReadOnlyList<string>? ChooseAssetPaths()
         {
             var dialog = new OpenFileDialog
             {
@@ -23,9 +26,9 @@ public partial class App : System.Windows.Application
                 Filter = (string)FindResource("Text.AssetFilter"),
                 InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                 CheckFileExists = true,
-                Multiselect = false
+                Multiselect = true
             };
-            return dialog.ShowDialog() == true ? dialog.FileName : null;
+            return dialog.ShowDialog() == true ? dialog.FileNames : null;
         }
 
         string? ChooseProjectPath(string suggestedPath)
@@ -85,7 +88,8 @@ public partial class App : System.Windows.Application
                 ChooseAssetPath,
                 ConfirmDiscardChanges,
                 chooseScreenshotPath: ChooseScreenshotPath,
-                chooseExportPath: ChooseExportPath)
+                chooseExportPath: ChooseExportPath,
+                chooseAssetPaths: ChooseAssetPaths)
         };
         MainWindow.Show();
     }

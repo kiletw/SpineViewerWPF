@@ -25,6 +25,7 @@
         <sys:String x:Key="Text.RemoveLayer">Remove</sys:String>
         <sys:String x:Key="Text.LayerUp">Move up</sys:String>
         <sys:String x:Key="Text.LayerDown">Move down</sys:String>
+        <sys:String x:Key="Text.AutoLayout">Auto layout</sys:String>
         <sys:String x:Key="Text.OpenAssetTitle">Open Spine skeleton</sys:String>
         <sys:String x:Key="Text.AssetFilter">Spine skeleton (*.json;*.skel)|*.json;*.skel|JSON skeleton (*.json)|*.json|Binary skeleton (*.skel)|*.skel</sys:String>
         <sys:String x:Key="Text.UnsavedTitle">Unsaved Viewer project</sys:String>

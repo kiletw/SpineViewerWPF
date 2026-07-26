@@ -44,6 +44,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private readonly Func<string, string?> chooseProjectPath;
     private readonly Func<string?> chooseScreenshotPath;
     private readonly Func<string?> chooseExportPath;
+    private readonly Func<IReadOnlyList<string>?> chooseAssetPaths;
     private readonly Func<bool> confirmDiscardChanges;
     private readonly Func<string> createPreviewPath;
     private readonly DispatcherTimer playbackTimer;
@@ -110,7 +111,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         Func<bool>? confirmDiscardChanges = null,
         Func<string>? createPreviewPath = null,
         Func<string?>? chooseScreenshotPath = null,
-        Func<string?>? chooseExportPath = null)
+        Func<string?>? chooseExportPath = null,
+        Func<IReadOnlyList<string>?>? chooseAssetPaths = null)
     {
         state = initialState;
         isRailExpanded = expandedWorkspace;
@@ -120,6 +122,11 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         this.chooseProjectPath = chooseProjectPath ?? (_ => null);
         this.chooseScreenshotPath = chooseScreenshotPath ?? (() => null);
         this.chooseExportPath = chooseExportPath ?? (() => null);
+        this.chooseAssetPaths = chooseAssetPaths ?? (() =>
+        {
+            var path = chooseAssetPath ?? (() => null);
+            return path() is { } single ? [single] : null;
+        });
         this.assetService = assetService;
         this.chooseAssetPath = chooseAssetPath ?? (() => null);
         this.confirmDiscardChanges = confirmDiscardChanges ?? (() => false);
@@ -140,6 +147,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         ExportCommand = new RelayCommand(StartExport, () => CanExport);
         CancelExportCommand = new RelayCommand(CancelExport, () => IsExporting);
         AddLayerCommand = new RelayCommand(StartAddLayer, () => CanAddLayer);
+        AutoLayoutCommand = new RelayCommand(AutoLayoutLayers, () => sceneLayers.Count > 1 && !IsLoading);
         RemoveLayerCommand = new RelayCommand(RemoveSelectedLayer, () => CanRemoveLayer);
         MoveLayerUpCommand = new RelayCommand(() => MoveSelectedLayer(-1), () => CanMoveSelectedLayer(-1));
         MoveLayerDownCommand = new RelayCommand(() => MoveSelectedLayer(1), () => CanMoveSelectedLayer(1));
@@ -189,6 +197,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public ICommand ExportCommand { get; }
     public ICommand CancelExportCommand { get; }
     public ICommand AddLayerCommand { get; }
+    public ICommand AutoLayoutCommand { get; }
     public ICommand RemoveLayerCommand { get; }
     public ICommand MoveLayerUpCommand { get; }
     public ICommand MoveLayerDownCommand { get; }
@@ -566,45 +575,88 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private void StartAddLayer()
     {
         if (disposed || Interlocked.Exchange(ref sceneLayerOperationInProgress, 1) != 0) return;
-        var target = chooseAssetPath();
-        if (target is null)
+        var targets = chooseAssetPaths()?.Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (targets is null || targets.Length == 0)
         {
             Interlocked.Exchange(ref sceneLayerOperationInProgress, 0);
             return;
         }
 
-        if (sceneLayers.Count == 0 || !HasAsset)
-        {
-            Interlocked.Exchange(ref sceneLayerOperationInProgress, 0);
-            _ = OpenAssetAsync(target);
-            return;
-        }
-
-        _ = AddLayerAsync(target);
+        _ = AddLayersAsync(targets);
     }
 
-    private async Task AddLayerAsync(string path)
+    private async Task AddLayersAsync(IReadOnlyList<string> paths)
     {
+        var added = 0;
         try
         {
-            var layer = await Task.Run(() => InspectAndRenderLayer(path));
-            var offset = sceneLayers.Count % 2 == 0 ? 16 : -16;
-            layer.SetTransform(offset, sceneLayers.Count % 3 == 0 ? 8 : 0, 1, 0, false, false);
-            sceneLayers.Add(layer);
-            RefreshLayerZIndices();
-            SelectedSceneLayer = layer;
-            MarkSceneEdited();
-            LastAction = $"Added layer {layer.DisplayName}";
+            var start = 0;
+            if (sceneLayers.Count == 0)
+            {
+                await OpenAssetAsync(paths[0]);
+                start = 1;
+                if (sceneLayers.Count == 0) return;
+            }
+
+            foreach (var path in paths.Skip(start).Take(Math.Max(0, 8 - sceneLayers.Count)))
+            {
+                try
+                {
+                    var layer = await Task.Run(() => InspectAndRenderLayer(path));
+                    sceneLayers.Add(layer);
+                    SelectedSceneLayer = layer;
+                    added++;
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                    SetDiagnostics([new Diagnostic("error", "LAYER_OPEN_FAILED", exception.Message, path)]);
+                }
+            }
+
+            if (added > 0)
+            {
+                RefreshLayerZIndices();
+                ArrangeSceneLayers();
+                MarkSceneEdited();
+            }
+            LastAction = added == 0
+                ? paths.Count == 1 ? "Layer add failed" : "No additional layers added"
+                : $"Added {added} layer{(added == 1 ? "" : "s")}";
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            SetDiagnostics([new Diagnostic("error", "LAYER_OPEN_FAILED", exception.Message, path)]);
+            SetDiagnostics([new Diagnostic("error", "LAYER_OPEN_FAILED", exception.Message, paths[0])]);
             LastAction = "Layer add failed";
         }
         finally
         {
             Interlocked.Exchange(ref sceneLayerOperationInProgress, 0);
             RefreshCommands();
+        }
+    }
+
+    private void AutoLayoutLayers()
+    {
+        if (sceneLayers.Count < 2) return;
+        ArrangeSceneLayers();
+        MarkSceneEdited();
+        LastAction = "Scene layers arranged";
+    }
+
+    private void ArrangeSceneLayers()
+    {
+        var columns = (int)Math.Ceiling(Math.Sqrt(sceneLayers.Count));
+        const double spacing = 72;
+        var rows = (int)Math.Ceiling((double)sceneLayers.Count / columns);
+        for (var index = 0; index < sceneLayers.Count; index++)
+        {
+            var column = index % columns;
+            var row = index / columns;
+            var x = (column - (columns - 1) / 2d) * spacing;
+            var y = (row - (rows - 1) / 2d) * spacing;
+            sceneLayers[index].SetPosition(x, y);
         }
     }
 
@@ -1162,7 +1214,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         foreach (var command in new[]
                  {
                      OpenAssetCommand, ReloadCommand, ExportCommand, CancelExportCommand, ScreenshotCommand, TogglePlayCommand, StopCommand, FitCommand,
-                     AddLayerCommand, RemoveLayerCommand, MoveLayerUpCommand, MoveLayerDownCommand,
+                     AddLayerCommand, AutoLayoutCommand, RemoveLayerCommand, MoveLayerUpCommand, MoveLayerDownCommand,
                      SaveCommand, SaveAsCommand, UndoCommand, RedoCommand
                  })
             ((RelayCommand)command).Refresh();

@@ -182,6 +182,7 @@ try
     var pngPreviewPath = Path.Combine(root, "png-preview.png");
     var exportPrefix = Path.Combine(root, "exported", "move.png");
     var previewCounter = 0;
+    IReadOnlyList<string> nextAssetPaths = [pngSkeleton];
     using var realViewModel = new ShellViewModel(
         WorkspaceState.Empty,
         true,
@@ -189,6 +190,7 @@ try
         _ => realProject,
         pngService,
         chooseAssetPath: () => pngSkeleton,
+        chooseAssetPaths: () => nextAssetPaths,
         createPreviewPath: () => ++previewCounter == 1
             ? pngPreviewPath
             : Path.Combine(root, $"layer-{previewCounter}.png"),
@@ -233,23 +235,26 @@ try
         await Task.Delay(10);
     Assert(!realViewModel.IsExporting && File.Exists(Path.Combine(root, "exported", "move-0000.png")), "WPF Export command did not finish a PNG sequence.");
     Assert(realViewModel.LastAction == "Exported 11 frames", "WPF Export command did not use the custom FPS.");
+    nextAssetPaths = [pngSkeleton, Path.Combine(fixtureDirectory, "minimal.json")];
     realViewModel.AddLayerCommand.Execute(null);
-    for (var attempt = 0; attempt < 100 && realViewModel.SceneLayers.Count < 2; attempt++)
+    for (var attempt = 0; attempt < 200 && realViewModel.SceneLayers.Count < 3; attempt++)
         await Task.Delay(10);
-    Assert(realViewModel.SceneLayers.Count == 2, "Add layer did not create a second scene layer.");
+    Assert(realViewModel.SceneLayers.Count == 3, "Batch layer import did not create both additional scene layers.");
     Assert(realViewModel.SceneLayers.All(layer => layer.PreviewImagePath is not null && File.Exists(layer.PreviewImagePath)), "Scene layer previews were not rendered.");
     Assert(realViewModel.IsDirty, "Adding a scene layer did not mark the project dirty.");
-    Assert(realViewModel.SceneLayers.All(layer => layer.Animations.SequenceEqual(["move"]) && layer.Skins.SequenceEqual(["default"])), "Scene layers did not retain independent animation and skin metadata.");
-    realViewModel.SceneLayers[1].Opacity = 0.5;
-    Assert(realViewModel.SceneLayers[1].Opacity == 0.5 && realViewModel.SceneLayers[0].Opacity == 1, "Scene layer properties were not independent.");
+    Assert(realViewModel.SceneLayers.All(layer => layer.Animations.Contains("move") && layer.Skins.Contains("default")), "Scene layers did not retain independent animation and skin metadata.");
+    realViewModel.AutoLayoutCommand.Execute(null);
+    Assert(realViewModel.SceneLayers.Select(layer => (Math.Round(layer.ModelX), Math.Round(layer.ModelY))).Distinct().Count() == 3, "Auto layout did not separate scene layers.");
+    realViewModel.SelectedSceneLayer!.Opacity = 0.5;
+    Assert(realViewModel.SelectedSceneLayer.Opacity == 0.5 && realViewModel.SceneLayers[0].Opacity == 1, "Scene layer properties were not independent.");
     realViewModel.MoveLayerUpCommand.Execute(null);
-    Assert(realViewModel.SceneLayers[0].ZIndex == 0 && realViewModel.SceneLayers[1].ZIndex == 1, "Scene layer reorder did not update z-order.");
+    Assert(realViewModel.SceneLayers[1].ZIndex == 1 && realViewModel.SceneLayers[1].Opacity == 0.5, "Scene layer reorder did not update z-order.");
     realViewModel.ModelX = 12;
     realViewModel.SaveCommand.Execute(null);
     var realDocument = store.Load(realProject);
     Assert(realDocument.SkeletonPath == Path.GetFullPath(pngSkeleton), "Real skeleton path was not saved.");
-    Assert(realDocument.SceneLayers?.Count == 2, "Saved Viewer project did not preserve scene layers.");
-    Assert(realDocument.SceneLayers?[0].Opacity == 0.5, "Saved Viewer project did not preserve per-layer opacity.");
+    Assert(realDocument.SceneLayers?.Count == 3, "Saved Viewer project did not preserve scene layers.");
+    Assert(realDocument.SceneLayers?[1].Opacity == 0.5, "Saved Viewer project did not preserve per-layer opacity.");
 
     realViewModel.ModelY = 4;
     await realViewModel.OpenAssetAsync(Path.Combine(root, "missing.json"));
