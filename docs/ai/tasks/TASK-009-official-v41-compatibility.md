@@ -61,4 +61,4 @@ Verified: export version `4.1.23-beta`, 11 animations, `default` skin, and succe
 
 Preserved: production source, official Runtime source, PPM/PNG behavior, and deterministic renderer. The Application smoke and v3 regression pass; the existing WPF shell probe still cannot observe a non-empty window title in this headless session.
 
-Known gaps: this is a compatibility smoke, not a visual golden comparison. PMA, clipping, non-normal blending, multi-page atlases, and bounds-aware fit remain separate renderer work.
+Known gaps: PMA, clipping, non-normal blending, and multi-page atlases remain separate renderer work. TASK-010 adds the deterministic bounds-aware fit baseline for these official assets.

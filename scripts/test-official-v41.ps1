@@ -88,13 +88,16 @@ foreach ($inspect in @($jsonInspect, $skelInspect)) {
 }
 
 $outputs = @(
-    @{ Skeleton = $json; Output = Join-Path $assetDirectory 'spineboy-json.png' },
-    @{ Skeleton = $skel; Output = Join-Path $assetDirectory 'spineboy-skel.png' }
+    @{ Skeleton = $json; Output = Join-Path $assetDirectory 'spineboy-json.png'; Sha256 = '643A19AF580DBA2C79555B59D1EE4ECC73D9CFAECF5477C5FA94DC4BB7EE3731' },
+    @{ Skeleton = $skel; Output = Join-Path $assetDirectory 'spineboy-skel.png'; Sha256 = '6BB0635EFEACE5F2B99B8FF4031E4203D2276D9E2975F8955E8BC55D6695B406' }
 )
 foreach ($case in $outputs) {
     & dotnet run --project $project -c Release --no-build -- render $case.Skeleton --atlas $atlas --runtime 4.1 --animation walk --time 0.5 --width 512 --height 512 --output $case.Output --overwrite | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Render failed: $($case.Skeleton)" }
     Assert-Png $case.Output
+    if ((Get-FileHash -LiteralPath $case.Output -Algorithm SHA256).Hash -ne $case.Sha256) {
+        throw "Official render baseline changed: $($case.Skeleton)"
+    }
 }
 
 [pscustomobject]@{

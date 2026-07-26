@@ -64,6 +64,18 @@ internal static class CpuRenderer
         if (pma) throw new NotSupportedException("PMA textures are not supported by this CPU renderer spike.");
 
         var pixels = new Pixel[width * height];
+        var boundsBuffer = Array.Empty<float>();
+        skeleton.GetBounds(out var boundsX, out var boundsY, out var boundsWidth, out var boundsHeight, ref boundsBuffer);
+        var hasBounds = float.IsFinite(boundsX) && float.IsFinite(boundsY)
+            && float.IsFinite(boundsWidth) && float.IsFinite(boundsHeight)
+            && boundsWidth > 0 && boundsHeight > 0;
+        var shouldFit = hasBounds && (boundsWidth > width || boundsHeight > height);
+        var viewScale = shouldFit
+            ? MathF.Min(1, MathF.Min(width / boundsWidth, height / boundsHeight))
+            : 1;
+        if (!float.IsFinite(viewScale) || viewScale <= 0) viewScale = 1;
+        var viewCenterX = shouldFit ? boundsX + boundsWidth / 2 : 0;
+        var viewCenterY = shouldFit ? boundsY + boundsHeight / 2 : 0;
         foreach (var slot in skeleton.DrawOrder)
         {
             if (slot.Attachment is null) continue;
@@ -82,7 +94,8 @@ internal static class CpuRenderer
                         skeleton.R * slot.R * region.R,
                         skeleton.G * slot.G * region.G,
                         skeleton.B * slot.B * region.B,
-                        skeleton.A * slot.A * region.A);
+                        skeleton.A * slot.A * region.A,
+                        viewCenterX, viewCenterY, viewScale);
                     break;
                 }
                 case MeshAttachment mesh:
@@ -95,7 +108,8 @@ internal static class CpuRenderer
                         skeleton.R * slot.R * mesh.R,
                         skeleton.G * slot.G * mesh.G,
                         skeleton.B * slot.B * mesh.B,
-                        skeleton.A * slot.A * mesh.A);
+                        skeleton.A * slot.A * mesh.A,
+                        viewCenterX, viewCenterY, viewScale);
                     break;
                 }
                 case ClippingAttachment:
@@ -122,11 +136,18 @@ internal static class CpuRenderer
         float tintR,
         float tintG,
         float tintB,
-        float tintA)
+        float tintA,
+        float viewCenterX,
+        float viewCenterY,
+        float viewScale)
     {
         var vertices = new Vertex[positions.Length / 2];
         for (var i = 0; i < vertices.Length; i++)
-            vertices[i] = new Vertex(width / 2f + positions[i * 2], height / 2f - positions[i * 2 + 1], uvs[i * 2], uvs[i * 2 + 1]);
+            vertices[i] = new Vertex(
+                width / 2f + (positions[i * 2] - viewCenterX) * viewScale,
+                height / 2f - (positions[i * 2 + 1] - viewCenterY) * viewScale,
+                uvs[i * 2],
+                uvs[i * 2 + 1]);
 
         for (var i = 0; i < triangles.Length; i += 3)
             Rasterize(target, width, height, vertices[triangles[i]], vertices[triangles[i + 1]], vertices[triangles[i + 2]], texture, tintR, tintG, tintB, tintA);

@@ -51,9 +51,9 @@ Read `10-cli-contract.md`, `11-mcp-capability-map.md`, and UI documents only whe
 
 - Phase 0 baseline: completed on v2 commit `79c6135`; compatibility fixtures remain missing and explicit
 - v3 prototype: TASK-001 one-Runtime vertical slice completed for project-authored 4.1 JSON input
-- Renderer: deterministic CPU spike accepts P3 PPM and bounded 8-bit non-interlaced PNG textures; official 4.1 JSON and binary `spineboy` renders now pass a compatibility smoke; production renderer remains undecided
+- Renderer: deterministic CPU spike accepts P3 PPM and bounded 8-bit non-interlaced PNG textures; oversized poses use bounds-aware static fit; official 4.1 JSON and binary `spineboy` renders pass compatibility baselines; production renderer remains undecided
 - CLI: 4.1 `inspect` and `render` implemented
 - MCP: capability planning only
-- UI: TASK-008 shows generated 4.1 PPM and PNG variants as real deterministic static frames; TASK-009 validates official 4.1 JSON and binary assets through the CLI path
+- UI: TASK-008 shows generated 4.1 PPM and PNG variants as real deterministic static frames; TASK-009 validates official 4.1 JSON and binary assets through the CLI path; TASK-010 fits oversized static poses to the canvas
 - Localization: resource boundary required now; runtime language switching remains deferred
 - Editing: TASK-004 adds Inspector editing, Undo/Redo, dirty state, and versioned `*.spineviewer.json` sidecar save; Spine source writing remains forbidden

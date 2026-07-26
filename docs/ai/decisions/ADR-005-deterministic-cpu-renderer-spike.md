@@ -29,7 +29,7 @@ Two consecutive renders produced the same hash.
 
 ## Consequences
 
-- The CLI path is deterministic and has no new rendering dependency.
+- The CLI path is deterministic and has no new rendering dependency. Oversized static poses are scaled down and centered from the current Runtime pose bounds; poses that already fit retain the original transform.
 - Common generated PNG texture variants render through the same bounded CPU path without a package dependency.
 - Unsupported renderer features fail explicitly.
 - A production renderer still requires separate prototype evidence and an ADR update or replacement.
