@@ -87,6 +87,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private bool flipY;
     private bool loop = true;
     private double playbackSpeed = 1;
+    private double exportFramesPerSecond = 30;
     private double trackAlpha = 1;
     private string backgroundMode = "Checkerboard";
     private string? projectPath;
@@ -329,6 +330,18 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         set => Edit(ref playbackSpeed, value, nameof(PlaybackSpeed));
     }
 
+    public double ExportFramesPerSecond
+    {
+        get => exportFramesPerSecond;
+        set
+        {
+            var next = Math.Clamp(double.IsFinite(value) ? value : 30, 1, 240);
+            if (Math.Abs(exportFramesPerSecond - next) < 0.001) return;
+            exportFramesPerSecond = next;
+            Changed(nameof(ExportFramesPerSecond));
+        }
+    }
+
     public double TrackAlpha
     {
         get => trackAlpha;
@@ -517,7 +530,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 runtimeLine,
                 SelectedAnimation ?? throw new InvalidOperationException("Animation is required."),
                 (float)Duration,
-                30,
+                (float)ExportFramesPerSecond,
                 64,
                 64,
                 Path.GetDirectoryName(output) ?? ".",

@@ -64,7 +64,7 @@ git diff --check
 
 ## Known Ceiling
 
-This first export is 64 by 64 PNG only. Auto-resolution, margins, multi-model composition, GIF/video/FFmpeg, PSD layers, and batch export remain separate work.
+This first export is 64 by 64 PNG only. FPS customization is covered by TASK-017, while project-persisted export presets, auto-resolution, margins, multi-model composition, GIF/video/FFmpeg, PSD layers, and batch export remain separate work.
 
 ## Completion Report
 

@@ -34,6 +34,7 @@
         <sys:String x:Key="Text.FlipY">Flip Y</sys:String>
         <sys:String x:Key="Text.Playback">PLAYBACK</sys:String>
         <sys:String x:Key="Text.Speed">Speed</sys:String>
+        <sys:String x:Key="Text.ExportFps">Export FPS</sys:String>
         <sys:String x:Key="Text.TrackAlpha">Track alpha</sys:String>
         <sys:String x:Key="Text.Background">BACKGROUND</sys:String>
         <sys:String x:Key="Text.Project">PROJECT</sys:String>

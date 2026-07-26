@@ -32,6 +32,7 @@ $automationIds = @(
     'Main.Status.Diagnostics',
     'Main.Inspector.Panel',
     'Main.Inspector.ModelScale',
+    'Main.Inspector.ExportFps',
     'Main.Inspector.Background',
     'Main.Inspector.ProjectPath'
 )

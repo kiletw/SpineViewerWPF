@@ -656,6 +656,15 @@
                                    Style="{StaticResource MutedText}"
                                    HorizontalAlignment="Right" />
 
+                        <TextBlock Text="{DynamicResource Text.ExportFps}" Margin="0,8,0,0" />
+                        <Slider Minimum="1" Maximum="240" TickFrequency="1"
+                                IsSnapToTickEnabled="True"
+                                Value="{Binding ExportFramesPerSecond, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                AutomationProperties.AutomationId="Main.Inspector.ExportFps" />
+                        <TextBlock Text="{Binding ExportFramesPerSecond, StringFormat={}{0:0.##} FPS}"
+                                   Style="{StaticResource MutedText}"
+                                   HorizontalAlignment="Right" />
+
                         <TextBlock Text="{DynamicResource Text.TrackAlpha}" Margin="0,8,0,0" />
                         <Slider Minimum="0" Maximum="1" TickFrequency="0.05"
                                 IsSnapToTickEnabled="True"

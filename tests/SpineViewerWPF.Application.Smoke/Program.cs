@@ -188,6 +188,9 @@ try
     Assert(realViewModel.FilteredAnimations.SequenceEqual(["move"]), "Real animation metadata was not mapped.");
     Assert(realViewModel.Skins.SequenceEqual(["default"]), "Real skin metadata was not mapped.");
     Assert(realViewModel.RuntimeLabel == "Runtime 4.1" && realViewModel.Duration == 1, "Runtime or duration was not mapped.");
+    Assert(Math.Abs(realViewModel.ExportFramesPerSecond - 30) < 0.001, "Export FPS default was not 30.");
+    realViewModel.ExportFramesPerSecond = 10;
+    Assert(Math.Abs(realViewModel.ExportFramesPerSecond - 10) < 0.001 && !realViewModel.IsDirty, "Export FPS did not change without dirtying the project.");
     Assert(
         SHA256.HashData(File.ReadAllBytes(pngPreviewPath)).SequenceEqual(SHA256.HashData(File.ReadAllBytes(directPngPreview))),
         "PNG-backed preview was not deterministic.");
@@ -211,7 +214,7 @@ try
     for (var attempt = 0; attempt < 100 && realViewModel.IsExporting; attempt++)
         await Task.Delay(10);
     Assert(!realViewModel.IsExporting && File.Exists(Path.Combine(root, "exported", "move-0000.png")), "WPF Export command did not finish a PNG sequence.");
-    Assert(realViewModel.LastAction == "Exported 31 frames", "WPF Export command reported an unexpected frame count.");
+    Assert(realViewModel.LastAction == "Exported 11 frames", "WPF Export command did not use the custom FPS.");
     realViewModel.ModelX = 12;
     realViewModel.SaveCommand.Execute(null);
     var realDocument = store.Load(realProject);
