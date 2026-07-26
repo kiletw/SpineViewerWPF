@@ -225,7 +225,7 @@
                             Command="{Binding ToggleInspectorCommand}"
                             AutomationProperties.AutomationId="Main.Command.ToggleInspector" />
                     <Button Style="{StaticResource ButtonBase}"
-                            Content="Screenshot"
+                            Content="{DynamicResource Text.Screenshot}"
                             Margin="8,0,0,0"
                             Command="{Binding ScreenshotCommand}"
                             AutomationProperties.AutomationId="Main.Command.Screenshot" />

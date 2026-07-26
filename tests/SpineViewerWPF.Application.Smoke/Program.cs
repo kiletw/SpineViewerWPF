@@ -49,13 +49,15 @@ try
     File.Copy(Path.Combine(fixtureDirectory, "minimal.atlas"), Path.Combine(ambiguousDirectory, "second.atlas"));
     Expect<InvalidDataException>(() => assetService.Inspect(Path.Combine(ambiguousDirectory, "scene.json"), null, null));
     var previewPath = Path.Combine(root, "preview.png");
+    var capturePath = Path.Combine(root, "capture.png");
     var previewViewModel = new ShellViewModel(
         WorkspaceState.Empty,
         true,
         store,
         _ => Path.Combine(root, "preview.spineviewer.json"),
         assetService,
-        createPreviewPath: () => previewPath);
+        createPreviewPath: () => previewPath,
+        chooseScreenshotPath: () => capturePath);
     await previewViewModel.OpenAssetAsync(Path.Combine(fixtureDirectory, "minimal.json"));
     Assert(previewViewModel.State == WorkspaceState.Ready, "PPM fixture did not reach Ready.");
     Assert(previewViewModel.PreviewImagePath == previewPath && File.Exists(previewPath), "Static preview was not rendered.");
@@ -66,6 +68,12 @@ try
     Assert(
         new PreviewImageConverter().Convert(previewPath, typeof(object), null, CultureInfo.InvariantCulture) is not null,
         "WPF could not load the rendered preview.");
+    previewViewModel.ScreenshotCommand.Execute(null);
+    Assert(File.Exists(capturePath), "Screenshot command did not create a PNG.");
+    Assert(
+        SHA256.HashData(File.ReadAllBytes(capturePath)).SequenceEqual(SHA256.HashData(File.ReadAllBytes(previewPath))),
+        "Screenshot did not match the displayed preview.");
+    Assert(!previewViewModel.IsDirty, "Screenshot changed the viewer project state.");
     await previewViewModel.OpenAssetAsync(Path.Combine(root, "missing.json"));
     Assert(previewViewModel.PreviewImagePath == previewPath && File.Exists(previewPath), "Failed replacement discarded the prior preview.");
     previewViewModel.Dispose();

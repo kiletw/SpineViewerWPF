@@ -62,4 +62,4 @@ Changed: the WPF shell now owns a dispatcher timer for playback state and re-ren
 
 Preserved: deterministic CLI output, static fit, atlas discovery, source isolation, sidecar editing, and existing automation identifiers.
 
-Known gaps: this is still a single-asset CPU playback slice; capture/export, production GPU rendering, multi-track timelines, and frame coalescing beyond one pending render remain future work.
+Known gaps: this is still a single-asset CPU playback slice; full viewport/sequence export, production GPU rendering, multi-track timelines, and frame coalescing beyond one pending render remain future work. TASK-013 now covers current-frame PNG capture.

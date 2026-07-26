@@ -41,6 +41,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private readonly ViewerProjectStore projectStore;
     private readonly Func<string?> chooseAssetPath;
     private readonly Func<string, string?> chooseProjectPath;
+    private readonly Func<string?> chooseScreenshotPath;
     private readonly Func<bool> confirmDiscardChanges;
     private readonly Func<string> createPreviewPath;
     private readonly DispatcherTimer playbackTimer;
@@ -92,7 +93,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         AssetService? assetService = null,
         Func<string?>? chooseAssetPath = null,
         Func<bool>? confirmDiscardChanges = null,
-        Func<string>? createPreviewPath = null)
+        Func<string>? createPreviewPath = null,
+        Func<string?>? chooseScreenshotPath = null)
     {
         state = initialState;
         isRailExpanded = expandedWorkspace;
@@ -100,6 +102,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         isPlaying = initialState is WorkspaceState.Ready or WorkspaceState.ReadyWithWarnings;
         this.projectStore = projectStore ?? new ViewerProjectStore();
         this.chooseProjectPath = chooseProjectPath ?? (_ => null);
+        this.chooseScreenshotPath = chooseScreenshotPath ?? (() => null);
         this.assetService = assetService;
         this.chooseAssetPath = chooseAssetPath ?? (() => null);
         this.confirmDiscardChanges = confirmDiscardChanges ?? (() => false);
@@ -118,7 +121,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 await OpenAssetAsync(skeletonPath);
         }, () => HasAsset && !IsLoading);
         ExportCommand = new RelayCommand(() => State = WorkspaceState.Exporting, () => CanPlay);
-        ScreenshotCommand = new RelayCommand(() => LastAction = "Screenshot command invoked", () => HasPreview);
+        ScreenshotCommand = new RelayCommand(CaptureScreenshot, () => HasRenderedPreview && CanPlay);
         TogglePlayCommand = new RelayCommand(() => IsPlaying = !IsPlaying, () => CanPlay);
         StopCommand = new RelayCommand(() =>
         {
@@ -384,6 +387,29 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         var path = chooseProjectPath(SuggestedProjectPath());
         return path is not null && SaveTo(path);
+    }
+
+    private void CaptureScreenshot()
+    {
+        var source = PreviewImagePath;
+        var target = chooseScreenshotPath();
+        if (source is null || target is null) return;
+
+        try
+        {
+            var output = Path.GetFullPath(target);
+            if (string.Equals(Path.GetFullPath(source), output, StringComparison.OrdinalIgnoreCase))
+                throw new IOException("Screenshot output must differ from the active preview.");
+            Directory.CreateDirectory(Path.GetDirectoryName(output) ?? ".");
+            File.Copy(source, output, true);
+            LastAction = $"Captured {Path.GetFileName(output)}";
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            stateDetailOverride = exception.Message;
+            Changed(nameof(StateDetail));
+            LastAction = "Screenshot failed";
+        }
     }
 
     private StateDefinition Definition => Definitions[State];

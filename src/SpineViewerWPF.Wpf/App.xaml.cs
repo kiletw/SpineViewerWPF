@@ -41,6 +41,19 @@ public partial class App : System.Windows.Application
             return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
 
+        string? ChooseScreenshotPath()
+        {
+            var dialog = new SaveFileDialog
+            {
+                Title = (string)FindResource("Text.ScreenshotTitle"),
+                Filter = (string)FindResource("Text.PngFilter"),
+                DefaultExt = ".png",
+                AddExtension = true,
+                FileName = "spine-frame.png"
+            };
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
+
         bool ConfirmDiscardChanges() => MessageBox.Show(
             (string)FindResource("Text.DiscardPrompt"),
             (string)FindResource("Text.UnsavedTitle"),
@@ -56,7 +69,8 @@ public partial class App : System.Windows.Application
                 ChooseProjectPath,
                 new AssetService(new SpineV41Adapter()),
                 ChooseAssetPath,
-                ConfirmDiscardChanges)
+                ConfirmDiscardChanges,
+                chooseScreenshotPath: ChooseScreenshotPath)
         };
         MainWindow.Show();
     }
