@@ -7,6 +7,8 @@
         <sys:String x:Key="Text.Save">_Save</sys:String>
         <sys:String x:Key="Text.SaveAs">Save _As</sys:String>
         <sys:String x:Key="Text.Screenshot">Screenshot</sys:String>
+        <sys:String x:Key="Text.Diagnostics">Diagnostics</sys:String>
+        <sys:String x:Key="Text.Close">Close</sys:String>
         <sys:String x:Key="Text.Undo">Undo</sys:String>
         <sys:String x:Key="Text.Redo">Redo</sys:String>
         <sys:String x:Key="Text.Inspector">Inspector</sys:String>

@@ -68,6 +68,11 @@ try
     Assert(
         new PreviewImageConverter().Convert(previewPath, typeof(object), null, CultureInfo.InvariantCulture) is not null,
         "WPF could not load the rendered preview.");
+    Assert(previewViewModel.DiagnosticsSummary == "No diagnostics.", "A clean asset did not report an empty diagnostics summary.");
+    previewViewModel.DiagnosticsCommand.Execute(null);
+    Assert(previewViewModel.IsDiagnosticsVisible, "Diagnostics command did not open the summary.");
+    previewViewModel.DiagnosticsCommand.Execute(null);
+    Assert(!previewViewModel.IsDiagnosticsVisible, "Diagnostics command did not close the summary.");
     var modelXBeforeFit = previewViewModel.ModelX;
     previewViewModel.ZoomViewport(2);
     previewViewModel.PanViewport(24, -12);
@@ -83,6 +88,7 @@ try
     Assert(!previewViewModel.IsDirty, "Screenshot changed the viewer project state.");
     await previewViewModel.OpenAssetAsync(Path.Combine(root, "missing.json"));
     Assert(previewViewModel.PreviewImagePath == previewPath && File.Exists(previewPath), "Failed replacement discarded the prior preview.");
+    Assert(previewViewModel.Diagnostics.Count == 1 && previewViewModel.DiagnosticsSummary.Contains("OPEN_FAILED", StringComparison.Ordinal), "Failed open did not produce an actionable diagnostic.");
     previewViewModel.Dispose();
     Assert(!File.Exists(previewPath), "Disposed preview file was not deleted.");
 
@@ -189,6 +195,16 @@ try
     var corruptRender = Expect<Exception>(() =>
         pngService.Render(pngSkeleton, pngAtlas, null, "move", 0.5f, 64, 64, Path.Combine(root, "corrupt.png"), true, false, []));
     Assert(corruptRender.InnerException is InvalidDataException, "Corrupt PNG render did not preserve its validation error.");
+    var renderFailureViewModel = new ShellViewModel(
+        WorkspaceState.Empty,
+        true,
+        store,
+        _ => Path.Combine(root, "render-failure.spineviewer.json"),
+        pngService,
+        createPreviewPath: () => Path.Combine(root, "render-failure.png"));
+    await renderFailureViewModel.OpenAssetAsync(pngSkeleton);
+    Assert(renderFailureViewModel.State == WorkspaceState.RendererUnavailable && renderFailureViewModel.DiagnosticsSummary.Contains("RENDER_FAILED", StringComparison.Ordinal), "Failed render did not produce an actionable diagnostic.");
+    renderFailureViewModel.Dispose();
 
     File.WriteAllBytes(pngTexture, [137, 80, 78, 71]);
     var malformedPng = Expect<Exception>(() => pngService.Inspect(pngSkeleton, pngAtlas, null));

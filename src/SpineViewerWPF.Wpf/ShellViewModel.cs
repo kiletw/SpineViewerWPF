@@ -57,11 +57,12 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private string skeletonPath = "hero.json";
     private string atlasPath = "hero.atlas";
     private string runtimeLine = "4.1";
-    private int diagnosticCount;
+    private IReadOnlyList<Diagnostic> diagnostics = [];
     private string? stateTitleOverride;
     private string? stateDetailOverride;
     private bool isRailExpanded;
     private bool isInspectorVisible;
+    private bool isDiagnosticsVisible;
     private bool isPlaying;
     private DateTime lastPlaybackTick;
     private int previewRenderInProgress;
@@ -132,7 +133,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             Position = 0;
         }, () => CanPlay);
         FitCommand = new RelayCommand(FitViewport, () => HasPreview);
-        DiagnosticsCommand = new RelayCommand(() => LastAction = IsWarning ? "1 warning shown" : "No blocking diagnostics");
+        DiagnosticsCommand = new RelayCommand(ToggleDiagnostics);
         ToggleRailCommand = new RelayCommand(() => IsRailExpanded = !IsRailExpanded);
         ToggleInspectorCommand = new RelayCommand(() => IsInspectorVisible = !IsInspectorVisible);
         SaveCommand = new RelayCommand(() => TrySave(), () => HasAsset && (IsDirty || ProjectPath is null));
@@ -177,6 +178,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             stateTitleOverride = null;
             stateDetailOverride = null;
             isPlaying = value is WorkspaceState.Ready or WorkspaceState.ReadyWithWarnings;
+            isDiagnosticsVisible = false;
             lastPlaybackTick = DateTime.UtcNow;
             position = 0;
             Changed(string.Empty);
@@ -359,10 +361,16 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             : Definition.Detail);
     public string RuntimeLabel => HasAsset ? $"Runtime {runtimeLine}" : "Runtime —";
     public string DiagnosticLabel => IsWarning
-        ? $"{diagnosticCount} warning{(diagnosticCount == 1 ? "" : "s")}"
+        ? $"{diagnostics.Count} warning{(diagnostics.Count == 1 ? "" : "s")}"
         : State is WorkspaceState.Unsupported or WorkspaceState.Failed or WorkspaceState.RendererUnavailable
-            ? "1 error"
-            : "No issues";
+            ? $"{Math.Max(1, diagnostics.Count)} error{(diagnostics.Count == 1 ? "" : "s")}"
+            : diagnostics.Count == 0 ? "No issues" : $"{diagnostics.Count} issue{(diagnostics.Count == 1 ? "" : "s")}";
+    public IReadOnlyList<Diagnostic> Diagnostics => diagnostics;
+    public bool IsDiagnosticsVisible => isDiagnosticsVisible;
+    public string DiagnosticsSummary => diagnostics.Count == 0
+        ? "No diagnostics."
+        : string.Join(Environment.NewLine, diagnostics.Select(d =>
+            $"{d.Severity.ToUpperInvariant()} {d.Code}: {d.Message}{(d.Path is null ? "" : $" ({d.Path})")}"));
     public string PlaybackLabel => IsPlaying ? "Pause" : "Play";
     public string SkeletonFileName => Path.GetFileName(skeletonPath);
     public string AssetSummary => $"{Path.GetFileName(atlasPath)} · Runtime {runtimeLine}";
@@ -410,6 +418,20 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         viewportPanX = viewportPanY = 0;
         if (changed) Changed(string.Empty);
         LastAction = "Viewport fitted";
+    }
+
+    private void ToggleDiagnostics()
+    {
+        isDiagnosticsVisible = !isDiagnosticsVisible;
+        Changed(nameof(IsDiagnosticsVisible));
+    }
+
+    private void SetDiagnostics(IReadOnlyList<Diagnostic> next)
+    {
+        diagnostics = next.ToArray();
+        Changed(nameof(Diagnostics));
+        Changed(nameof(DiagnosticsSummary));
+        Changed(nameof(DiagnosticLabel));
     }
 
     public bool TrySave()
@@ -477,6 +499,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         }
         catch (NotSupportedException exception)
         {
+            SetDiagnostics([new Diagnostic("error", "UNSUPPORTED_ASSET", exception.Message, path)]);
             State = WorkspaceState.Unsupported;
             stateDetailOverride = exception.Message;
             LastAction = "Asset is not supported";
@@ -484,6 +507,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
+            SetDiagnostics([new Diagnostic("error", "OPEN_FAILED", exception.Message, path)]);
             State = WorkspaceState.Failed;
             stateDetailOverride = exception.Message;
             LastAction = "Asset open failed";
@@ -501,7 +525,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         skeletonPath = "hero.json";
         atlasPath = "hero.atlas";
         runtimeLine = "4.1";
-        diagnosticCount = 0;
+        SetDiagnostics([]);
         selectedAnimation = animations[0];
         selectedSkin = skinNames[0];
         ResetEditor();
@@ -552,13 +576,15 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         skeletonPath = result.Asset.SkeletonPath;
         atlasPath = result.Asset.AtlasPath;
         runtimeLine = result.Runtime.SelectedLine;
-        diagnosticCount = result.Diagnostics.Count;
+        SetDiagnostics(renderError is null
+            ? result.Diagnostics
+            : [.. result.Diagnostics, new Diagnostic("error", "RENDER_FAILED", renderError, result.Asset.SkeletonPath)]);
         selectedAnimation = animations.FirstOrDefault();
         selectedSkin = skinNames[0];
         ResetEditor();
         State = renderError is not null
             ? WorkspaceState.RendererUnavailable
-            : diagnosticCount == 0 ? WorkspaceState.Ready : WorkspaceState.ReadyWithWarnings;
+            : diagnostics.Count == 0 ? WorkspaceState.Ready : WorkspaceState.ReadyWithWarnings;
         if (renderError is not null)
         {
             stateDetailOverride = renderError;
@@ -655,6 +681,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         catch (Exception exception)
         {
             if (disposed) return;
+            SetDiagnostics([new Diagnostic("error", "RENDER_FAILED", exception.Message, skeletonPath)]);
             IsPlaying = false;
             State = WorkspaceState.RendererUnavailable;
             stateDetailOverride = exception.Message;
