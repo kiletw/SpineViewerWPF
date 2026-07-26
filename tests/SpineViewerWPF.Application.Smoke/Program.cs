@@ -68,6 +68,13 @@ try
     Assert(
         new PreviewImageConverter().Convert(previewPath, typeof(object), null, CultureInfo.InvariantCulture) is not null,
         "WPF could not load the rendered preview.");
+    var modelXBeforeFit = previewViewModel.ModelX;
+    previewViewModel.ZoomViewport(2);
+    previewViewModel.PanViewport(24, -12);
+    Assert(previewViewModel.ViewportZoom == 2 && previewViewModel.ViewportPanX == 24 && previewViewModel.ViewportPanY == -12, "Viewport navigation did not update.");
+    previewViewModel.FitCommand.Execute(null);
+    Assert(previewViewModel.ViewportZoom == 1 && previewViewModel.ViewportPanX == 0 && previewViewModel.ViewportPanY == 0, "Fit did not reset the viewport.");
+    Assert(previewViewModel.ModelX == modelXBeforeFit && !previewViewModel.IsDirty, "Viewport fit changed editable model state.");
     previewViewModel.ScreenshotCommand.Execute(null);
     Assert(File.Exists(capturePath), "Screenshot command did not create a PNG.");
     Assert(

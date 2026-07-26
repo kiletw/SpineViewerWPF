@@ -74,6 +74,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private double modelY;
     private double modelScale = 1;
     private double modelRotation;
+    private double viewportZoom = 1;
+    private double viewportPanX;
+    private double viewportPanY;
     private bool flipX;
     private bool flipY;
     private bool loop = true;
@@ -128,7 +131,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             IsPlaying = false;
             Position = 0;
         }, () => CanPlay);
-        FitCommand = new RelayCommand(() => LastAction = "Viewport fitted", () => HasPreview);
+        FitCommand = new RelayCommand(FitViewport, () => HasPreview);
         DiagnosticsCommand = new RelayCommand(() => LastAction = IsWarning ? "1 warning shown" : "No blocking diagnostics");
         ToggleRailCommand = new RelayCommand(() => IsRailExpanded = !IsRailExpanded);
         ToggleInspectorCommand = new RelayCommand(() => IsInspectorVisible = !IsInspectorVisible);
@@ -368,14 +371,46 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public string ProjectPathLabel => ProjectPath ?? "Not saved";
     public string? ProjectPath => projectPath;
     public string? PreviewImagePath => previewImagePath;
-    public double PreviewX => ModelX;
-    public double PreviewY => ModelY;
-    public double PreviewScaleX => ModelScale * (FlipX ? -1 : 1);
-    public double PreviewScaleY => ModelScale * (FlipY ? -1 : 1);
+    public double PreviewX => ModelX * ViewportZoom + ViewportPanX;
+    public double PreviewY => ModelY * ViewportZoom + ViewportPanY;
+    public double ViewportZoom => viewportZoom;
+    public double ViewportPanX => viewportPanX;
+    public double ViewportPanY => viewportPanY;
+    public double PreviewScaleX => ModelScale * ViewportZoom * (FlipX ? -1 : 1);
+    public double PreviewScaleY => ModelScale * ViewportZoom * (FlipY ? -1 : 1);
     public double Duration => SelectedAnimation is not null && animationDurations.TryGetValue(SelectedAnimation, out var duration)
         ? duration
         : 0;
     public string PlaybackTimeLabel => $"{FormatTime(Position)} / {FormatTime(Duration)}";
+
+    public void ZoomViewport(double factor)
+    {
+        if (!double.IsFinite(factor) || factor <= 0) return;
+        var next = Math.Clamp(viewportZoom * factor, 0.25, 4);
+        if (Math.Abs(viewportZoom - next) < 0.001) return;
+        viewportZoom = next;
+        Changed(string.Empty);
+    }
+
+    public void PanViewport(double deltaX, double deltaY)
+    {
+        if (!double.IsFinite(deltaX) || !double.IsFinite(deltaY)) return;
+        var nextX = Math.Clamp(viewportPanX + deltaX, -5000, 5000);
+        var nextY = Math.Clamp(viewportPanY + deltaY, -5000, 5000);
+        var changed = Math.Abs(viewportPanX - nextX) >= 0.001 || Math.Abs(viewportPanY - nextY) >= 0.001;
+        viewportPanX = nextX;
+        viewportPanY = nextY;
+        if (changed) Changed(string.Empty);
+    }
+
+    private void FitViewport()
+    {
+        var changed = Math.Abs(viewportZoom - 1) >= 0.001 || Math.Abs(viewportPanX) >= 0.001 || Math.Abs(viewportPanY) >= 0.001;
+        viewportZoom = 1;
+        viewportPanX = viewportPanY = 0;
+        if (changed) Changed(string.Empty);
+        LastAction = "Viewport fitted";
+    }
 
     public bool TrySave()
     {
@@ -667,6 +702,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         modelX = modelY = modelRotation = 0;
         modelScale = playbackSpeed = trackAlpha = 1;
+        viewportZoom = 1;
+        viewportPanX = viewportPanY = 0;
         position = 0;
         flipX = flipY = false;
         loop = true;

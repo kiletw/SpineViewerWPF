@@ -322,6 +322,10 @@
                           HorizontalContentAlignment="Stretch"
                           VerticalContentAlignment="Stretch"
                           IsTabStop="False"
+                          PreviewMouseWheel="ViewportMouseWheel"
+                          PreviewMouseLeftButtonDown="ViewportMouseLeftButtonDown"
+                          PreviewMouseMove="ViewportMouseMove"
+                          PreviewMouseLeftButtonUp="ViewportMouseLeftButtonUp"
                           AutomationProperties.Name="Asset viewport"
                           AutomationProperties.AutomationId="Main.Viewport.Surface">
                 <Border CornerRadius="12"
