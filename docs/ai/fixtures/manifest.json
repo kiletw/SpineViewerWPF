@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "repositoryBaseline": "kiletw/SpineViewerWPF@79c6135",
   "assetsCommitted": true,
-  "note": "Project-authored minimal JSON fixtures cover every vendored historical Runtime line. They verify the isolated adapters and deterministic CPU render path; official editor exports, binary parity, and production texture coverage remain separate gaps.",
+  "note": "Project-authored minimal JSON fixtures cover every vendored historical Runtime line. Official 4.1 and 3.8 caches now verify JSON, binary, PNG, and (for 3.8) PMA loading through the offline scripts; other editor-export and production-renderer gaps remain explicit.",
   "officialCaches": [
     {
       "runtimeSelection": "4.1.00",
@@ -22,6 +22,37 @@
         "atlas": "FDC4BBC4BE5F1A638FA0FF384271007B1F2DF72855DD80B4B239BCFE8A4AC31E",
         "texture": "1932938CA3F4B97F59F2FE6AE8A84B3F27F420C038EC9687B8D2AB60281E9602",
         "license": "E10E34D4F3B31A4AD76FF08A3B2BD1581B74C1A143F096103A93EE4C16EF4857"
+      },
+      "legalStatus": "Official example cache; keep license.txt beside the files; do not commit binaries."
+    },
+    {
+      "runtimeSelection": "3.8.95",
+      "exportVersion": "3.8.55",
+      "sourceCommit": "8b4844bd4b193ba9e54487ed397a777993cbad56",
+      "path": "artifacts/official-v38/spineboy",
+      "downloadScript": "scripts/test-official-v38.ps1",
+      "files": {
+        "json": "spineboy-pro.json",
+        "binary": "spineboy-pro.skel",
+        "atlas": "spineboy.atlas",
+        "texture": "spineboy.png",
+        "pmaAtlas": "spineboy-pma.atlas",
+        "pmaTexture": "spineboy-pma.png",
+        "license": "license.txt"
+      },
+      "sha256": {
+        "json": "D794AE5ECC8F245929FEF6B6F5212CE511990FC7FFDBC3ED77422DB72AB3B14C",
+        "binary": "D36F8E97A113E7EC2B1C9E20A706B0A1464914A92C057DC5541C921A3EC4123C",
+        "atlas": "2A504910A91F8541D0FB1F83D80C07236EDC80888C95901953009E86E53A8147",
+        "texture": "42E3D9411F5CA02146908FD22081968267419E048D66FCC5C721315146E114F6",
+        "pmaAtlas": "829EE567E7E1652F8B3BB1BC0AC154B2CB4A603567F6CB1793544CDB0121AE66",
+        "pmaTexture": "329772025BC8B329FB9C94F6B0DEC5EB8BDBC0CD401291ADB24ABF327250D195",
+        "license": "E10E34D4F3B31A4AD76FF08A3B2BD1581B74C1A143F096103A93EE4C16EF4857"
+      },
+      "renderSha256": {
+        "json": "B3D532AB8CDB88016276292F19C68AE1534A709642042A6A22FB27DDF48631DA",
+        "binary": "4FFA23C7B2E31F1E4AAFEC3AE7440EEAD1F84BD365F4661C02424732535217F1",
+        "pma": "C51B19EEAC11D1C969657FEFF5560751F9938972072DCF38C0C08688EC8996DF"
       },
       "legalStatus": "Official example cache; keep license.txt beside the files; do not commit binaries."
     }

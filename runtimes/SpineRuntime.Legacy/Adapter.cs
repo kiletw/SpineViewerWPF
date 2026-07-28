@@ -51,7 +51,7 @@ internal static class RuntimeInfo { public const string Line = "3.7.94"; public 
 #elif SPINE_RUNTIME_3895
 using RuntimeSpine = Spine3_8_95;
 namespace SpineRuntime.V38_95;
-internal static class RuntimeInfo { public const string Line = "3.8.95"; public const string Prefix = "3.8.95"; public const string Commit = "3.8.95@3e93e2d"; }
+internal static class RuntimeInfo { public const string Line = "3.8.95"; public const string Prefix = "3.8"; public const string Commit = "3.8.95@3e93e2d"; }
 #elif SPINE_RUNTIME_4031
 using RuntimeSpine = Spine4_0_31;
 namespace SpineRuntime.V40_31;

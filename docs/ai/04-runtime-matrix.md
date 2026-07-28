@@ -2,7 +2,7 @@
 
 ## Status
 
-Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified. Project-authored JSON fixtures for every vendored line from 2.1.08 through 4.1 verify the isolated v3 adapters, deterministic CPU spike, and WPF static-preview integration. Test-generated PNG variants verify bounded 8-bit non-interlaced texture decoding and static rendering. TASK-009 verifies the official 4.1 `spineboy` JSON and binary example export through the CLI path. TASK-025 adds PMA compositing support; official PMA and multi-page atlas behavior remain unverified.
+Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified. Project-authored JSON fixtures for every vendored line from 2.1.08 through 4.1 verify the isolated v3 adapters, deterministic CPU spike, and WPF static-preview integration. Test-generated PNG variants verify bounded 8-bit non-interlaced texture decoding and static rendering. TASK-009 verifies the official 4.1 `spineboy` JSON and binary example export, and TASK-026 verifies the official 3.8.55 `spineboy` JSON/binary/PMA assets through the 3.8.95 adapter. Official multi-page atlas behavior remains unverified.
 
 All snapshots are compiled into the WPF project under version-specific namespaces. License headers identify Esoteric Software Runtime source. Same-name official tags and their current Git object IDs were verified with `git ls-remote` on 2026-07-26, but file-for-file equality has not been proven after local namespace/XNA changes.
 
@@ -18,7 +18,7 @@ All snapshots are compiled into the WPF project under version-specific namespace
 | 3.6.39 | `spine-runtimes-3.6.39` | `3.6.39` / `43f37ce` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
 | 3.6.53 | `spine-runtimes-3.6.53` | `3.6.53` / `a4a36d8` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
 | 3.7.94 | `spine-runtimes-3.7.94` | `3.7.94` / `45b8125` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
-| 3.8.95 | `spine-runtimes-3.8.95` | `3.8.95` / `3e93e2d` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.8.95 | `spine-runtimes-3.8.95` | `3.8.95` / `3e93e2d` | Yes | Yes | Present | TBD | Official 3.8.55 cache plus project-authored fixture | Official cache verified (JSON/Binary/PMA) |
 | 4.0.31 | `spine-runtimes-4.0.31` | `4.0.31` / `8770e31` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
 | 4.0.64 | `spine-runtimes-4.0.64` | `4.0.64` / `01524d4` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
 | 4.1.00 | `spine-runtimes-4.1.00` | `4.1.00` / `ab28b77` | Yes | Yes | Present | TBD | Synthetic fixture plus official `spineboy` JSON/binary export smoke | Prototype complete |
@@ -89,9 +89,17 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 - Verified behavior: auto-selection, explicit `4.0`/`4.0.64` selection, metadata inspect, deterministic 64 by 64 PNG render, and Application smoke coverage
 - Still unverified: official 4.0.64 Editor exports, binary `.skel`, official PMA fixture parity, clipping, non-normal blend modes, multi-page atlases, and production texture formats
 
+## v3 3.8.95 Compatibility Slice
+
+- Official cache: spine-runtimes 3.8 commit `8b4844bd4b193ba9e54487ed397a777993cbad56`.
+- Verified export: `3.8.55` JSON and binary spineboy example accepted by the 3.8.95 adapter.
+- Verified assets: normal atlas/PNG, PMA atlas/PNG, and the accompanying license file through `scripts/test-official-v38.ps1 -Offline`.
+- Verified behavior: explicit and automatic selection, 11 animations, `default` skin, deterministic 512 by 512 JSON/binary/PMA renders.
+- Known boundary: clipping and additive slots are present in the example but remain outside the bounded CPU spike's full visual-parity claim.
+
 ## v3 Historical Compatibility Slice
 
 - Isolated adapters now cover every vendored 2.1.08 through 4.0.31 line listed above, plus the existing 4.0.64 and 4.1.00 adapters.
 - Each historical line has a project-authored JSON/atlas/P3 fixture, explicit and automatic selection smoke coverage, and a deterministic 64 by 64 render hash.
-- Binary `.skel`, official editor-export parity, official PMA fixture parity, clipping, non-normal blend modes, multi-page atlases, and production texture formats remain unverified unless listed in the 4.1 official section. The CPU bridge accepts PMA requests, but this is not an official asset parity claim.
+- Binary `.skel`, official editor-export parity, official PMA fixture parity, clipping, non-normal blend modes, multi-page atlases, and production texture formats remain unverified unless listed in the 4.1 or 3.8 official sections. The 3.8 cache verifies the PMA load/render path, but the CPU bridge remains a bounded deterministic spike for clipping and additive content.
 - 4.2 and 4.3 remain unsupported because this repository contains no vendored source snapshot for either line.

@@ -8,7 +8,7 @@ The CLI validates that core capabilities are independent of WPF and provides a s
 
 `spineviewerwpf`
 
-TASK-001 implements `inspect` and `render` for Runtime 4.1; TASK-023 and TASK-024 extend both commands to all vendored fixture-backed lines from 2.1.08 through 4.1.00 with explicit or automatic Runtime selection. The other MVP commands remain planned.
+TASK-001 implements `inspect` and `render` for Runtime 4.1; TASK-023 and TASK-024 extend both commands to all vendored fixture-backed lines from 2.1.08 through 4.1.00, and TASK-026 verifies the official 3.8.55 JSON/binary/PMA cache through the 3.8.95 adapter. The other MVP commands remain planned.
 
 ## MVP Commands
 
