@@ -2,24 +2,24 @@
 
 ## Status
 
-Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified. Project-authored 4.0.64 and 4.1 JSON fixtures verify the v3 adapters, deterministic CPU spike, and WPF static-preview integration. Test-generated PNG variants verify bounded 8-bit non-interlaced texture decoding and static rendering. TASK-009 verifies the official 4.1 `spineboy` JSON and binary example export through the CLI path. PMA output and multi-page atlas behavior remain unverified.
+Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified. Project-authored JSON fixtures for every vendored line from 2.1.08 through 4.1 verify the isolated v3 adapters, deterministic CPU spike, and WPF static-preview integration. Test-generated PNG variants verify bounded 8-bit non-interlaced texture decoding and static rendering. TASK-009 verifies the official 4.1 `spineboy` JSON and binary example export through the CLI path. PMA output and multi-page atlas behavior remain unverified.
 
 All snapshots are compiled into the WPF project under version-specific namespaces. License headers identify Esoteric Software Runtime source. Same-name official tags and their current Git object IDs were verified with `git ls-remote` on 2026-07-26, but file-for-file equality has not been proven after local namespace/XNA changes.
 
 | v2 selection | Vendored directory | Official tag candidate | JSON path | Binary path | PMA path | Multi-page | Fixture | v3 priority |
 |---|---|---|---:|---:|---:|---:|---|---|
-| 2.1.08 | `spine-runtimes-2.1.08` | `2.1.08` / `39ce4b2` | Yes | No | Present | TBD | Missing | Later |
-| 2.1.25 | `spine-runtimes-2.1.25` | `2.1.25` / `142e770` | Yes | Yes | Present | TBD | Missing | Later |
-| 3.1.07 | `spine-runtimes-3.1.07` | `3.1.07` / `e74b61e` | Yes | Yes | Present | TBD | Missing | Later |
-| 3.2.xx | `spine-runtimes-3.2.xx` | TBD; no exact tag identified | Yes | Yes | Present | TBD | Missing | Later |
-| 3.4.02 | `spine-runtimes-3.4.02` | `3.4.02` / `ef50131` | Yes | Yes | Present | TBD | Missing | Later |
-| 3.5.51 | `spine-runtimes-3.5.51` | `3.5.51` / `2cd9467` | Yes | Yes | Present | TBD | Missing | Later |
-| 3.6.32 | `spine-runtimes-3.6.32` | `3.6.32` / `283f63b` | Yes | Yes | Present | TBD | Missing | Later |
-| 3.6.39 | `spine-runtimes-3.6.39` | `3.6.39` / `43f37ce` | Yes | Yes | Present | TBD | Missing | Later |
-| 3.6.53 | `spine-runtimes-3.6.53` | `3.6.53` / `a4a36d8` | Yes | Yes | Present | TBD | Missing | Later |
-| 3.7.94 | `spine-runtimes-3.7.94` | `3.7.94` / `45b8125` | Yes | Yes | Present | TBD | Missing | Later |
-| 3.8.95 | `spine-runtimes-3.8.95` | `3.8.95` / `3e93e2d` | Yes | Yes | Present | TBD | Missing | Second |
-| 4.0.31 | `spine-runtimes-4.0.31` | `4.0.31` / `8770e31` | Yes | Yes | Present | TBD | Missing | Second |
+| 2.1.08 | `spine-runtimes-2.1.08` | `2.1.08` / `39ce4b2` | Yes | No | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 2.1.25 | `spine-runtimes-2.1.25` | `2.1.25` / `142e770` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.1.07 | `spine-runtimes-3.1.07` | `3.1.07` / `e74b61e` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.2.xx | `spine-runtimes-3.2.xx` | TBD; no exact tag identified | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.4.02 | `spine-runtimes-3.4.02` | `3.4.02` / `ef50131` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.5.51 | `spine-runtimes-3.5.51` | `3.5.51` / `2cd9467` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.6.32 | `spine-runtimes-3.6.32` | `3.6.32` / `283f63b` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.6.39 | `spine-runtimes-3.6.39` | `3.6.39` / `43f37ce` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.6.53 | `spine-runtimes-3.6.53` | `3.6.53` / `a4a36d8` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.7.94 | `spine-runtimes-3.7.94` | `3.7.94` / `45b8125` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.8.95 | `spine-runtimes-3.8.95` | `3.8.95` / `3e93e2d` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 4.0.31 | `spine-runtimes-4.0.31` | `4.0.31` / `8770e31` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
 | 4.0.64 | `spine-runtimes-4.0.64` | `4.0.64` / `01524d4` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
 | 4.1.00 | `spine-runtimes-4.1.00` | `4.1.00` / `ab28b77` | Yes | Yes | Present | TBD | Synthetic fixture plus official `spineboy` JSON/binary export smoke | Prototype complete |
 | 4.2 | none | none | No | No | No | No | Missing | Future |
@@ -88,3 +88,10 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 - Verified input: project-authored JSON, atlas, and P3 PPM texture under `tests/fixtures/v40-minimal`
 - Verified behavior: auto-selection, explicit `4.0`/`4.0.64` selection, metadata inspect, deterministic 64 by 64 PNG render, and Application smoke coverage
 - Still unverified: official 4.0.64 Editor exports, binary `.skel`, PMA, clipping, non-normal blend modes, multi-page atlases, and production texture formats
+
+## v3 Historical Compatibility Slice
+
+- Isolated adapters now cover every vendored 2.1.08 through 4.0.31 line listed above, plus the existing 4.0.64 and 4.1.00 adapters.
+- Each historical line has a project-authored JSON/atlas/P3 fixture, explicit and automatic selection smoke coverage, and a deterministic 64 by 64 render hash.
+- Binary `.skel`, official editor-export parity, PMA, clipping, non-normal blend modes, multi-page atlases, and production texture formats remain unverified unless listed in the 4.1 official section.
+- 4.2 and 4.3 remain unsupported because this repository contains no vendored source snapshot for either line.

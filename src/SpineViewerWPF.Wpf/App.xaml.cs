@@ -97,7 +97,16 @@ public partial class App : System.Windows.Application
                 !e.Args.Contains("--compact", StringComparer.OrdinalIgnoreCase),
                 new ViewerProjectStore(),
                 ChooseProjectPath,
-                new AssetService(new IRuntimeAdapter[] { new SpineV40Adapter(), new SpineV41Adapter() }),
+                new AssetService(new IRuntimeAdapter[]
+                {
+                    new SpineRuntime.V21_08.LegacyRuntimeAdapter(), new SpineRuntime.V21_25.LegacyRuntimeAdapter(),
+                    new SpineRuntime.V31_07.LegacyRuntimeAdapter(), new SpineRuntime.V32.LegacyRuntimeAdapter(),
+                    new SpineRuntime.V34_02.LegacyRuntimeAdapter(), new SpineRuntime.V35_51.LegacyRuntimeAdapter(),
+                    new SpineRuntime.V36_32.LegacyRuntimeAdapter(), new SpineRuntime.V36_39.LegacyRuntimeAdapter(),
+                    new SpineRuntime.V36_53.LegacyRuntimeAdapter(), new SpineRuntime.V37_94.LegacyRuntimeAdapter(),
+                    new SpineRuntime.V38_95.LegacyRuntimeAdapter(), new SpineRuntime.V40_31.LegacyRuntimeAdapter(),
+                    new SpineV40Adapter(), new SpineV41Adapter()
+                }),
                 ChooseAssetPath,
                 ConfirmDiscardChanges,
                 chooseScreenshotPath: ChooseScreenshotPath,

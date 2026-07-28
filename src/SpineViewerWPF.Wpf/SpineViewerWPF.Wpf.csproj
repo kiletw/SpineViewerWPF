@@ -11,5 +11,17 @@
     <ProjectReference Include="../SpineViewerWPF.Application/SpineViewerWPF.Application.csproj" />
     <ProjectReference Include="../../runtimes/SpineRuntime.V40/SpineRuntime.V40.csproj" />
     <ProjectReference Include="../../runtimes/SpineRuntime.V41/SpineRuntime.V41.csproj" />
+    <ProjectReference Include="../../runtimes/SpineRuntime.V21_08/SpineRuntime.V21_08.csproj" />
+    <ProjectReference Include="../../runtimes/SpineRuntime.V21_25/SpineRuntime.V21_25.csproj" />
+    <ProjectReference Include="../../runtimes/SpineRuntime.V31_07/SpineRuntime.V31_07.csproj" />
+    <ProjectReference Include="../../runtimes/SpineRuntime.V32/SpineRuntime.V32.csproj" />
+    <ProjectReference Include="../../runtimes/SpineRuntime.V34_02/SpineRuntime.V34_02.csproj" />
+    <ProjectReference Include="../../runtimes/SpineRuntime.V35_51/SpineRuntime.V35_51.csproj" />
+    <ProjectReference Include="../../runtimes/SpineRuntime.V36_32/SpineRuntime.V36_32.csproj" />
+    <ProjectReference Include="../../runtimes/SpineRuntime.V36_39/SpineRuntime.V36_39.csproj" />
+    <ProjectReference Include="../../runtimes/SpineRuntime.V36_53/SpineRuntime.V36_53.csproj" />
+    <ProjectReference Include="../../runtimes/SpineRuntime.V37_94/SpineRuntime.V37_94.csproj" />
+    <ProjectReference Include="../../runtimes/SpineRuntime.V38_95/SpineRuntime.V38_95.csproj" />
+    <ProjectReference Include="../../runtimes/SpineRuntime.V40_31/SpineRuntime.V40_31.csproj" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net8.0</TargetFramework><ImplicitUsings>disable</ImplicitUsings><Nullable>disable</Nullable><EnableDefaultCompileItems>false</EnableDefaultCompileItems><DefineConstants>$(DefineConstants);SPINE_LEGACY;SPINE_RUNTIME_3895</DefineConstants></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../SpineViewerWPF/SpineLibrary/spine-runtimes-3.8.95/*.cs" /><Compile Include="../../SpineViewerWPF/SpineLibrary/spine-runtimes-3.8.95/Attachments/*.cs" /><Compile Include="../../SpineViewerWPF/SpineLibrary/spine-runtimes-3.8.95/Collections/*.cs" />
+    <Compile Include="../SpineRuntime.Legacy/Adapter.cs" Link="Adapter.cs" /><Compile Include="../SpineRuntime.V41/CpuRenderer.cs" Link="CpuRenderer.cs" /><Compile Include="../SpineRuntime.V41/PngReader.cs" Link="PngReader.cs" /><Compile Include="../SpineRuntime.V41/PngWriter.cs" Link="PngWriter.cs" /><Compile Include="../SpineRuntime.V40/SharpJson.cs" Link="SharpJson.cs" />
+    <ProjectReference Include="../../src/SpineViewerWPF.Application/SpineViewerWPF.Application.csproj" />
+  </ItemGroup>
+</Project>

@@ -75,9 +75,37 @@ if ($v40Hash -ne 'E16719DD53FB8CACED7D8C28E4BDD50DBEB8812483B041EC640913C13C09D2
     throw '4.0 rendered PNG does not match the recorded baseline.'
 }
 
+$historical = @(
+    @('v21_08-minimal', '2.1.08'), @('v21_25-minimal', '2.1.25'),
+    @('v31_07-minimal', '3.1.07'), @('v32-minimal', '3.2.xx'),
+    @('v34_02-minimal', '3.4.02'), @('v35_51-minimal', '3.5.51'),
+    @('v36_32-minimal', '3.6.32'), @('v36_39-minimal', '3.6.39'),
+    @('v36_53-minimal', '3.6.53'), @('v37_94-minimal', '3.7.94'),
+    @('v38_95-minimal', '3.8.95'), @('v40_31-minimal', '4.0.31')
+)
+foreach ($entry in $historical) {
+    $name = $entry[0]
+    $runtime = $entry[1]
+    $historicalSkeleton = Join-Path $repository "tests\fixtures\$name\minimal.json"
+    $explicit = & dotnet run --project $project -c Release --no-build -- inspect $historicalSkeleton --runtime $runtime --format json | ConvertFrom-Json
+    if ($LASTEXITCODE -ne 0 -or $explicit.runtime.selectedLine -ne $runtime) { throw "$runtime explicit inspect failed." }
+    $automatic = & dotnet run --project $project -c Release --no-build -- inspect $historicalSkeleton --format json | ConvertFrom-Json
+    if ($LASTEXITCODE -ne 0 -or $automatic.runtime.selectedLine -ne $runtime) { throw "$runtime automatic inspect failed." }
+    $historicalFirst = Join-Path $artifacts "$name-a.png"
+    $historicalSecond = Join-Path $artifacts "$name-b.png"
+    foreach ($output in @($historicalFirst, $historicalSecond)) {
+        & dotnet run --project $project -c Release --no-build -- render $historicalSkeleton --runtime $runtime --animation move --time 0.5 --width 64 --height 64 --output $output --overwrite | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "$runtime render failed." }
+    }
+    if ((Get-FileHash -LiteralPath $historicalFirst -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $historicalSecond -Algorithm SHA256).Hash) {
+        throw "$runtime rendered PNG is not deterministic."
+    }
+}
+
 [pscustomobject]@{
     Inspect = 'passed'
     Render = 'passed'
     Sha256 = $firstHash
     Runtime40 = 'passed'
+    HistoricalRuntimes = $historical.Count
 }

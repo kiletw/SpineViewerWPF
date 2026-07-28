@@ -1,0 +1,12 @@
+minimal.ppm
+size: 2, 2
+format: RGBA8888
+filter: Nearest, Nearest
+repeat: none
+square
+rotate: false
+xy: 0, 0
+size: 2, 2
+orig: 2, 2
+offset: 0, 0
+index: -1

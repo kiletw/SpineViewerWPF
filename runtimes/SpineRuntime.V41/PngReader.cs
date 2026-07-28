@@ -6,6 +6,8 @@ using System.Text;
 
 #if SPINE_V40
 namespace SpineRuntime.V40;
+#elif SPINE_LEGACY
+namespace SpineRuntime.Legacy;
 #else
 namespace SpineRuntime.V41;
 #endif

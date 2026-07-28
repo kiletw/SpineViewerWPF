@@ -6,6 +6,14 @@ $xaml = Join-Path $repository 'src\SpineViewerWPF.Wpf\MainWindow.xaml'
 $output = Join-Path $repository 'artifacts\ui-shell-smoke'
 $executable = Join-Path $output 'bin\Release\net8.0-windows\SpineViewerWPF.exe'
 
+# Clear only a stale copy of this smoke executable before MSBuild tries to replace its DLLs.
+Get-Process -ErrorAction SilentlyContinue |
+    Where-Object { $_.Path -eq $executable } |
+    ForEach-Object {
+        $_.CloseMainWindow() | Out-Null
+        if (-not $_.WaitForExit(1000)) { Stop-Process -Id $_.Id -Force }
+    }
+
 $buildMutex = [Threading.Mutex]::new($false, 'SpineViewerWPF.Build')
 $buildHeld = $false
 try {

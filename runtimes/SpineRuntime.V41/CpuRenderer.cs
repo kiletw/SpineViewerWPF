@@ -5,6 +5,35 @@ using System.Linq;
 #if SPINE_V40
 using Spine4_0_64;
 namespace SpineRuntime.V40;
+#elif SPINE_LEGACY
+#if SPINE_RUNTIME_2108
+using Spine2_1_08;
+#elif SPINE_RUNTIME_2125
+using Spine2_1_25;
+#elif SPINE_RUNTIME_3107
+using Spine3_1_07;
+#elif SPINE_RUNTIME_32XX
+using Spine3_2_xx;
+#elif SPINE_RUNTIME_3402
+using Spine3_4_02;
+#elif SPINE_RUNTIME_3551
+using Spine3_5_51;
+#elif SPINE_RUNTIME_3632
+using Spine3_6_32;
+#elif SPINE_RUNTIME_3639
+using Spine3_6_39;
+#elif SPINE_RUNTIME_3653
+using Spine3_6_53;
+#elif SPINE_RUNTIME_3794
+using Spine3_7_94;
+#elif SPINE_RUNTIME_3895
+using Spine3_8_95;
+#elif SPINE_RUNTIME_4031
+using Spine4_0_31;
+#else
+#error A legacy Spine namespace symbol is required.
+#endif
+namespace SpineRuntime.Legacy;
 #else
 using Spine;
 namespace SpineRuntime.V41;
@@ -69,7 +98,11 @@ internal static class CpuRenderer
 
         var pixels = new Pixel[width * height];
         var boundsBuffer = Array.Empty<float>();
+#if SPINE_LEGACY_NO_BOUNDS
+        GetBounds(skeleton, out var boundsX, out var boundsY, out var boundsWidth, out var boundsHeight);
+#else
         skeleton.GetBounds(out var boundsX, out var boundsY, out var boundsWidth, out var boundsHeight, ref boundsBuffer);
+#endif
         var hasBounds = float.IsFinite(boundsX) && float.IsFinite(boundsY)
             && float.IsFinite(boundsWidth) && float.IsFinite(boundsHeight)
             && boundsWidth > 0 && boundsHeight > 0;
@@ -83,19 +116,27 @@ internal static class CpuRenderer
         foreach (var slot in skeleton.DrawOrder)
         {
             if (slot.Attachment is null) continue;
+#if !SPINE_LEGACY_NO_BLEND
+#if SPINE_LEGACY_LOWER_BLEND
+            if (slot.Data.BlendMode != BlendMode.normal)
+#else
             if (slot.Data.BlendMode != BlendMode.Normal)
+#endif
                 throw new NotSupportedException($"Blend mode '{slot.Data.BlendMode}' is not supported.");
+#endif
 
             switch (slot.Attachment)
             {
                 case RegionAttachment region:
                 {
                     var positions = new float[8];
-                    #if SPINE_V40
+#if SPINE_LEGACY && SPINE_LEGACY_SHORT
+                    region.ComputeWorldVertices(slot.Bone, positions);
+#elif SPINE_V40 || SPINE_LEGACY
                     region.ComputeWorldVertices(slot.Bone, positions, 0);
-                    #else
+#else
                     region.ComputeWorldVertices(slot, positions, 0);
-                    #endif
+#endif
                     Draw(
                         pixels, width, height, positions, region.UVs, QuadTriangles,
                         GetTexture(region),
@@ -108,8 +149,12 @@ internal static class CpuRenderer
                 }
                 case MeshAttachment mesh:
                 {
+#if SPINE_LEGACY && SPINE_LEGACY_OLD_MESH
+                    var positions = new float[mesh.Vertices.Length];
+#else
                     var positions = new float[mesh.WorldVerticesLength];
-                    mesh.ComputeWorldVertices(slot, 0, positions.Length, positions, 0);
+#endif
+                    mesh.ComputeWorldVertices(slot, positions);
                     Draw(
                         pixels, width, height, positions, mesh.UVs, mesh.Triangles,
                         GetTexture(mesh),
@@ -120,8 +165,10 @@ internal static class CpuRenderer
                         viewCenterX, viewCenterY, viewScale);
                     break;
                 }
+#if !SPINE_LEGACY_NO_CLIPPING
                 case ClippingAttachment:
                     throw new NotSupportedException("Clipping attachments are not supported by this CPU renderer spike.");
+#endif
             }
         }
 
@@ -129,6 +176,16 @@ internal static class CpuRenderer
     }
 
 #if SPINE_V40
+    private static TextureData GetTexture(RegionAttachment attachment) =>
+        attachment.RendererObject is AtlasRegion { page.rendererObject: TextureData texture }
+            ? texture
+            : throw new InvalidDataException("Attachment has no loaded atlas texture.");
+
+    private static TextureData GetTexture(MeshAttachment attachment) =>
+        attachment.RendererObject is AtlasRegion { page.rendererObject: TextureData texture }
+            ? texture
+            : throw new InvalidDataException("Attachment has no loaded atlas texture.");
+#elif SPINE_LEGACY
     private static TextureData GetTexture(RegionAttachment attachment) =>
         attachment.RendererObject is AtlasRegion { page.rendererObject: TextureData texture }
             ? texture
@@ -146,6 +203,62 @@ internal static class CpuRenderer
         region is AtlasRegion { page.rendererObject: TextureData texture }
             ? texture
             : throw new InvalidDataException("Attachment has no loaded atlas texture.");
+#endif
+
+#if SPINE_LEGACY_NO_BOUNDS
+    private static void GetBounds(Skeleton skeleton, out float x, out float y, out float width, out float height)
+    {
+        x = float.PositiveInfinity;
+        y = float.PositiveInfinity;
+        var maxX = float.NegativeInfinity;
+        var maxY = float.NegativeInfinity;
+        foreach (var slot in skeleton.DrawOrder)
+        {
+            switch (slot.Attachment)
+            {
+                case RegionAttachment region:
+                {
+                    var positions = new float[8];
+#if SPINE_LEGACY_SHORT
+                    region.ComputeWorldVertices(slot.Bone, positions);
+#else
+                    region.ComputeWorldVertices(slot.Bone, positions, 0);
+#endif
+                    Accumulate(positions, ref x, ref y, ref maxX, ref maxY);
+                    break;
+                }
+                case MeshAttachment mesh:
+                {
+#if SPINE_LEGACY_OLD_MESH
+                    var positions = new float[mesh.Vertices.Length];
+#else
+                    var positions = new float[mesh.WorldVerticesLength];
+#endif
+                    mesh.ComputeWorldVertices(slot, positions);
+                    Accumulate(positions, ref x, ref y, ref maxX, ref maxY);
+                    break;
+                }
+            }
+        }
+        if (!float.IsFinite(x) || !float.IsFinite(y) || !float.IsFinite(maxX) || !float.IsFinite(maxY))
+        {
+            x = y = width = height = 0;
+            return;
+        }
+        width = maxX - x;
+        height = maxY - y;
+    }
+
+    private static void Accumulate(float[] positions, ref float minX, ref float minY, ref float maxX, ref float maxY)
+    {
+        for (var i = 0; i + 1 < positions.Length; i += 2)
+        {
+            minX = MathF.Min(minX, positions[i]);
+            minY = MathF.Min(minY, positions[i + 1]);
+            maxX = MathF.Max(maxX, positions[i]);
+            maxY = MathF.Max(maxY, positions[i + 1]);
+        }
+    }
 #endif
 
     private static void Draw(

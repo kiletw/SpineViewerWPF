@@ -7,6 +7,18 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Windows.Threading;
 
+var dispatcher = Dispatcher.CurrentDispatcher;
+SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(dispatcher));
+var smokeFrame = new DispatcherFrame();
+var smokeTask = RunSmokeAsync();
+_ = smokeTask.ContinueWith(
+    _ => dispatcher.BeginInvoke(new Action(() => smokeFrame.Continue = false)),
+    TaskScheduler.Default);
+Dispatcher.PushFrame(smokeFrame);
+smokeTask.GetAwaiter().GetResult();
+
+static async Task RunSmokeAsync()
+{
 var root = Path.Combine(Path.GetTempPath(), $"SpineViewerWPF-{Guid.NewGuid():N}");
 Directory.CreateDirectory(root);
 
@@ -40,7 +52,16 @@ try
     Assert(store.Load(uiProject).SelectedAnimation == "walk", "UI edit was not saved.");
 
     var fixtureDirectory = Path.Combine(Directory.GetCurrentDirectory(), "tests", "fixtures", "v41-minimal");
-    var assetService = new AssetService(new IRuntimeAdapter[] { new SpineV40Adapter(), new SpineV41Adapter() });
+    var assetService = new AssetService(new IRuntimeAdapter[]
+    {
+        new SpineRuntime.V21_08.LegacyRuntimeAdapter(), new SpineRuntime.V21_25.LegacyRuntimeAdapter(),
+        new SpineRuntime.V31_07.LegacyRuntimeAdapter(), new SpineRuntime.V32.LegacyRuntimeAdapter(),
+        new SpineRuntime.V34_02.LegacyRuntimeAdapter(), new SpineRuntime.V35_51.LegacyRuntimeAdapter(),
+        new SpineRuntime.V36_32.LegacyRuntimeAdapter(), new SpineRuntime.V36_39.LegacyRuntimeAdapter(),
+        new SpineRuntime.V36_53.LegacyRuntimeAdapter(), new SpineRuntime.V37_94.LegacyRuntimeAdapter(),
+        new SpineRuntime.V38_95.LegacyRuntimeAdapter(), new SpineRuntime.V40_31.LegacyRuntimeAdapter(),
+        new SpineV40Adapter(), new SpineV41Adapter()
+    });
     var discovered = assetService.Inspect(Path.Combine(fixtureDirectory, "minimal.json"), null, null);
     Assert(discovered.Asset.AtlasPath == Path.GetFullPath(Path.Combine(fixtureDirectory, "minimal.atlas")), "Same-stem atlas discovery failed.");
     var v40Directory = Path.Combine(Directory.GetCurrentDirectory(), "tests", "fixtures", "v40-minimal");
@@ -53,6 +74,29 @@ try
         assetService.Render(v40Skeleton, null, "4.0.64", "move", 0.5f, 64, 64, output, true, false, ["default"]);
     Assert(File.ReadAllBytes(v40First).SequenceEqual(File.ReadAllBytes(v40Second)), "4.0.64 render was not deterministic.");
     Expect<NotSupportedException>(() => assetService.Inspect(v40Skeleton, null, "4.1"));
+    var historicalFixtures = new[]
+    {
+        (Directory: "v21_08-minimal", Runtime: "2.1.08"), (Directory: "v21_25-minimal", Runtime: "2.1.25"),
+        (Directory: "v31_07-minimal", Runtime: "3.1.07"), (Directory: "v32-minimal", Runtime: "3.2.xx"),
+        (Directory: "v34_02-minimal", Runtime: "3.4.02"), (Directory: "v35_51-minimal", Runtime: "3.5.51"),
+        (Directory: "v36_32-minimal", Runtime: "3.6.32"), (Directory: "v36_39-minimal", Runtime: "3.6.39"),
+        (Directory: "v36_53-minimal", Runtime: "3.6.53"), (Directory: "v37_94-minimal", Runtime: "3.7.94"),
+        (Directory: "v38_95-minimal", Runtime: "3.8.95"), (Directory: "v40_31-minimal", Runtime: "4.0.31")
+    };
+    foreach (var fixture in historicalFixtures)
+    {
+        var directory = Path.Combine(Directory.GetCurrentDirectory(), "tests", "fixtures", fixture.Directory);
+        var skeletonPath = Path.Combine(directory, "minimal.json");
+        var inspection = assetService.Inspect(skeletonPath, null, fixture.Runtime);
+        Assert(inspection.Runtime.SelectedLine == fixture.Runtime, $"{fixture.Runtime} Runtime selection failed.");
+        var autoInspection = assetService.Inspect(skeletonPath, null, null);
+        Assert(autoInspection.Runtime.SelectedLine == fixture.Runtime, $"{fixture.Runtime} automatic Runtime selection failed.");
+        var first = Path.Combine(root, $"{fixture.Directory}-a.png");
+        var second = Path.Combine(root, $"{fixture.Directory}-b.png");
+        assetService.Render(skeletonPath, null, fixture.Runtime, "move", 0.5f, 64, 64, first, true, false, ["default"]);
+        assetService.Render(skeletonPath, null, fixture.Runtime, "move", 0.5f, 64, 64, second, true, false, ["default"]);
+        Assert(File.ReadAllBytes(first).SequenceEqual(File.ReadAllBytes(second)), $"{fixture.Runtime} render was not deterministic.");
+    }
     var ambiguousDirectory = Path.Combine(root, "ambiguous-atlas");
     Directory.CreateDirectory(ambiguousDirectory);
     File.Copy(Path.Combine(fixtureDirectory, "minimal.json"), Path.Combine(ambiguousDirectory, "scene.json"));
@@ -227,12 +271,16 @@ try
     realViewModel.IsPlaying = false;
     realViewModel.IsPlaying = true;
     var playbackBefore = SHA256.HashData(File.ReadAllBytes(pngPreviewPath));
+    var playbackDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
     var frame = new DispatcherFrame();
-    var stopFrame = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
+    var stopFrame = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(10) };
     stopFrame.Tick += (_, _) =>
     {
-        stopFrame.Stop();
-        frame.Continue = false;
+        if (realViewModel.Position > 0 || DateTime.UtcNow >= playbackDeadline)
+        {
+            stopFrame.Stop();
+            frame.Continue = false;
+        }
     };
     stopFrame.Start();
     Dispatcher.PushFrame(frame);
@@ -340,6 +388,7 @@ try
 finally
 {
     Directory.Delete(root, true);
+}
 }
 
 static void Assert(bool condition, string message)
