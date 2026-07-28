@@ -49,12 +49,13 @@ example cache without committing redistributable binary assets.
 
 ### Known gaps
 
-- The official 3.8 example contains clipping/additive content; the current CPU
-  bridge intentionally remains a bounded deterministic spike and does not claim
-  full visual parity for those features.
+- The official 3.8 example contains clipping/additive definitions. TASK-027 now
+  provides bounded CPU handling for those runtime features, but this cache is
+  not a feature-isolated visual-parity fixture.
 - Official caches stay local under `artifacts/` and are not committed.
 
 ### Recommended next task
 
 Use the same pinned-cache pattern for the highest-demand remaining line, then
-implement clipping and non-normal blend support in the renderer.
+add feature-isolated clipping/blend fixtures if full visual parity becomes a
+release requirement.

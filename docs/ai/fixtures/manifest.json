@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "repositoryBaseline": "kiletw/SpineViewerWPF@79c6135",
   "assetsCommitted": true,
-  "note": "Project-authored minimal JSON fixtures cover every vendored historical Runtime line. Official 4.1 and 3.8 caches now verify JSON, binary, PNG, and (for 3.8) PMA loading through the offline scripts; other editor-export and production-renderer gaps remain explicit.",
+  "note": "Project-authored minimal JSON fixtures cover every vendored historical Runtime line. Official 4.1 and 3.8 caches now verify JSON, binary, PNG, and (for 3.8) PMA loading through the offline scripts. The shared CPU bridge includes bounded premultiplied-alpha, clipping, and slot blend handling; feature-isolated visual parity and production-renderer gaps remain explicit.",
   "officialCaches": [
     {
       "runtimeSelection": "4.1.00",

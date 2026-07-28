@@ -41,6 +41,14 @@ namespace SpineRuntime.V41;
 
 internal readonly record struct Pixel(byte R, byte G, byte B, byte A);
 
+internal enum CompositeMode
+{
+    Normal,
+    Additive,
+    Multiply,
+    Screen
+}
+
 internal sealed class TextureData
 {
     internal TextureData(int width, int height, Pixel[] pixels)
@@ -111,17 +119,26 @@ internal static class CpuRenderer
         if (!float.IsFinite(viewScale) || viewScale <= 0) viewScale = 1;
         var viewCenterX = shouldFit ? boundsX + boundsWidth / 2 : 0;
         var viewCenterY = shouldFit ? boundsY + boundsHeight / 2 : 0;
+#if !SPINE_LEGACY_NO_CLIPPING
+        var clipper = new SkeletonClipping();
+#endif
         foreach (var slot in skeleton.DrawOrder)
         {
-            if (slot.Attachment is null) continue;
-#if !SPINE_LEGACY_NO_BLEND
-#if SPINE_LEGACY_LOWER_BLEND
-            if (slot.Data.BlendMode != BlendMode.normal)
-#else
-            if (slot.Data.BlendMode != BlendMode.Normal)
+            if (slot.Attachment is null)
+            {
+#if !SPINE_LEGACY_NO_CLIPPING
+                clipper.ClipEnd(slot);
 #endif
-                throw new NotSupportedException($"Blend mode '{slot.Data.BlendMode}' is not supported.");
+                continue;
+            }
+#if !SPINE_LEGACY_NO_CLIPPING
+            if (slot.Attachment is ClippingAttachment clippingAttachment)
+            {
+                clipper.ClipStart(slot, clippingAttachment);
+                continue;
+            }
 #endif
+            var compositeMode = GetCompositeMode(slot);
 
             switch (slot.Attachment)
             {
@@ -135,14 +152,18 @@ internal static class CpuRenderer
 #else
                     region.ComputeWorldVertices(slot, positions, 0);
 #endif
-                    Draw(
+#if !SPINE_LEGACY_NO_CLIPPING
+                    DrawAttachment(clipper,
+#else
+                    DrawAttachment(
+#endif
                         pixels, width, height, positions, region.UVs, QuadTriangles,
                         GetTexture(region),
                         skeleton.R * slot.R * region.R,
                         skeleton.G * slot.G * region.G,
                         skeleton.B * slot.B * region.B,
                         skeleton.A * slot.A * region.A,
-                        viewCenterX, viewCenterY, viewScale, pma);
+                        viewCenterX, viewCenterY, viewScale, compositeMode, pma);
                     break;
                 }
                 case MeshAttachment mesh:
@@ -153,21 +174,24 @@ internal static class CpuRenderer
                     var positions = new float[mesh.WorldVerticesLength];
 #endif
                     mesh.ComputeWorldVertices(slot, positions);
-                    Draw(
+#if !SPINE_LEGACY_NO_CLIPPING
+                    DrawAttachment(clipper,
+#else
+                    DrawAttachment(
+#endif
                         pixels, width, height, positions, mesh.UVs, mesh.Triangles,
                         GetTexture(mesh),
                         skeleton.R * slot.R * mesh.R,
                         skeleton.G * slot.G * mesh.G,
                         skeleton.B * slot.B * mesh.B,
                         skeleton.A * slot.A * mesh.A,
-                        viewCenterX, viewCenterY, viewScale, pma);
+                        viewCenterX, viewCenterY, viewScale, compositeMode, pma);
                     break;
                 }
-#if !SPINE_LEGACY_NO_CLIPPING
-                case ClippingAttachment:
-                    throw new NotSupportedException("Clipping attachments are not supported by this CPU renderer spike.");
-#endif
             }
+#if !SPINE_LEGACY_NO_CLIPPING
+            clipper.ClipEnd(slot);
+#endif
         }
 
         PngWriter.Write(outputPath, width, height, pixels, overwrite);
@@ -259,7 +283,33 @@ internal static class CpuRenderer
     }
 #endif
 
-    private static void Draw(
+    private static CompositeMode GetCompositeMode(Slot slot)
+    {
+#if SPINE_LEGACY_NO_BLEND
+        return CompositeMode.Normal;
+#elif SPINE_LEGACY_LOWER_BLEND
+        return slot.Data.BlendMode switch
+        {
+            BlendMode.additive => CompositeMode.Additive,
+            BlendMode.multiply => CompositeMode.Multiply,
+            BlendMode.screen => CompositeMode.Screen,
+            _ => CompositeMode.Normal
+        };
+#else
+        return slot.Data.BlendMode switch
+        {
+            BlendMode.Additive => CompositeMode.Additive,
+            BlendMode.Multiply => CompositeMode.Multiply,
+            BlendMode.Screen => CompositeMode.Screen,
+            _ => CompositeMode.Normal
+        };
+#endif
+    }
+
+    private static void DrawAttachment(
+#if !SPINE_LEGACY_NO_CLIPPING
+        SkeletonClipping clipper,
+#endif
         Pixel[] target,
         int width,
         int height,
@@ -274,9 +324,57 @@ internal static class CpuRenderer
         float viewCenterX,
         float viewCenterY,
         float viewScale,
+        CompositeMode compositeMode,
         bool pma)
     {
-        var vertices = new Vertex[positions.Length / 2];
+#if !SPINE_LEGACY_NO_CLIPPING
+        var isClipping =
+#if SPINE_RUNTIME_3632 || SPINE_RUNTIME_3639
+            clipper.IsClipping();
+#else
+            clipper.IsClipping;
+#endif
+        if (isClipping)
+        {
+            clipper.ClipTriangles(positions, positions.Length, triangles, triangles.Length, uvs);
+            Draw(
+                target, width, height,
+                clipper.ClippedVertices.Items, clipper.ClippedVertices.Count,
+                clipper.ClippedUVs.Items,
+                clipper.ClippedTriangles.Items, clipper.ClippedTriangles.Count,
+                texture, tintR, tintG, tintB, tintA,
+                viewCenterX, viewCenterY, viewScale, compositeMode, pma);
+            return;
+        }
+#endif
+        Draw(
+            target, width, height,
+            positions, positions.Length, uvs, triangles, triangles.Length,
+            texture, tintR, tintG, tintB, tintA,
+            viewCenterX, viewCenterY, viewScale, compositeMode, pma);
+    }
+
+    private static void Draw(
+        Pixel[] target,
+        int width,
+        int height,
+        float[] positions,
+        int positionsLength,
+        float[] uvs,
+        int[] triangles,
+        int trianglesLength,
+        TextureData texture,
+        float tintR,
+        float tintG,
+        float tintB,
+        float tintA,
+        float viewCenterX,
+        float viewCenterY,
+        float viewScale,
+        CompositeMode compositeMode,
+        bool pma)
+    {
+        var vertices = new Vertex[positionsLength / 2];
         for (var i = 0; i < vertices.Length; i++)
             vertices[i] = new Vertex(
                 width / 2f + (positions[i * 2] - viewCenterX) * viewScale,
@@ -284,8 +382,8 @@ internal static class CpuRenderer
                 uvs[i * 2],
                 uvs[i * 2 + 1]);
 
-        for (var i = 0; i < triangles.Length; i += 3)
-            Rasterize(target, width, height, vertices[triangles[i]], vertices[triangles[i + 1]], vertices[triangles[i + 2]], texture, tintR, tintG, tintB, tintA, pma);
+        for (var i = 0; i < trianglesLength; i += 3)
+            Rasterize(target, width, height, vertices[triangles[i]], vertices[triangles[i + 1]], vertices[triangles[i + 2]], texture, tintR, tintG, tintB, tintA, compositeMode, pma);
     }
 
     private static void Rasterize(
@@ -300,6 +398,7 @@ internal static class CpuRenderer
         float tintG,
         float tintB,
         float tintA,
+        CompositeMode compositeMode,
         bool pma)
     {
         static float Edge(Vertex p, Vertex q, float x, float y) => (x - p.X) * (q.Y - p.Y) - (y - p.Y) * (q.X - p.X);
@@ -322,28 +421,46 @@ internal static class CpuRenderer
             if (wa < -0.0001f || wb < -0.0001f || wc < -0.0001f) continue;
 
             var source = texture.Sample(wa * a.U + wb * b.U + wc * c.U, wa * a.V + wb * b.V + wc * c.V);
-            Blend(target, y * width + x, source, tintR, tintG, tintB, tintA, pma);
+            Blend(target, y * width + x, source, tintR, tintG, tintB, tintA, compositeMode, pma);
         }
     }
 
-    private static void Blend(Pixel[] target, int index, Pixel source, float tintR, float tintG, float tintB, float tintA, bool pma)
+    private static void Blend(Pixel[] target, int index, Pixel source, float tintR, float tintG, float tintB, float tintA, CompositeMode compositeMode, bool pma)
     {
+        // ponytail: bounded straight-alpha CPU equations; use a production GPU backend for exact blend-state parity.
         var destination = target[index];
-        var sourceAlpha = source.A / 255f * Math.Clamp(tintA, 0, 1);
+        var textureAlpha = source.A / 255f;
+        var sourceAlpha = textureAlpha * Math.Clamp(tintA, 0, 1);
         var destinationAlpha = destination.A / 255f;
         var outputAlpha = sourceAlpha + destinationAlpha * (1 - sourceAlpha);
         if (outputAlpha <= 0) return;
 
-        byte Channel(byte src, byte dst, float tint) =>
-            (byte)Math.Clamp(
-                MathF.Round(((src / 255f * Math.Clamp(tint, 0, 1) * (pma ? 1 : sourceAlpha)) + (dst / 255f * destinationAlpha * (1 - sourceAlpha))) / outputAlpha * 255),
-                0,
-                255);
+        var sourceR = textureAlpha > 0 && pma ? source.R / 255f / textureAlpha : source.R / 255f;
+        var sourceG = textureAlpha > 0 && pma ? source.G / 255f / textureAlpha : source.G / 255f;
+        var sourceB = textureAlpha > 0 && pma ? source.B / 255f / textureAlpha : source.B / 255f;
+        var destinationR = destination.R / 255f;
+        var destinationG = destination.G / 255f;
+        var destinationB = destination.B / 255f;
+        var sourceTintR = sourceR * Math.Clamp(tintR, 0, 1);
+        var sourceTintG = sourceG * Math.Clamp(tintG, 0, 1);
+        var sourceTintB = sourceB * Math.Clamp(tintB, 0, 1);
+        var destinationFactor = destinationAlpha * (1 - sourceAlpha);
+
+        float BlendChannel(float sourceColor, float destinationColor) => compositeMode switch
+        {
+            CompositeMode.Additive => sourceColor * sourceAlpha + destinationColor * destinationAlpha,
+            CompositeMode.Multiply => sourceColor * destinationColor * sourceAlpha + destinationColor * destinationFactor,
+            CompositeMode.Screen => (sourceColor + destinationColor - sourceColor * destinationColor) * sourceAlpha + destinationColor * destinationFactor,
+            _ => sourceColor * sourceAlpha + destinationColor * destinationFactor
+        };
+
+        byte Channel(float premultiplied) =>
+            (byte)Math.Clamp(MathF.Round(premultiplied / outputAlpha * 255), 0, 255);
 
         target[index] = new Pixel(
-            Channel(source.R, destination.R, tintR),
-            Channel(source.G, destination.G, tintG),
-            Channel(source.B, destination.B, tintB),
+            Channel(BlendChannel(sourceTintR, destinationR)),
+            Channel(BlendChannel(sourceTintG, destinationG)),
+            Channel(BlendChannel(sourceTintB, destinationB)),
             (byte)MathF.Round(outputAlpha * 255));
     }
 }

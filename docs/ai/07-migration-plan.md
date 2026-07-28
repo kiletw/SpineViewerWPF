@@ -39,7 +39,7 @@ Result: the isolated official 4.1 Runtime, project-owned contracts, CLI `inspect
 
 Add 4.0 and 3.8, then remaining lines based on fixture value and demand. Introduce Runtime registry and version detection only as needed by verified lines.
 
-Progress: TASK-023 adds 4.0.64. TASK-024 adds isolated adapters, fixtures, explicit/automatic selection, and deterministic JSON renders for every remaining vendored line from 2.1.08 through 4.0.31. TASK-026 verifies the pinned official 3.8.55 JSON/binary/PMA example through the 3.8.95 adapter. Remaining official editor-export parity is explicit; 4.2/4.3 have no vendored source.
+Progress: TASK-023 adds 4.0.64. TASK-024 adds isolated adapters, fixtures, explicit/automatic selection, and deterministic JSON renders for every remaining vendored line from 2.1.08 through 4.0.31. TASK-026 verifies the pinned official 3.8.55 JSON/binary/PMA example through the 3.8.95 adapter. TASK-027 adds bounded clipping and non-normal blend handling to the shared CPU bridge. Remaining feature-isolated and official editor-export parity is explicit; 4.2/4.3 have no vendored source.
 
 ## Phase 3 — Quick-Browse WPF Replacement
 
