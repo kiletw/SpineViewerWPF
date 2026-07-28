@@ -64,6 +64,9 @@ try
     });
     var discovered = assetService.Inspect(Path.Combine(fixtureDirectory, "minimal.json"), null, null);
     Assert(discovered.Asset.AtlasPath == Path.GetFullPath(Path.Combine(fixtureDirectory, "minimal.atlas")), "Same-stem atlas discovery failed.");
+    var pmaFrame = Path.Combine(root, "v41-pma.png");
+    assetService.Render(Path.Combine(fixtureDirectory, "minimal.json"), null, "4.1", "move", 0.5f, 64, 64, pmaFrame, true, true, ["default"]);
+    Assert(File.Exists(pmaFrame), "PMA render did not produce a frame.");
     var v40Directory = Path.Combine(Directory.GetCurrentDirectory(), "tests", "fixtures", "v40-minimal");
     var v40Skeleton = Path.Combine(v40Directory, "minimal.json");
     var v40Inspection = assetService.Inspect(v40Skeleton, null, null);

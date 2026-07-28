@@ -94,8 +94,6 @@ internal static class CpuRenderer
 
     public static void Render(Skeleton skeleton, int width, int height, string outputPath, bool pma, bool overwrite)
     {
-        if (pma) throw new NotSupportedException("PMA textures are not supported by this CPU renderer spike.");
-
         var pixels = new Pixel[width * height];
         var boundsBuffer = Array.Empty<float>();
 #if SPINE_LEGACY_NO_BOUNDS
@@ -144,7 +142,7 @@ internal static class CpuRenderer
                         skeleton.G * slot.G * region.G,
                         skeleton.B * slot.B * region.B,
                         skeleton.A * slot.A * region.A,
-                        viewCenterX, viewCenterY, viewScale);
+                        viewCenterX, viewCenterY, viewScale, pma);
                     break;
                 }
                 case MeshAttachment mesh:
@@ -162,7 +160,7 @@ internal static class CpuRenderer
                         skeleton.G * slot.G * mesh.G,
                         skeleton.B * slot.B * mesh.B,
                         skeleton.A * slot.A * mesh.A,
-                        viewCenterX, viewCenterY, viewScale);
+                        viewCenterX, viewCenterY, viewScale, pma);
                     break;
                 }
 #if !SPINE_LEGACY_NO_CLIPPING
@@ -275,7 +273,8 @@ internal static class CpuRenderer
         float tintA,
         float viewCenterX,
         float viewCenterY,
-        float viewScale)
+        float viewScale,
+        bool pma)
     {
         var vertices = new Vertex[positions.Length / 2];
         for (var i = 0; i < vertices.Length; i++)
@@ -286,7 +285,7 @@ internal static class CpuRenderer
                 uvs[i * 2 + 1]);
 
         for (var i = 0; i < triangles.Length; i += 3)
-            Rasterize(target, width, height, vertices[triangles[i]], vertices[triangles[i + 1]], vertices[triangles[i + 2]], texture, tintR, tintG, tintB, tintA);
+            Rasterize(target, width, height, vertices[triangles[i]], vertices[triangles[i + 1]], vertices[triangles[i + 2]], texture, tintR, tintG, tintB, tintA, pma);
     }
 
     private static void Rasterize(
@@ -300,7 +299,8 @@ internal static class CpuRenderer
         float tintR,
         float tintG,
         float tintB,
-        float tintA)
+        float tintA,
+        bool pma)
     {
         static float Edge(Vertex p, Vertex q, float x, float y) => (x - p.X) * (q.Y - p.Y) - (y - p.Y) * (q.X - p.X);
 
@@ -322,11 +322,11 @@ internal static class CpuRenderer
             if (wa < -0.0001f || wb < -0.0001f || wc < -0.0001f) continue;
 
             var source = texture.Sample(wa * a.U + wb * b.U + wc * c.U, wa * a.V + wb * b.V + wc * c.V);
-            Blend(target, y * width + x, source, tintR, tintG, tintB, tintA);
+            Blend(target, y * width + x, source, tintR, tintG, tintB, tintA, pma);
         }
     }
 
-    private static void Blend(Pixel[] target, int index, Pixel source, float tintR, float tintG, float tintB, float tintA)
+    private static void Blend(Pixel[] target, int index, Pixel source, float tintR, float tintG, float tintB, float tintA, bool pma)
     {
         var destination = target[index];
         var sourceAlpha = source.A / 255f * Math.Clamp(tintA, 0, 1);
@@ -336,7 +336,7 @@ internal static class CpuRenderer
 
         byte Channel(byte src, byte dst, float tint) =>
             (byte)Math.Clamp(
-                MathF.Round(((src / 255f * Math.Clamp(tint, 0, 1) * sourceAlpha) + (dst / 255f * destinationAlpha * (1 - sourceAlpha))) / outputAlpha * 255),
+                MathF.Round(((src / 255f * Math.Clamp(tint, 0, 1) * (pma ? 1 : sourceAlpha)) + (dst / 255f * destinationAlpha * (1 - sourceAlpha))) / outputAlpha * 255),
                 0,
                 255);
 

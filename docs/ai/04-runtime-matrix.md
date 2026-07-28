@@ -2,7 +2,7 @@
 
 ## Status
 
-Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified. Project-authored JSON fixtures for every vendored line from 2.1.08 through 4.1 verify the isolated v3 adapters, deterministic CPU spike, and WPF static-preview integration. Test-generated PNG variants verify bounded 8-bit non-interlaced texture decoding and static rendering. TASK-009 verifies the official 4.1 `spineboy` JSON and binary example export through the CLI path. PMA output and multi-page atlas behavior remain unverified.
+Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified. Project-authored JSON fixtures for every vendored line from 2.1.08 through 4.1 verify the isolated v3 adapters, deterministic CPU spike, and WPF static-preview integration. Test-generated PNG variants verify bounded 8-bit non-interlaced texture decoding and static rendering. TASK-009 verifies the official 4.1 `spineboy` JSON and binary example export through the CLI path. TASK-025 adds PMA compositing support; official PMA and multi-page atlas behavior remain unverified.
 
 All snapshots are compiled into the WPF project under version-specific namespaces. License headers identify Esoteric Software Runtime source. Same-name official tags and their current Git object IDs were verified with `git ls-remote` on 2026-07-26, but file-for-file equality has not been proven after local namespace/XNA changes.
 
@@ -71,7 +71,7 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 - WPF metadata path: TASK-005 verified the same fixture through the native file-open composition, Application inspect use case, isolated adapter, and presentation mapping
 - WPF static preview: TASK-007 reuses the Application render use case off the UI thread; TASK-008 verifies the same Ready path for a generated PNG atlas texture
 - Verified render: 64 by 64 PNG at 0.5 seconds, SHA-256 `7178BBFA4315C36332AB5C4743A413FE6A7CD165D75C907BBC34D88DB846301E`
-- Still unverified: interlaced or non-8-bit PNG, PMA, clipping, non-normal blend modes, multi-page atlases, and other production texture formats
+- Still unverified: interlaced or non-8-bit PNG, official PMA fixture parity, clipping, non-normal blend modes, multi-page atlases, and other production texture formats
 
 ## Rules
 
@@ -87,11 +87,11 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 - Source patches: no vendored source edits; project-owned `System.Text.Json` decoder bridge and shared deterministic CPU renderer bridge
 - Verified input: project-authored JSON, atlas, and P3 PPM texture under `tests/fixtures/v40-minimal`
 - Verified behavior: auto-selection, explicit `4.0`/`4.0.64` selection, metadata inspect, deterministic 64 by 64 PNG render, and Application smoke coverage
-- Still unverified: official 4.0.64 Editor exports, binary `.skel`, PMA, clipping, non-normal blend modes, multi-page atlases, and production texture formats
+- Still unverified: official 4.0.64 Editor exports, binary `.skel`, official PMA fixture parity, clipping, non-normal blend modes, multi-page atlases, and production texture formats
 
 ## v3 Historical Compatibility Slice
 
 - Isolated adapters now cover every vendored 2.1.08 through 4.0.31 line listed above, plus the existing 4.0.64 and 4.1.00 adapters.
 - Each historical line has a project-authored JSON/atlas/P3 fixture, explicit and automatic selection smoke coverage, and a deterministic 64 by 64 render hash.
-- Binary `.skel`, official editor-export parity, PMA, clipping, non-normal blend modes, multi-page atlases, and production texture formats remain unverified unless listed in the 4.1 official section.
+- Binary `.skel`, official editor-export parity, official PMA fixture parity, clipping, non-normal blend modes, multi-page atlases, and production texture formats remain unverified unless listed in the 4.1 official section. The CPU bridge accepts PMA requests, but this is not an official asset parity claim.
 - 4.2 and 4.3 remain unsupported because this repository contains no vendored source snapshot for either line.

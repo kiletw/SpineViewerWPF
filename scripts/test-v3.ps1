@@ -11,6 +11,7 @@ $v40Atlas = Join-Path $v40Fixture 'minimal.atlas'
 $artifacts = Join-Path $repository 'artifacts\v3-smoke'
 $first = Join-Path $artifacts 'frame-a.png'
 $second = Join-Path $artifacts 'frame-b.png'
+$pma = Join-Path $artifacts 'pma-frame.png'
 $v40First = Join-Path $artifacts 'v40-frame-a.png'
 $v40Second = Join-Path $artifacts 'v40-frame-b.png'
 
@@ -59,6 +60,10 @@ if ([BitConverter]::ToString([IO.File]::ReadAllBytes($first)[0..7]).Replace('-',
     throw 'Rendered output is not a PNG.'
 }
 
+& dotnet run --project $project -c Release --no-build -- render $skeleton --atlas $atlas --runtime 4.1 --animation move --time 0.5 --width 64 --height 64 --output $pma --overwrite --pma | Out-Null
+if ($LASTEXITCODE -ne 0) { throw 'PMA render failed.' }
+if ((Get-FileHash -LiteralPath $pma -Algorithm SHA256).Hash -ne $firstHash) { throw 'Opaque PMA baseline changed.' }
+
 $v40InspectJson = & dotnet run --project $project -c Release --no-build -- inspect $v40Skeleton --atlas $v40Atlas --runtime 4.0 --format json
 if ($LASTEXITCODE -ne 0) { throw '4.0 inspect failed.' }
 $v40Inspect = $v40InspectJson | ConvertFrom-Json
@@ -106,6 +111,7 @@ foreach ($entry in $historical) {
     Inspect = 'passed'
     Render = 'passed'
     Sha256 = $firstHash
+    Pma = 'passed'
     Runtime40 = 'passed'
     HistoricalRuntimes = $historical.Count
 }
