@@ -1,0 +1,13 @@
+page-left.ppm
+size: 2, 2
+filter: Nearest, Nearest
+repeat: none
+left
+bounds: 0, 0, 2, 2
+
+page-right.ppm
+size: 2, 2
+filter: Nearest, Nearest
+repeat: none
+right
+bounds: 0, 0, 2, 2

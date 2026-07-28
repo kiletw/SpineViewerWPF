@@ -67,6 +67,17 @@ try
     var pmaFrame = Path.Combine(root, "v41-pma.png");
     assetService.Render(Path.Combine(fixtureDirectory, "minimal.json"), null, "4.1", "move", 0.5f, 64, 64, pmaFrame, true, true, ["default"]);
     Assert(File.Exists(pmaFrame), "PMA render did not produce a frame.");
+    var multipageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "tests", "fixtures", "v41-multipage");
+    var multipageSkeleton = Path.Combine(multipageDirectory, "multi.json");
+    var multipageInspection = assetService.Inspect(multipageSkeleton, null, "4.1");
+    Assert(multipageInspection.Asset.Textures.Count == 2, "Multi-page atlas did not expose both texture pages.");
+    var multipageFirst = Path.Combine(root, "multipage-a.png");
+    var multipageSecond = Path.Combine(root, "multipage-b.png");
+    foreach (var output in new[] { multipageFirst, multipageSecond })
+        assetService.Render(multipageSkeleton, null, "4.1", "move", 0, 64, 64, output, true, false, ["default"]);
+    var multipageHash = SHA256.HashData(File.ReadAllBytes(multipageFirst));
+    Assert(multipageHash.SequenceEqual(SHA256.HashData(File.ReadAllBytes(multipageSecond))), "Multi-page render was not deterministic.");
+    Assert(Convert.ToHexString(multipageHash) == "89115E7CC5AA6B1B594C14C9E1F7F74B5C30644F926B1D032420DC7B753ED6AA", "Multi-page render did not match its baseline.");
     var v40Directory = Path.Combine(Directory.GetCurrentDirectory(), "tests", "fixtures", "v40-minimal");
     var v40Skeleton = Path.Combine(v40Directory, "minimal.json");
     var v40Inspection = assetService.Inspect(v40Skeleton, null, null);

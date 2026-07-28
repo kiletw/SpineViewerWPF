@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "repositoryBaseline": "kiletw/SpineViewerWPF@79c6135",
   "assetsCommitted": true,
-  "note": "Project-authored minimal JSON fixtures cover every vendored historical Runtime line. Official 4.1 and 3.8 caches now verify JSON, binary, PNG, and (for 3.8) PMA loading through the offline scripts. The shared CPU bridge includes bounded premultiplied-alpha, clipping, and slot blend handling; feature-isolated visual parity and production-renderer gaps remain explicit.",
+  "note": "Project-authored minimal JSON fixtures cover every vendored historical Runtime line. Official 4.1 and 3.8 caches now verify JSON, binary, PNG, and (for 3.8) PMA loading through the offline scripts. A project-authored two-page 4.1 atlas verifies page discovery/rendering. The shared CPU bridge includes bounded premultiplied-alpha, clipping, and slot blend handling; feature-isolated visual parity and production-renderer gaps remain explicit.",
   "officialCaches": [
     {
       "runtimeSelection": "4.1.00",
@@ -259,6 +259,28 @@
       ],
       "legalStatus": "Project-authored test data; not a Spine Editor export.",
       "expectedLocalDirectory": "fixtures-local/4.1.00-real-export"
+    },
+    {
+      "runtimeSelection": "4.1.00",
+      "officialTagCandidate": null,
+      "json": "tests/fixtures/v41-multipage/multi.json",
+      "binary": "missing",
+      "atlas": "tests/fixtures/v41-multipage/multi.atlas",
+      "textures": [
+        "tests/fixtures/v41-multipage/page-left.ppm",
+        "tests/fixtures/v41-multipage/page-right.ppm"
+      ],
+      "sha256": {
+        "json": "DE89C784CF2ED9AF5D024462A71C3205C1E14A3B6804C98064A948AEA33E2A84",
+        "atlas": "08B986E996B78DB94C879AD56D59F7B2C6E0DAA27B44BF744070219C2CD5C152",
+        "pageLeft": "329A5A97681A526D786AEE07F3B0D028A8A34926A9CB1FEB77EB619CFD95F8BA",
+        "pageRight": "EDC511001CC9151316987A7DA77CCEF7C755DC2C5301D1693691D1A78C61E0BB",
+        "render64x64At0": "89115E7CC5AA6B1B594C14C9E1F7F74B5C30644F926B1D032420DC7B753ED6AA"
+      },
+      "expectedAnimation": { "name": "move", "durationSeconds": 0 },
+      "expectedSkins": [ "default" ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/4.1.00-multipage"
     }
   ]
 }

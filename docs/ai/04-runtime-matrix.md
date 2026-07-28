@@ -2,7 +2,7 @@
 
 ## Status
 
-Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified. Project-authored JSON fixtures for every vendored line from 2.1.08 through 4.1 verify the isolated v3 adapters, deterministic CPU spike, and WPF static-preview integration. Test-generated PNG variants verify bounded 8-bit non-interlaced texture decoding and static rendering. TASK-009 verifies the official 4.1 `spineboy` JSON and binary example export, TASK-026 verifies the official 3.8.55 `spineboy` JSON/binary/PMA assets through the 3.8.95 adapter, and TASK-027 adds bounded clipping/non-normal blend handling to the shared CPU bridge. Official multi-page atlas behavior remains unverified.
+Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified. Project-authored JSON fixtures for every vendored line from 2.1.08 through 4.1 verify the isolated v3 adapters, deterministic CPU spike, and WPF static-preview integration. Test-generated PNG variants verify bounded 8-bit non-interlaced texture decoding and static rendering. TASK-009 verifies the official 4.1 `spineboy` JSON and binary example export, TASK-026 verifies the official 3.8.55 `spineboy` JSON/binary/PMA assets through the 3.8.95 adapter, TASK-027 adds bounded clipping/non-normal blend handling to the shared CPU bridge, and TASK-028 verifies a project-authored two-page 4.1 atlas. Official multi-page export parity remains unverified.
 
 All snapshots are compiled into the WPF project under version-specific namespaces. License headers identify Esoteric Software Runtime source. Same-name official tags and their current Git object IDs were verified with `git ls-remote` on 2026-07-26, but file-for-file equality has not been proven after local namespace/XNA changes.
 
@@ -21,7 +21,7 @@ All snapshots are compiled into the WPF project under version-specific namespace
 | 3.8.95 | `spine-runtimes-3.8.95` | `3.8.95` / `3e93e2d` | Yes | Yes | Present | TBD | Official 3.8.55 cache plus project-authored fixture | Official cache verified (JSON/Binary/PMA) |
 | 4.0.31 | `spine-runtimes-4.0.31` | `4.0.31` / `8770e31` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
 | 4.0.64 | `spine-runtimes-4.0.64` | `4.0.64` / `01524d4` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
-| 4.1.00 | `spine-runtimes-4.1.00` | `4.1.00` / `ab28b77` | Yes | Yes | Present | TBD | Synthetic fixture plus official `spineboy` JSON/binary export smoke | Prototype complete |
+| 4.1.00 | `spine-runtimes-4.1.00` | `4.1.00` / `ab28b77` | Yes | Yes | Present | Project-authored two-page smoke; official TBD | Synthetic and two-page fixtures plus official `spineboy` JSON/binary export smoke | Prototype complete |
 | 4.2 | none | none | No | No | No | No | Missing | Future |
 | 4.3 | none | current upstream line | No | No | No | No | Missing | Future |
 
@@ -64,6 +64,7 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 - Verified PNG metadata: TASK-006 uses a test-generated PNG page with the same project-authored skeleton and atlas data
 - Verified PNG texture decoding: TASK-008 covers 8-bit non-interlaced grayscale, RGB, indexed with palette transparency, grayscale-alpha, and RGBA data, scanline filters 0 through 4, CRC validation, and deterministic static rendering
 - Verified official example compatibility: TASK-009 loads `examples/spineboy/export/spineboy-pro.json` and `.skel` with `spineboy.atlas` and `spineboy.png` from pinned commit `ab28b77c70e3aa766be5bdb759d7aedac9fd0bde`; both formats report 11 animations and render the `walk` animation
+- Verified multi-page atlas path: TASK-028 loads two project-authored PPM pages and renders attachments from both pages deterministically
 - Verified atlas discovery: TASK-011 resolves the official `-pro` skeletons to their base-stem atlas when the caller omits an explicit atlas path
 - Verified bounds-aware fit: TASK-010 keeps the 64 by 64 synthetic baseline unchanged and records deterministic 512 by 512 official JSON/binary renders with the full `spineboy` pose visible
 - Verified WPF playback: TASK-012 advances a real asset on a dispatcher tick, updates the timeline label, and re-renders through the existing Application path
@@ -71,7 +72,7 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 - WPF metadata path: TASK-005 verified the same fixture through the native file-open composition, Application inspect use case, isolated adapter, and presentation mapping
 - WPF static preview: TASK-007 reuses the Application render use case off the UI thread; TASK-008 verifies the same Ready path for a generated PNG atlas texture
 - Verified render: 64 by 64 PNG at 0.5 seconds, SHA-256 `7178BBFA4315C36332AB5C4743A413FE6A7CD165D75C907BBC34D88DB846301E`
-- Still unverified: interlaced or non-8-bit PNG, official PMA fixture parity, full GPU-equation parity for clipping/non-normal blend modes, multi-page atlases, and other production texture formats
+- Still unverified: interlaced or non-8-bit PNG, official PMA fixture parity, full GPU-equation parity for clipping/non-normal blend modes, official multi-page exports, and other production texture formats
 
 ## Rules
 

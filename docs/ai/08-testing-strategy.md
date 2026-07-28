@@ -32,7 +32,7 @@ Use fake presentation state for empty, loading, ready, warning, unsupported, fai
 - Maintain a manifest even when fixture files stay local.
 - Record source, export version, format, atlas shape, textures, expected animations/skins, and legal status.
 
-Current manifest: [`fixtures/manifest.json`](fixtures/manifest.json). The 14 real v2 characterization assets remain missing. TASK-001 adds one project-authored 4.1 JSON fixture; TASK-009 adds a gitignored cache and repeatable smoke for the official 4.1 JSON/binary `spineboy` example without redistributing the binaries in this repository.
+Current manifest: [`fixtures/manifest.json`](fixtures/manifest.json). The 14 real v2 characterization assets remain missing. TASK-001 adds one project-authored 4.1 JSON fixture; TASK-009 adds a gitignored cache and repeatable smoke for the official 4.1 JSON/binary `spineboy` example without redistributing the binaries in this repository; TASK-028 adds a project-authored two-page atlas smoke.
 
 ## Baseline Comparison
 
