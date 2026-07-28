@@ -66,6 +66,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private string? stateTitleOverride;
     private string? stateDetailOverride;
     private bool isRailExpanded;
+    private bool isBrowsePanelVisible = true;
     private bool isInspectorVisible;
     private bool isDiagnosticsVisible;
     private bool isPlaying;
@@ -165,6 +166,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         FitCommand = new RelayCommand(FitViewport, () => HasPreview);
         DiagnosticsCommand = new RelayCommand(ToggleDiagnostics);
         ToggleRailCommand = new RelayCommand(() => IsRailExpanded = !IsRailExpanded);
+        ToggleBrowsePanelCommand = new RelayCommand(() => IsBrowsePanelVisible = !IsBrowsePanelVisible);
         ToggleInspectorCommand = new RelayCommand(() => IsInspectorVisible = !IsInspectorVisible);
         SaveCommand = new RelayCommand(() => TrySave(), () => HasAsset && (IsDirty || ProjectPath is null));
         SaveAsCommand = new RelayCommand(() => TrySaveAs(), () => HasAsset);
@@ -212,6 +214,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public ICommand FitCommand { get; }
     public ICommand DiagnosticsCommand { get; }
     public ICommand ToggleRailCommand { get; }
+    public ICommand ToggleBrowsePanelCommand { get; }
     public ICommand ToggleInspectorCommand { get; }
     public ICommand SaveCommand { get; }
     public ICommand SaveAsCommand { get; }
@@ -245,6 +248,17 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         {
             if (isRailExpanded == value) return;
             isRailExpanded = value;
+            Changed();
+        }
+    }
+
+    public bool IsBrowsePanelVisible
+    {
+        get => isBrowsePanelVisible;
+        set
+        {
+            if (isBrowsePanelVisible == value) return;
+            isBrowsePanelVisible = value;
             Changed();
         }
     }

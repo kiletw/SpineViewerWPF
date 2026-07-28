@@ -23,6 +23,6 @@ Language switching is desired but is not required in the current implementation.
 ## Consequences
 
 - ADR-004 is amended rather than replaced: the default workflow stays fast, but the window model is no longer permanently fixed.
-- The first docking prototype should prove the interaction with the smallest useful panel set.
+- TASK-029 proves the interaction with the smallest useful panel set (Browse and Inspector) using native WPF windows.
 - Layout persistence is optional until the dock/float/redock flow is validated.
 - Existing hard-coded prototype text may be migrated when the real presentation shell is implemented; no speculative localization service is required now.

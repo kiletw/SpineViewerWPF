@@ -2,7 +2,7 @@
 
 ## Status
 
-Product direction accepted; docking implementation and final visual styling remain open.
+Product direction accepted; TASK-029 now validates a bounded WPF docking interaction. Toolkit selection and final visual styling remain open.
 
 ## Primary Goal
 
@@ -72,7 +72,7 @@ Supporting panels may be moved into tab groups or separate owned windows. The co
 
 ## Open Product Decisions
 
-- which supporting panels ship in the first dockable prototype
+- which additional supporting panels ship after the TASK-029 Browse/Inspector prototype
 - whether layout persistence is enabled in the first implementation
 - default dark/light/system theme
 - exact stop/reset semantics

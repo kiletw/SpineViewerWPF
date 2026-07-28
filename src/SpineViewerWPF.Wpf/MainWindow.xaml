@@ -218,6 +218,35 @@
                             AutomationProperties.AutomationId="Main.Command.SaveProjectAs" />
                 </StackPanel>
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="WindowMenuButton"
+                            Style="{StaticResource ButtonBase}"
+                            Content="{DynamicResource Text.Window}"
+                            Click="OpenWindowMenu"
+                            AutomationProperties.AutomationId="Main.Command.Window">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="{DynamicResource Text.ToggleBrowse}"
+                                          Click="ToggleBrowsePanel"
+                                          AutomationProperties.AutomationId="Main.Window.ToggleBrowse" />
+                                <MenuItem Header="{DynamicResource Text.ToggleInspector}"
+                                          Click="ToggleInspectorPanel"
+                                          AutomationProperties.AutomationId="Main.Window.ToggleInspector" />
+                                <Separator />
+                                <MenuItem Header="{DynamicResource Text.FloatBrowse}"
+                                          Click="FloatBrowsePanel"
+                                          AutomationProperties.AutomationId="Main.Window.FloatBrowse" />
+                                <MenuItem Header="{DynamicResource Text.FloatInspector}"
+                                          Click="FloatInspectorPanel"
+                                          AutomationProperties.AutomationId="Main.Window.FloatInspector" />
+                                <MenuItem Header="{DynamicResource Text.RedockPanels}"
+                                          Click="RedockPanels"
+                                          AutomationProperties.AutomationId="Main.Window.RedockPanels" />
+                                <MenuItem Header="{DynamicResource Text.ResetLayout}"
+                                          Click="ResetWorkspaceLayout"
+                                          AutomationProperties.AutomationId="Main.Window.ResetLayout" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                     <Button Style="{StaticResource ButtonBase}"
                             Content="{DynamicResource Text.Undo}"
                             Command="{Binding UndoCommand}"
@@ -246,14 +275,14 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1">
+        <Grid x:Name="WorkspaceGrid" Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0"
+            <Border x:Name="BrowsePanel" Grid.Column="0"
                     Background="{StaticResource PanelBrush}"
                     BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="0,0,1,0"
@@ -262,6 +291,9 @@
                     <Style TargetType="Border">
                         <Setter Property="Width" Value="270" />
                         <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsBrowsePanelVisible}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
                             <DataTrigger Binding="{Binding IsRailExpanded}" Value="False">
                                 <Setter Property="Width" Value="54" />
                             </DataTrigger>
@@ -684,7 +716,7 @@
                 </Border>
             </ScrollViewer>
 
-            <Border Grid.Column="2"
+            <Border x:Name="InspectorPanel" Grid.Column="2"
                     Width="286"
                     Background="{StaticResource PanelBrush}"
                     BorderBrush="{StaticResource BorderBrush}"

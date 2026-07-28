@@ -47,5 +47,12 @@
         <sys:String x:Key="Text.Background">BACKGROUND</sys:String>
         <sys:String x:Key="Text.Project">PROJECT</sys:String>
         <sys:String x:Key="Text.ProjectPath">Project path</sys:String>
+        <sys:String x:Key="Text.Window">Window</sys:String>
+        <sys:String x:Key="Text.ToggleBrowse">Show/Hide Browse panel</sys:String>
+        <sys:String x:Key="Text.ToggleInspector">Show/Hide Inspector</sys:String>
+        <sys:String x:Key="Text.FloatBrowse">Float Browse panel</sys:String>
+        <sys:String x:Key="Text.FloatInspector">Float Inspector</sys:String>
+        <sys:String x:Key="Text.RedockPanels">Redock all panels</sys:String>
+        <sys:String x:Key="Text.ResetLayout">Reset workspace layout</sys:String>
     </Application.Resources>
 </Application>

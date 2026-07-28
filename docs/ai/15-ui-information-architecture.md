@@ -40,7 +40,7 @@ These stay in the main workspace:
 - load and renderer details
 - actionable error information
 
-The initial implementation does not need every panel. A docking spike should start with two supporting panels and prove dock, float, redock, hide/show, and reset-layout behavior before broadening scope.
+TASK-029 proves dock, float, redock, hide/show, and reset-layout behavior for the Browse and Inspector panels. Additional panels can follow without changing the viewport-first shell contract.
 
 ## Secondary Workflows
 
@@ -66,4 +66,4 @@ The initial implementation does not need every panel. A docking spike should sta
 
 ## Automation IDs
 
-Existing TASK-002 identifiers remain stable. New panel chrome uses identifiers only after the docking prototype selects its controls.
+Existing TASK-002 identifiers remain stable. TASK-029 adds stable Window-menu identifiers for panel operations; new panel chrome should follow the same rule.
