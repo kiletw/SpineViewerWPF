@@ -73,6 +73,8 @@ $automationIds = @(
     'Main.Scene.LayerY',
     'Main.Scene.LayerScale',
     'Main.Scene.LayerOpacity',
+    'Main.Inspector.TrackAlpha',
+    'Main.Scene.LayerPma',
     'Main.Scene.LayerAnimation',
     'Main.Scene.LayerSkin',
     'Main.Viewport.SceneLayers'

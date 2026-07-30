@@ -21,6 +21,8 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
     private bool flipY;
     private bool isVisible = true;
     private double opacity = 1;
+    private double trackAlpha = 1;
+    private bool pma;
     private int zIndex;
 
     internal SceneLayerViewModel(
@@ -131,6 +133,22 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
         set => Set(ref opacity, Math.Clamp(value, 0, 1), nameof(Opacity));
     }
 
+    public double TrackAlpha
+    {
+        get => trackAlpha;
+        set
+        {
+            if (double.IsFinite(value))
+                Set(ref trackAlpha, Math.Clamp(value, 0, 1), nameof(TrackAlpha));
+        }
+    }
+
+    public bool Pma
+    {
+        get => pma;
+        set => Set(ref pma, value, nameof(Pma));
+    }
+
     public int ZIndex => zIndex;
 
     internal void SetPlayback(string animation, string selectedSkin)
@@ -158,7 +176,7 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
         Changed(nameof(FlipY));
     }
 
-    internal void ApplyDocument(SceneLayerDocument document)
+    internal void ApplyDocument(SceneLayerDocument document, double? fallbackTrackAlpha = null)
     {
         modelX = document.ModelX;
         modelY = document.ModelY;
@@ -168,6 +186,8 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
         flipY = document.FlipY;
         isVisible = document.IsVisible;
         opacity = document.Opacity;
+        trackAlpha = Math.Clamp(document.TrackAlpha ?? fallbackTrackAlpha ?? 1, 0, 1);
+        pma = document.Pma ?? false;
         zIndex = document.ZIndex;
         Changed(string.Empty);
     }
@@ -203,7 +223,9 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
         FlipY,
         IsVisible,
         Opacity,
-        ZIndex);
+        ZIndex,
+        TrackAlpha,
+        Pma);
 
     public void Dispose() => RenderSession.Dispose();
 

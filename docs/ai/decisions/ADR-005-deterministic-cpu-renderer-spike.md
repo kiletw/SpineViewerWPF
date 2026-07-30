@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted on 2026-07-26 after the TASK-001 prototype produced identical PNG bytes across repeated renders. Amended by TASK-008 to include bounded standard-library PNG texture decoding and by TASK-031 to reuse loaded Runtime resources during CPU playback/export without selecting a production renderer.
+Accepted on 2026-07-26 after the TASK-001 prototype produced identical PNG bytes across repeated renders. Amended by TASK-008 to include bounded standard-library PNG texture decoding, by TASK-031 to reuse loaded Runtime resources during CPU playback/export, and by TASK-032 to accept Runtime-neutral Track 0 Alpha and per-layer PMA without selecting a production renderer.
 
 ## Context
 
@@ -12,9 +12,9 @@ TASK-001 needs one deterministic, non-WPF render path. Selecting and distributin
 
 Use a small standard-library CPU triangle rasterizer for the 4.1 vertical slice. It supports region and mesh attachments, normal alpha blending, P3 PPM test textures, bounded 8-bit non-interlaced PNG textures, and deterministic PNG output.
 
-The Application boundary may retain a disposable Runtime adapter session containing parsed skeleton data, atlas data, and decoded textures. Each frame still creates transient pose state and uses the same deterministic CPU rasterizer. WPF scene layers and sequence export own and dispose these sessions explicitly.
+The Application boundary may retain a disposable Runtime adapter session containing parsed skeleton data, atlas data, and decoded textures. Each frame still creates transient pose state, applies explicit Track 0 Alpha through the matching Runtime API, and uses the same deterministic CPU rasterizer. WPF scene layers and sequence export own and dispose these sessions explicitly.
 
-Treat PMA, clipping attachments, non-normal blend modes, interlaced or non-8-bit PNG, other production image formats, and interactive rendering as explicitly unsupported. This spike does not select the production WPF renderer.
+Treat interlaced or non-8-bit PNG, other production image formats, full GPU-equation parity beyond the bounded PMA/clipping/blend bridge, and interactive rendering as explicitly unsupported. This spike does not select the production WPF renderer.
 
 ## Prototype Evidence
 

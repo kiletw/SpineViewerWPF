@@ -43,7 +43,10 @@
         <sys:String x:Key="Text.Playback">PLAYBACK</sys:String>
         <sys:String x:Key="Text.Speed">Speed</sys:String>
         <sys:String x:Key="Text.ExportFps">Export FPS</sys:String>
-        <sys:String x:Key="Text.TrackAlpha">Track alpha</sys:String>
+        <sys:String x:Key="Text.LayerOpacity">Layer opacity</sys:String>
+        <sys:String x:Key="Text.TrackAlpha">Track 0 alpha</sys:String>
+        <sys:String x:Key="Text.TrackAlphaHint">Animation mixing weight; use layer opacity to fade the whole model.</sys:String>
+        <sys:String x:Key="Text.Pma">Premultiplied alpha (PMA)</sys:String>
         <sys:String x:Key="Text.Background">BACKGROUND</sys:String>
         <sys:String x:Key="Text.Project">PROJECT</sys:String>
         <sys:String x:Key="Text.ProjectPath">Project path</sys:String>

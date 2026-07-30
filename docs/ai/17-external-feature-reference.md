@@ -18,7 +18,7 @@ The competitor documents the following useful ideas:
 |---|---|---|
 | Import | drag/drop, paste, file and folder loading | retain as product input; implement through Application use cases |
 | Browse | models, browser, canvas, focus and centering | Asset Browser panel candidate |
-| Playback | animation and skin groups, multiple tracks, speed and track alpha | TASK-019 per-layer animation/skin; tracks and mixing remain candidates |
+| Playback | animation and skin groups, multiple tracks, speed and track alpha | TASK-019 per-layer animation/skin; TASK-032 effective Track 0 Alpha/PMA; multiple tracks remain separate |
 | Scene | multiple skeletons, ordering and non-overlap layout | TASK-018/TASK-020 bounded layer preview and grid layout; full scene editing remains separate |
 | Diagnostics | debug rendering and compatibility visibility | retain diagnostics direction |
 | Export | still image, GIF, video, PSD layers and FFmpeg options | separate export tasks |

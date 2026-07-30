@@ -107,7 +107,12 @@ public sealed class LegacyRuntimeAdapter : IRuntimeAdapter
             }
 
             var state = new RuntimeSpine.AnimationState(new RuntimeSpine.AnimationStateData(loaded.Data));
-            state.SetAnimation(0, animation, false);
+            var entry = state.SetAnimation(0, animation, false);
+#if SPINE_RUNTIME_2108 || SPINE_RUNTIME_2125 || SPINE_RUNTIME_3107 || SPINE_RUNTIME_32XX || SPINE_RUNTIME_3402
+            entry.Mix = request.TrackAlpha;
+#else
+            entry.Alpha = request.TrackAlpha;
+#endif
             state.Update(request.TimeSeconds);
             state.Apply(skeleton);
             skeleton.UpdateWorldTransform();

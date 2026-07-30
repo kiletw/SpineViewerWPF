@@ -30,7 +30,8 @@ public sealed record RenderRequest(
     string OutputPath,
     bool Overwrite,
     bool Pma,
-    IReadOnlyList<string> Skins);
+    IReadOnlyList<string> Skins,
+    float TrackAlpha = 1);
 
 public sealed record SceneLayerRenderRequest(
     string SkeletonPath,
@@ -41,7 +42,8 @@ public sealed record SceneLayerRenderRequest(
     string OutputPath,
     bool Overwrite,
     bool Pma,
-    IReadOnlyList<string> Skins);
+    IReadOnlyList<string> Skins,
+    float TrackAlpha = 1);
 
 public sealed record SceneLayerOpenResult(
     InspectResult Inspection,
@@ -63,7 +65,9 @@ public sealed record SceneLayerDocument(
     bool FlipY,
     bool IsVisible,
     double Opacity,
-    int ZIndex);
+    int ZIndex,
+    double? TrackAlpha = null,
+    bool? Pma = null);
 
 public sealed record AnimationExportRequest(
     string SkeletonPath,
@@ -78,7 +82,8 @@ public sealed record AnimationExportRequest(
     string FilePrefix,
     bool Overwrite,
     bool Pma,
-    IReadOnlyList<string> Skins);
+    IReadOnlyList<string> Skins,
+    float TrackAlpha = 1);
 
 public sealed record AnimationExportResult(
     IReadOnlyList<string> OutputPaths,

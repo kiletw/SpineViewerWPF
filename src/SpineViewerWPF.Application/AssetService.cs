@@ -38,10 +38,13 @@ public sealed class AssetRenderSession : IDisposable
         bool overwrite,
         bool pma,
         IReadOnlyList<string> skins,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        float trackAlpha = 1)
     {
         if (string.IsNullOrWhiteSpace(animation)) throw new ArgumentException("Animation is required.");
         if (!float.IsFinite(timeSeconds) || timeSeconds < 0) throw new ArgumentOutOfRangeException(nameof(timeSeconds));
+        if (!float.IsFinite(trackAlpha) || trackAlpha is < 0 or > 1)
+            throw new ArgumentOutOfRangeException(nameof(trackAlpha), "Track alpha must be between 0 and 1.");
         if (width is < 1 or > 16384 || height is < 1 or > 16384)
             throw new ArgumentOutOfRangeException(nameof(width), "Dimensions must be between 1 and 16384.");
 
@@ -53,7 +56,7 @@ public sealed class AssetRenderSession : IDisposable
             if (File.Exists(output) && !overwrite) throw new IOException($"Output exists: {output}");
             Directory.CreateDirectory(Path.GetDirectoryName(output) ?? ".");
             session.Render(
-                new RenderRequest(skeletonPath, atlasPath, animation, timeSeconds, width, height, output, overwrite, pma, skins),
+                new RenderRequest(skeletonPath, atlasPath, animation, timeSeconds, width, height, output, overwrite, pma, skins, trackAlpha),
                 cancellationToken);
         }
         return output;
@@ -108,11 +111,12 @@ public sealed class AssetService
         bool overwrite,
         bool pma,
         IReadOnlyList<string> skins,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        float trackAlpha = 1)
     {
         var opened = OpenRenderSession(skeletonPath, atlasPath, runtimeOverride, cancellationToken);
         using (opened.Session)
-            return opened.Session.Render(animation, timeSeconds, width, height, outputPath, overwrite, pma, skins, cancellationToken);
+            return opened.Session.Render(animation, timeSeconds, width, height, outputPath, overwrite, pma, skins, cancellationToken, trackAlpha);
     }
 
     public (InspectResult Inspection, AssetRenderSession Session) OpenRenderSession(
@@ -155,7 +159,8 @@ public sealed class AssetService
                 request.Overwrite,
                 request.Pma,
                 request.Skins ?? [],
-                cancellationToken);
+                cancellationToken,
+                request.TrackAlpha);
         }
         return outputs;
     }
@@ -255,7 +260,8 @@ public sealed class AssetService
                     request.Overwrite,
                     request.Pma,
                     request.Skins ?? [],
-                    cancellationToken);
+                    cancellationToken,
+                    request.TrackAlpha);
                 created.Add(outputs[index]);
                 progress?.Report(new AnimationExportProgress(index + 1, frameCount));
             }

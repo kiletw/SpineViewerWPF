@@ -34,15 +34,15 @@ Modify a session through stable state transitions.
 
 ### `RenderFrame`
 
-Renders a deterministic frame from explicit dimensions, time, transform, background, and PMA settings. `RenderScene` applies the same contract to a bounded list of independent scene layers, each with its own animation and skin selection.
+Renders a deterministic frame from explicit dimensions, time, Track 0 Alpha, and PMA settings. `RenderScene` applies the same contract to a bounded list of independent scene layers, each with its own animation, skin, Track 0 Alpha, and PMA selection.
 
 ### `ExportAnimation`
 
-Produces a deterministic PNG sequence at an explicit bounded FPS with progress, cancellation, overwrite policy, and diagnostics. The frame loop reuses one loaded render session. Encoded GIF/video/PSD output remains deferred.
+Produces a deterministic PNG sequence at an explicit bounded FPS with progress, cancellation, overwrite policy, Track 0 Alpha, PMA, and diagnostics. The frame loop reuses one loaded render session. Encoded GIF/video/PSD output remains deferred.
 
 ### `LoadViewerProject`, `SaveViewerProject`
 
-Loads and saves project-owned viewer settings through a versioned `*.spineviewer.json` sidecar. The first schema stores source references, selected animation and skin, model transform, playback settings, and background mode. It never writes Spine JSON, binary, atlas, or texture sources.
+Loads and saves project-owned viewer settings through a versioned `*.spineviewer.json` sidecar. Schema version 1 stores source references, selected animation and skin, model transform, playback settings, background mode, and optional per-layer Track 0 Alpha/PMA fields. Missing per-layer Alpha falls back to the prior top-level primary-layer value. It never writes Spine JSON, binary, atlas, or texture sources.
 
 ## Error Model
 

@@ -824,6 +824,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             Changed(string.Empty);
 
             var output = Path.GetFullPath(target);
+            var primaryLayer = sceneLayers.FirstOrDefault();
             var request = new AnimationExportRequest(
                 skeletonPath,
                 atlasPath,
@@ -836,8 +837,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 Path.GetDirectoryName(output) ?? ".",
                 Path.GetFileName(output),
                 false,
-                false,
-                string.IsNullOrWhiteSpace(SelectedSkin) ? [] : [SelectedSkin]);
+                primaryLayer?.Pma ?? false,
+                string.IsNullOrWhiteSpace(SelectedSkin) ? [] : [SelectedSkin],
+                (float)(primaryLayer?.TrackAlpha ?? 1));
             var progress = new Progress<AnimationExportProgress>(value =>
             {
                 exportCompletedFrames = value.CompletedFrames;
@@ -976,8 +978,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         var layers = new List<(SceneLayerViewModel Layer, InspectResult Inspection)>(documents.Count);
         try
         {
-            foreach (var document in documents)
+            for (var documentIndex = 0; documentIndex < documents.Count; documentIndex++)
             {
+                var document = documents[documentIndex];
                 var previewPath = createPreviewPath();
                 AssetRenderSession? session = null;
                 try
@@ -995,6 +998,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                         ? document.SelectedSkin
                         : opened.Inspection.Skins.FirstOrDefault() ?? "default";
                     var duration = opened.Inspection.Animations.First(item => item.Name == animation).DurationSeconds;
+                    var layerTrackAlpha = document.TrackAlpha ?? (documentIndex == 0 ? project.TrackAlpha : 1);
+                    var layerPma = document.Pma ?? false;
                     session.Render(
                         animation,
                         duration / 2,
@@ -1002,8 +1007,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                         PreviewSize,
                         previewPath,
                         true,
-                        false,
-                        [skin]);
+                        layerPma,
+                        [skin],
+                        trackAlpha: (float)layerTrackAlpha);
 
                     var layer = new SceneLayerViewModel(
                         opened.Inspection,
@@ -1013,7 +1019,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                         session,
                         document.ZIndex,
                         SceneLayerChanged);
-                    layer.ApplyDocument(document with { Animation = animation, SelectedSkin = skin });
+                    layer.ApplyDocument(
+                        document with { Animation = animation, SelectedSkin = skin },
+                        documentIndex == 0 ? project.TrackAlpha : null);
                     layers.Add((layer, opened.Inspection));
                 }
                 catch
@@ -1266,9 +1274,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                             PreviewSize,
                             layer.PreviewImagePath!,
                             true,
-                            false,
+                            layer.Pma,
                             string.IsNullOrWhiteSpace(layer.SelectedSkin) ? [] : [layer.SelectedSkin],
-                            playbackCancellation.Token);
+                            playbackCancellation.Token,
+                            (float)layer.TrackAlpha);
                     }
                 },
                 playbackCancellation.Token);
@@ -1370,7 +1379,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 FlipY,
                 Loop,
                 PlaybackSpeed,
-                TrackAlpha,
+                sceneLayers.FirstOrDefault()?.TrackAlpha ?? TrackAlpha,
                 BackgroundMode,
                 sceneLayers.Count == 0 ? null : sceneLayers.Select(layer => layer.ToDocument()).ToArray()));
             savedSnapshot = Capture();

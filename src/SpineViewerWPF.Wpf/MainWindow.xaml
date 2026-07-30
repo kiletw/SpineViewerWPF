@@ -388,7 +388,7 @@
                                 Margin="0,6,0,0"
                                 Command="{Binding AutoLayoutCommand}"
                                 AutomationProperties.AutomationId="Main.Scene.AutoLayout" />
-                        <Expander Header="Selected layer" IsExpanded="False" IsEnabled="{Binding HasSelectedSceneLayer}" Foreground="#DDE3EC" Margin="0,8,0,0">
+                        <Expander Header="Selected layer" IsExpanded="True" IsEnabled="{Binding HasSelectedSceneLayer}" Foreground="#DDE3EC" Margin="0,8,0,0">
                             <StackPanel Margin="4,8,0,0">
                                 <TextBlock Text="Animation" />
                                 <ComboBox ItemsSource="{Binding SelectedSceneLayer.Animations}"
@@ -419,13 +419,27 @@
                                         AutomationProperties.AutomationId="Main.Scene.LayerScale" />
                                 <TextBlock Text="{Binding SelectedSceneLayer.ModelScale, StringFormat={}{0:0.00}}"
                                            Style="{StaticResource MutedText}" HorizontalAlignment="Right" />
-                                <TextBlock Text="Opacity" Margin="0,6,0,0" />
+                                <TextBlock Text="{DynamicResource Text.LayerOpacity}" Margin="0,6,0,0" />
                                 <Slider Minimum="0" Maximum="1" TickFrequency="0.05"
                                         IsSnapToTickEnabled="True"
                                         Value="{Binding SelectedSceneLayer.Opacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                         AutomationProperties.AutomationId="Main.Scene.LayerOpacity" />
                                 <TextBlock Text="{Binding SelectedSceneLayer.Opacity, StringFormat={}{0:0.00}}"
                                            Style="{StaticResource MutedText}" HorizontalAlignment="Right" />
+                                <TextBlock Text="{DynamicResource Text.TrackAlpha}"
+                                           ToolTip="{DynamicResource Text.TrackAlphaHint}"
+                                           Margin="0,6,0,0" />
+                                <Slider Minimum="0" Maximum="1" TickFrequency="0.05"
+                                        IsSnapToTickEnabled="True"
+                                        ToolTip="{DynamicResource Text.TrackAlphaHint}"
+                                        Value="{Binding SelectedSceneLayer.TrackAlpha, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        AutomationProperties.AutomationId="Main.Inspector.TrackAlpha" />
+                                <TextBlock Text="{Binding SelectedSceneLayer.TrackAlpha, StringFormat={}{0:0.00}}"
+                                           Style="{StaticResource MutedText}" HorizontalAlignment="Right" />
+                                <CheckBox Content="{DynamicResource Text.Pma}"
+                                          IsChecked="{Binding SelectedSceneLayer.Pma, Mode=TwoWay}"
+                                          Margin="0,8,0,0"
+                                          AutomationProperties.AutomationId="Main.Scene.LayerPma" />
                             </StackPanel>
                         </Expander>
                     </StackPanel>
@@ -800,15 +814,6 @@
                                 Value="{Binding ExportFramesPerSecond, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                 AutomationProperties.AutomationId="Main.Inspector.ExportFps" />
                         <TextBlock Text="{Binding ExportFramesPerSecond, StringFormat={}{0:0.##} FPS}"
-                                   Style="{StaticResource MutedText}"
-                                   HorizontalAlignment="Right" />
-
-                        <TextBlock Text="{DynamicResource Text.TrackAlpha}" Margin="0,8,0,0" />
-                        <Slider Minimum="0" Maximum="1" TickFrequency="0.05"
-                                IsSnapToTickEnabled="True"
-                                Value="{Binding TrackAlpha}"
-                                AutomationProperties.AutomationId="Main.Inspector.TrackAlpha" />
-                        <TextBlock Text="{Binding TrackAlpha, StringFormat={}{0:0.00}}"
                                    Style="{StaticResource MutedText}"
                                    HorizontalAlignment="Right" />
 

@@ -59,6 +59,7 @@ Supporting panels may be moved into tab groups or separate owned windows. The co
 - export dialog as a secondary workflow
 - dock, float, redock, hide/show, and reset-layout behavior for selected supporting panels
 - non-destructive Inspector editing with dirty state, Undo/Redo, and `*.spineviewer.json` project save
+- visible selected-layer opacity, Track 0 Alpha, and PMA controls
 
 ## Deferred
 

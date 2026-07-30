@@ -59,6 +59,12 @@
     },
     "pma": {
       "type": "boolean"
+    },
+    "trackAlpha": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 1
     }
   }
 }

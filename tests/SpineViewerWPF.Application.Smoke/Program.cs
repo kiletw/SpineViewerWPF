@@ -67,6 +67,49 @@ try
     var pmaFrame = Path.Combine(root, "v41-pma.png");
     assetService.Render(Path.Combine(fixtureDirectory, "minimal.json"), null, "4.1", "move", 0.5f, 64, 64, pmaFrame, true, true, ["default"]);
     Assert(File.Exists(pmaFrame), "PMA render did not produce a frame.");
+    var fullTrackAlphaFrame = Path.Combine(root, "v41-track-alpha-full.png");
+    assetService.Render(
+        Path.Combine(fixtureDirectory, "minimal.json"),
+        null,
+        "4.1",
+        "move",
+        0.5f,
+        64,
+        64,
+        fullTrackAlphaFrame,
+        true,
+        false,
+        ["default"]);
+    var zeroTrackAlphaFrame = Path.Combine(root, "v41-track-alpha-zero.png");
+    assetService.Render(
+        Path.Combine(fixtureDirectory, "minimal.json"),
+        null,
+        "4.1",
+        "move",
+        0.5f,
+        64,
+        64,
+        zeroTrackAlphaFrame,
+        true,
+        false,
+        ["default"],
+        trackAlpha: 0);
+    Assert(
+        !File.ReadAllBytes(fullTrackAlphaFrame).SequenceEqual(File.ReadAllBytes(zeroTrackAlphaFrame)),
+        "Track alpha did not change Runtime animation mixing.");
+    Expect<ArgumentOutOfRangeException>(() => assetService.Render(
+        Path.Combine(fixtureDirectory, "minimal.json"),
+        null,
+        "4.1",
+        "move",
+        0.5f,
+        64,
+        64,
+        Path.Combine(root, "invalid-track-alpha.png"),
+        true,
+        false,
+        ["default"],
+        trackAlpha: -0.1f));
     var multipageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "tests", "fixtures", "v41-multipage");
     var multipageSkeleton = Path.Combine(multipageDirectory, "multi.json");
     var multipageInspection = assetService.Inspect(multipageSkeleton, null, "4.1");
@@ -332,15 +375,47 @@ try
     realViewModel.AutoLayoutCommand.Execute(null);
     Assert(realViewModel.SceneLayers.Select(layer => (Math.Round(layer.ModelX), Math.Round(layer.ModelY))).Distinct().Count() == 3, "Auto layout did not separate scene layers.");
     realViewModel.SelectedSceneLayer!.Opacity = 0.5;
-    Assert(realViewModel.SelectedSceneLayer.Opacity == 0.5 && realViewModel.SceneLayers[0].Opacity == 1, "Scene layer properties were not independent.");
+    var layerAlphaPreview = realViewModel.SelectedSceneLayer.PreviewImagePath!;
+    var layerAlphaBefore = SHA256.HashData(File.ReadAllBytes(layerAlphaPreview));
+    realViewModel.SelectedSceneLayer.TrackAlpha = 0.35;
+    for (var attempt = 0; attempt < 100
+         && layerAlphaBefore.SequenceEqual(SHA256.HashData(File.ReadAllBytes(layerAlphaPreview)));
+         attempt++)
+        await Task.Delay(10);
+    Assert(
+        !layerAlphaBefore.SequenceEqual(SHA256.HashData(File.ReadAllBytes(layerAlphaPreview))),
+        "Changing layer Track Alpha did not refresh its rendered preview.");
+    realViewModel.SelectedSceneLayer.Pma = true;
+    Assert(
+        realViewModel.SelectedSceneLayer.Opacity == 0.5
+        && realViewModel.SelectedSceneLayer.TrackAlpha == 0.35
+        && realViewModel.SelectedSceneLayer.Pma
+        && realViewModel.SceneLayers[0].Opacity == 1
+        && realViewModel.SceneLayers[0].TrackAlpha == 1
+        && !realViewModel.SceneLayers[0].Pma,
+        "Scene layer alpha properties were not independent.");
     realViewModel.MoveLayerUpCommand.Execute(null);
-    Assert(realViewModel.SceneLayers[1].ZIndex == 1 && realViewModel.SceneLayers[1].Opacity == 0.5, "Scene layer reorder did not update z-order.");
+    Assert(
+        realViewModel.SceneLayers[1].ZIndex == 1
+        && realViewModel.SceneLayers[1].Opacity == 0.5
+        && realViewModel.SceneLayers[1].TrackAlpha == 0.35
+        && realViewModel.SceneLayers[1].Pma,
+        "Scene layer reorder did not preserve alpha state.");
     realViewModel.ModelX = 12;
     realViewModel.SaveCommand.Execute(null);
     var realDocument = store.Load(realProject);
     Assert(realDocument.SkeletonPath == Path.GetFullPath(pngSkeleton), "Real skeleton path was not saved.");
     Assert(realDocument.SceneLayers?.Count == 3, "Saved Viewer project did not preserve scene layers.");
     Assert(realDocument.SceneLayers?[1].Opacity == 0.5, "Saved Viewer project did not preserve per-layer opacity.");
+    Assert(
+        realDocument.SceneLayers?[1].TrackAlpha == 0.35 && realDocument.SceneLayers[1].Pma == true,
+        "Saved Viewer project did not preserve per-layer Track Alpha and PMA.");
+    Expect<InvalidDataException>(() => store.Save(
+        Path.Combine(root, "invalid-layer-alpha.spineviewer.json"),
+        realDocument with
+        {
+            SceneLayers = [realDocument.SceneLayers![0] with { TrackAlpha = double.NaN }]
+        }));
 
     using var reopenedViewModel = new ShellViewModel(
         WorkspaceState.Empty,
@@ -353,7 +428,12 @@ try
     Assert(reopenedViewModel.State == WorkspaceState.Ready && !reopenedViewModel.IsDirty, "Saved Viewer project did not reopen cleanly.");
     Assert(reopenedViewModel.ProjectPath == Path.GetFullPath(realProject), "Reopened project path was not restored.");
     Assert(reopenedViewModel.SceneLayers.Count == 3, "Reopened Viewer project did not restore scene layers.");
-    Assert(reopenedViewModel.ModelX == 12 && reopenedViewModel.SceneLayers[1].Opacity == 0.5, "Reopened Viewer project did not restore edits.");
+    Assert(
+        reopenedViewModel.ModelX == 12
+        && reopenedViewModel.SceneLayers[1].Opacity == 0.5
+        && reopenedViewModel.SceneLayers[1].TrackAlpha == 0.35
+        && reopenedViewModel.SceneLayers[1].Pma,
+        "Reopened Viewer project did not restore alpha edits.");
     Assert(reopenedViewModel.SceneLayers.All(layer => layer.PreviewImagePath is not null && File.Exists(layer.PreviewImagePath)), "Reopened scene previews were not rendered.");
     await reopenedViewModel.OpenProjectAsync(Path.Combine(root, "missing.spineviewer.json"));
     Assert(reopenedViewModel.State == WorkspaceState.Ready && reopenedViewModel.SceneLayers.Count == 3 && reopenedViewModel.ModelX == 12,

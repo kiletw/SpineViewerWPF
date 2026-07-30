@@ -30,7 +30,7 @@ These stay in the main workspace:
 ### Properties
 
 - model transform
-- PMA/render options
+- layer opacity, Track 0 Alpha, and PMA/render options
 - background
 - Runtime override
 

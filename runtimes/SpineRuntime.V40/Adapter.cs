@@ -58,7 +58,7 @@ public sealed class SpineV40Adapter : IRuntimeAdapter
             }
 
             var state = new Spine.AnimationState(new Spine.AnimationStateData(loaded.Data));
-            state.SetAnimation(0, animation, false);
+            state.SetAnimation(0, animation, false).Alpha = request.TrackAlpha;
             state.Update(request.TimeSeconds);
             state.Apply(skeleton);
             skeleton.UpdateWorldTransform();

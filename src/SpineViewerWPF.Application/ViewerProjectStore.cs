@@ -84,6 +84,8 @@ public sealed class ViewerProjectStore
                     throw new InvalidDataException("Scene layer contains a non-finite numeric value.");
                 if (layer.ModelScale is <= 0 or > 100 || layer.Opacity is < 0 or > 1)
                     throw new InvalidDataException("Scene layer transform or opacity is outside the supported range.");
+                if (layer.TrackAlpha is { } alpha && (!double.IsFinite(alpha) || alpha is < 0 or > 1))
+                    throw new InvalidDataException("Scene layer track alpha must be between 0 and 1.");
             }
         }
     }

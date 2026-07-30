@@ -35,7 +35,7 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
 - Binding refresh cannot clear a valid selected animation or dirty a newly opened document.
 - No animations: display setup pose.
 - Auto-play the selected animation after successful load, as accepted by ADR-004.
-- Skin and advanced settings remain collapsed by default.
+- Skin and advanced settings remain collapsed by default; selected-layer opacity, Track 0 Alpha, and PMA remain visible because they directly affect rendering.
 - Warnings do not interrupt preview unless blocking.
 
 ## Interaction Contracts
@@ -43,6 +43,7 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
 - Mouse wheel: viewport zoom.
 - Drag: viewport pan.
 - Model transform requires explicit controls or a visible mode.
+- Layer opacity fades the complete WPF scene layer; Track 0 Alpha changes Runtime animation mixing; PMA changes texture compositing. These controls are not interchangeable.
 - Fit changes view only.
 - Reset semantics must be explicit: viewport reset and model reset are distinct commands if both exist.
 - Space: play/pause when focus context permits.
@@ -60,6 +61,7 @@ ViewModels may expose primitives, presentation DTOs, commands, and observable co
 - Successful save clears dirty state; a failed or canceled save preserves it.
 - Closing a dirty project offers Save, Discard, and Cancel.
 - Spine JSON, binary, atlas, and texture sources remain read-only.
+- Per-layer Track 0 Alpha and PMA round-trip in the Viewer sidecar; older schema-version-1 documents use the top-level Track Alpha as the first-layer fallback.
 
 ## Command Enablement
 
