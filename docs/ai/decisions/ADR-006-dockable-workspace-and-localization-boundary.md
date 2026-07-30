@@ -24,5 +24,6 @@ Language switching is desired but is not required in the current implementation.
 
 - ADR-004 is amended rather than replaced: the default workflow stays fast, but the window model is no longer permanently fixed.
 - TASK-029 proves the interaction with the smallest useful panel set (Browse and Inspector) using native WPF windows.
+- TASK-030 makes those owned windows retain the shell view model and keeps test-state controls out of the normal UI.
 - Layout persistence is optional until the dock/float/redock flow is validated.
 - Existing hard-coded prototype text may be migrated when the real presentation shell is implemented; no speculative localization service is required now.

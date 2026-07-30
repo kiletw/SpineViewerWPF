@@ -227,6 +227,7 @@ internal sealed class FloatingPanelWindow : Window
         Title = title;
         Content = content;
         Owner = owner;
+        DataContext = owner.DataContext;
         Width = width;
         Height = height;
         MinWidth = 260;

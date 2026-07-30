@@ -40,7 +40,7 @@ These stay in the main workspace:
 - load and renderer details
 - actionable error information
 
-TASK-029 proves dock, float, redock, hide/show, and reset-layout behavior for the Browse and Inspector panels. Additional panels can follow without changing the viewport-first shell contract.
+TASK-029 proves dock, float, redock, hide/show, and reset-layout behavior for the Browse and Inspector panels. TASK-030 keeps both panels data-bound while floating and removes prototype-only state controls from the normal shell. Additional panels can follow without changing the viewport-first shell contract.
 
 ## Secondary Workflows
 

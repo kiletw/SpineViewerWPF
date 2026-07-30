@@ -172,8 +172,6 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         SaveAsCommand = new RelayCommand(() => TrySaveAs(), () => HasAsset);
         UndoCommand = new RelayCommand(Undo, () => undo.Count > 0);
         RedoCommand = new RelayCommand(Redo, () => redo.Count > 0);
-        CycleStateCommand = new RelayCommand(() =>
-            State = (WorkspaceState)(((int)State + 1) % Enum.GetValues<WorkspaceState>().Length));
         UpdatePlaybackTimer();
     }
 
@@ -220,7 +218,6 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public ICommand SaveAsCommand { get; }
     public ICommand UndoCommand { get; }
     public ICommand RedoCommand { get; }
-    public ICommand CycleStateCommand { get; }
 
     public WorkspaceState State
     {

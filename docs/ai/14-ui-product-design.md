@@ -2,7 +2,7 @@
 
 ## Status
 
-Product direction accepted; TASK-029 now validates a bounded WPF docking interaction. Toolkit selection and final visual styling remain open.
+Product direction accepted; TASK-029 validates a bounded WPF docking interaction and TASK-030 corrects its binding and production-chrome boundary. Toolkit selection and final visual styling remain open.
 
 ## Primary Goal
 

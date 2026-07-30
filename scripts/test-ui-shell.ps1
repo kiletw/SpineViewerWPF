@@ -3,6 +3,7 @@ $ErrorActionPreference = 'Stop'
 $repository = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $repository 'src\SpineViewerWPF.Wpf\SpineViewerWPF.Wpf.csproj'
 $xaml = Join-Path $repository 'src\SpineViewerWPF.Wpf\MainWindow.xaml'
+$codeBehind = Join-Path $repository 'src\SpineViewerWPF.Wpf\MainWindow.xaml.cs'
 $output = Join-Path $repository 'artifacts\ui-shell-smoke'
 $executable = Join-Path $output 'bin\Release\net8.0-windows\SpineViewerWPF.exe'
 
@@ -93,6 +94,66 @@ foreach ($shortcut in $shortcuts) {
     if (-not $markup.Contains($shortcut)) { throw "Missing shortcut: $shortcut" }
 }
 
+$code = Get-Content -LiteralPath $codeBehind -Raw
+if (-not $code.Contains('DataContext = owner.DataContext;')) {
+    throw 'Floating panels do not inherit the shell view model.'
+}
+if (-not $markup.Contains('Click="ToggleInspectorPanel"') -or
+    $markup.Contains('Command="{Binding ToggleInspectorCommand}"')) {
+    throw 'Inspector toggles do not share the dock-aware path.'
+}
+if ($markup.Contains('FAKE PRESENTATION DATA') -or
+    $markup.Contains('Main.Prototype.StatePicker') -or
+    $markup.Contains('Command="{Binding CycleStateCommand}"')) {
+    throw 'Prototype-only controls remain in the normal shell.'
+}
+
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
+
+function Find-AutomationId {
+    param(
+        [System.Windows.Automation.AutomationElement] $Root,
+        [string] $AutomationId,
+        [int] $TargetProcessId = 0
+    )
+
+    $idCondition = [System.Windows.Automation.PropertyCondition]::new(
+        [System.Windows.Automation.AutomationElement]::AutomationIdProperty,
+        $AutomationId)
+    $condition = $idCondition
+    if ($TargetProcessId) {
+        $processCondition = [System.Windows.Automation.PropertyCondition]::new(
+            [System.Windows.Automation.AutomationElement]::ProcessIdProperty,
+            $TargetProcessId)
+        $condition = [System.Windows.Automation.AndCondition]::new(
+            [System.Windows.Automation.Condition[]]@($idCondition, $processCondition))
+    }
+    $Root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)
+}
+
+function Wait-AutomationId {
+    param(
+        [System.Windows.Automation.AutomationElement] $Root,
+        [string] $AutomationId,
+        [int] $TargetProcessId = 0
+    )
+
+    foreach ($attempt in 1..25) {
+        $element = Find-AutomationId $Root $AutomationId $TargetProcessId
+        if ($element) { return $element }
+        Start-Sleep -Milliseconds 100
+    }
+    $null
+}
+
+function Invoke-AutomationElement {
+    param([System.Windows.Automation.AutomationElement] $Element)
+
+    $pattern = $Element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+    ([System.Windows.Automation.InvokePattern] $pattern).Invoke()
+}
+
 $process = $null
 try {
     $process = Start-Process -FilePath $executable -ArgumentList '--state=ReadyWithWarnings --compact' -PassThru
@@ -104,6 +165,21 @@ try {
     if ($process.HasExited -or $process.MainWindowTitle -notlike 'Spine Viewer*') {
         throw 'WPF shell did not expose its main window.'
     }
+
+    $mainWindow = [System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+    Invoke-AutomationElement (Wait-AutomationId $mainWindow 'Main.Command.Window')
+    $floatBrowse = Wait-AutomationId ([System.Windows.Automation.AutomationElement]::RootElement) 'Main.Window.FloatBrowse' $process.Id
+    if (-not $floatBrowse) { throw 'Window menu did not expose Float Browse.' }
+    Invoke-AutomationElement $floatBrowse
+
+    $animationList = Wait-AutomationId ([System.Windows.Automation.AutomationElement]::RootElement) 'Main.Asset.AnimationList' $process.Id
+    if (-not $animationList) { throw 'Floating Browse panel did not expose the animation list.' }
+    $idle = $animationList.FindFirst(
+        [System.Windows.Automation.TreeScope]::Descendants,
+        [System.Windows.Automation.PropertyCondition]::new(
+            [System.Windows.Automation.AutomationElement]::NameProperty,
+            'idle'))
+    if (-not $idle) { throw 'Floating Browse panel lost its bound animation data.' }
 }
 finally {
     if ($process -and -not $process.HasExited) {
@@ -117,4 +193,5 @@ finally {
     AutomationIds = $automationIds.Count
     EditorShortcuts = $shortcuts.Count
     CompactWarningState = 'launched'
+    FloatingBrowseBindings = 'passed'
 }

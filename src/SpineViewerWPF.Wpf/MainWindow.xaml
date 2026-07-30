@@ -25,7 +25,6 @@
         <KeyBinding Key="Space" Command="{Binding TogglePlayCommand}" />
         <KeyBinding Key="F" Command="{Binding FitCommand}" />
         <KeyBinding Key="D" Modifiers="Control" Command="{Binding DiagnosticsCommand}" />
-        <KeyBinding Key="D" Modifiers="Control+Shift" Command="{Binding CycleStateCommand}" />
     </Window.InputBindings>
 
     <Window.Resources>
@@ -259,7 +258,7 @@
                     <Button Style="{StaticResource ButtonBase}"
                             Content="{DynamicResource Text.Inspector}"
                             Margin="8,0,0,0"
-                            Command="{Binding ToggleInspectorCommand}"
+                            Click="ToggleInspectorPanel"
                             AutomationProperties.AutomationId="Main.Command.ToggleInspector" />
                     <Button Style="{StaticResource ButtonBase}"
                             Content="{DynamicResource Text.Screenshot}"
@@ -706,12 +705,6 @@
                         </StackPanel>
                     </Border>
 
-                    <TextBlock Text="FAKE PRESENTATION DATA"
-                               HorizontalAlignment="Right"
-                               VerticalAlignment="Bottom"
-                               Margin="14"
-                               FontSize="10"
-                               Foreground="#657084" />
                     </Grid>
                 </Border>
             </ScrollViewer>
@@ -894,7 +887,6 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0"
                            Text="{Binding RuntimeLabel}"
@@ -917,16 +909,6 @@
                            HorizontalAlignment="Center"
                            Foreground="#667186"
                            FontSize="11" />
-                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="Prototype state" Style="{StaticResource MutedText}" FontSize="10" VerticalAlignment="Center" Margin="0,0,7,0" />
-                    <Button Style="{StaticResource ButtonBase}"
-                            Content="{Binding State}"
-                            Command="{Binding CycleStateCommand}"
-                            Width="160"
-                            Padding="6,2"
-                            FontSize="10"
-                            AutomationProperties.AutomationId="Main.Prototype.StatePicker" />
-                </StackPanel>
             </Grid>
         </Border>
     </Grid>
