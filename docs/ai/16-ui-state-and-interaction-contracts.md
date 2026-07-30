@@ -32,6 +32,7 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
 
 - Fit viewport after successful load.
 - Select remembered animation when valid, otherwise first animation.
+- Binding refresh cannot clear a valid selected animation or dirty a newly opened document.
 - No animations: display setup pose.
 - Auto-play the selected animation after successful load, as accepted by ADR-004.
 - Skin and advanced settings remain collapsed by default.
@@ -49,7 +50,7 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
 
 ## Presentation State
 
-ViewModels may expose primitives, presentation DTOs, commands, and observable collections. They must not own official Runtime objects, graphics devices, textures, or render targets.
+ViewModels may expose primitives, presentation DTOs, commands, and observable collections. They must not expose or own official Runtime types, graphics devices, textures, or render targets. A scene-layer view model may own a disposable Application render-session abstraction and must release it when the layer is removed or replaced.
 
 ## Editable Viewer Project
 

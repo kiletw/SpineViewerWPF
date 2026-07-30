@@ -1,11 +1,12 @@
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
+using SpineViewerWPF.Application;
 using SpineViewerWPF.Core;
 
 namespace SpineViewerWPF.Wpf;
 
-public sealed class SceneLayerViewModel : INotifyPropertyChanged
+public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly Action? changed;
     private readonly IReadOnlyDictionary<string, double> animationDurations;
@@ -27,6 +28,7 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged
         string animation,
         string selectedSkin,
         string previewImagePath,
+        AssetRenderSession renderSession,
         int zIndex,
         Action? changed = null)
     {
@@ -39,6 +41,7 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged
         this.animation = animation;
         this.selectedSkin = selectedSkin;
         this.previewImagePath = previewImagePath;
+        RenderSession = renderSession;
         this.zIndex = zIndex;
         this.changed = changed;
     }
@@ -48,6 +51,7 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged
     public string SkeletonPath { get; }
     public string AtlasPath { get; }
     public string RuntimeOverride { get; }
+    internal AssetRenderSession RenderSession { get; }
     public IReadOnlyList<string> Animations { get; }
     public IReadOnlyList<string> Skins { get; }
     public string Animation
@@ -200,6 +204,8 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged
         IsVisible,
         Opacity,
         ZIndex);
+
+    public void Dispose() => RenderSession.Dispose();
 
     private void Set<T>(ref T field, T value, string propertyName)
     {

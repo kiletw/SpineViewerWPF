@@ -78,28 +78,47 @@ public sealed class LegacyRuntimeAdapter : IRuntimeAdapter
             Array.Empty<Diagnostic>());
     }
 
-    public void Render(RenderRequest request, CancellationToken cancellationToken)
+    public IRuntimeRenderSession OpenSession(string skeletonPath, string atlasPath, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var loader = new RenderTextureLoader();
-        using var asset = LoadedAsset.Open(request.SkeletonPath, request.AtlasPath, loader, loader.Paths);
-        var animation = asset.Data.FindAnimation(request.Animation)
-            ?? throw new InvalidDataException($"Animation not found: {request.Animation}");
-        if (request.Skins.Count > 1) throw new NotSupportedException("This vertical slice supports at most one skin.");
+        return new RenderSession(LoadedAsset.Open(skeletonPath, atlasPath, loader, loader.Paths));
+    }
 
-        var skeleton = new RuntimeSpine.Skeleton(asset.Data);
-        if (request.Skins.Count == 1)
+    private sealed class RenderSession : IRuntimeRenderSession
+    {
+        private LoadedAsset asset;
+
+        public RenderSession(LoadedAsset asset) => this.asset = asset;
+
+        public void Render(RenderRequest request, CancellationToken cancellationToken)
         {
-            skeleton.SetSkin(request.Skins[0]);
-            skeleton.SetSlotsToSetupPose();
+            cancellationToken.ThrowIfCancellationRequested();
+            var loaded = asset ?? throw new ObjectDisposedException(nameof(RenderSession));
+            var animation = loaded.Data.FindAnimation(request.Animation)
+                ?? throw new InvalidDataException($"Animation not found: {request.Animation}");
+            if (request.Skins.Count > 1) throw new NotSupportedException("This vertical slice supports at most one skin.");
+
+            var skeleton = new RuntimeSpine.Skeleton(loaded.Data);
+            if (request.Skins.Count == 1)
+            {
+                skeleton.SetSkin(request.Skins[0]);
+                skeleton.SetSlotsToSetupPose();
+            }
+
+            var state = new RuntimeSpine.AnimationState(new RuntimeSpine.AnimationStateData(loaded.Data));
+            state.SetAnimation(0, animation, false);
+            state.Update(request.TimeSeconds);
+            state.Apply(skeleton);
+            skeleton.UpdateWorldTransform();
+            CpuRenderer.Render(skeleton, request.Width, request.Height, request.OutputPath, request.Pma, request.Overwrite);
         }
 
-        var state = new RuntimeSpine.AnimationState(new RuntimeSpine.AnimationStateData(asset.Data));
-        state.SetAnimation(0, animation, false);
-        state.Update(request.TimeSeconds);
-        state.Apply(skeleton);
-        skeleton.UpdateWorldTransform();
-        CpuRenderer.Render(skeleton, request.Width, request.Height, request.OutputPath, request.Pma, request.Overwrite);
+        public void Dispose()
+        {
+            asset?.Dispose();
+            asset = null;
+        }
     }
 
     private sealed class LoadedAsset : IDisposable

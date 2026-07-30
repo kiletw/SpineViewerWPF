@@ -6,7 +6,68 @@ public interface IRuntimeAdapter
 {
     string RuntimeLine { get; }
     InspectResult Inspect(string skeletonPath, string atlasPath, bool overridden, CancellationToken cancellationToken);
+    IRuntimeRenderSession OpenSession(string skeletonPath, string atlasPath, CancellationToken cancellationToken);
+}
+
+public interface IRuntimeRenderSession : IDisposable
+{
     void Render(RenderRequest request, CancellationToken cancellationToken);
+}
+
+public sealed class AssetRenderSession : IDisposable
+{
+    private readonly object gate = new();
+    private readonly IRuntimeRenderSession session;
+    private readonly string skeletonPath;
+    private readonly string atlasPath;
+    private bool disposed;
+
+    internal AssetRenderSession(IRuntimeRenderSession session, string skeletonPath, string atlasPath)
+    {
+        this.session = session;
+        this.skeletonPath = skeletonPath;
+        this.atlasPath = atlasPath;
+    }
+
+    public string Render(
+        string animation,
+        float timeSeconds,
+        int width,
+        int height,
+        string outputPath,
+        bool overwrite,
+        bool pma,
+        IReadOnlyList<string> skins,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(animation)) throw new ArgumentException("Animation is required.");
+        if (!float.IsFinite(timeSeconds) || timeSeconds < 0) throw new ArgumentOutOfRangeException(nameof(timeSeconds));
+        if (width is < 1 or > 16384 || height is < 1 or > 16384)
+            throw new ArgumentOutOfRangeException(nameof(width), "Dimensions must be between 1 and 16384.");
+
+        var output = Path.GetFullPath(outputPath);
+        lock (gate)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (File.Exists(output) && !overwrite) throw new IOException($"Output exists: {output}");
+            Directory.CreateDirectory(Path.GetDirectoryName(output) ?? ".");
+            session.Render(
+                new RenderRequest(skeletonPath, atlasPath, animation, timeSeconds, width, height, output, overwrite, pma, skins),
+                cancellationToken);
+        }
+        return output;
+    }
+
+    public void Dispose()
+    {
+        lock (gate)
+        {
+            if (disposed) return;
+            session.Dispose();
+            disposed = true;
+        }
+    }
 }
 
 public sealed class AssetService
@@ -49,20 +110,21 @@ public sealed class AssetService
         IReadOnlyList<string> skins,
         CancellationToken cancellationToken = default)
     {
+        var opened = OpenRenderSession(skeletonPath, atlasPath, runtimeOverride, cancellationToken);
+        using (opened.Session)
+            return opened.Session.Render(animation, timeSeconds, width, height, outputPath, overwrite, pma, skins, cancellationToken);
+    }
+
+    public (InspectResult Inspection, AssetRenderSession Session) OpenRenderSession(
+        string skeletonPath,
+        string? atlasPath,
+        string? runtimeOverride,
+        CancellationToken cancellationToken = default)
+    {
         var paths = ValidateInput(skeletonPath, atlasPath);
-        if (string.IsNullOrWhiteSpace(animation)) throw new ArgumentException("Animation is required.");
-        if (!float.IsFinite(timeSeconds) || timeSeconds < 0) throw new ArgumentOutOfRangeException(nameof(timeSeconds));
-        if (width is < 1 or > 16384 || height is < 1 or > 16384)
-            throw new ArgumentOutOfRangeException(nameof(width), "Dimensions must be between 1 and 16384.");
-
-        var output = Path.GetFullPath(outputPath);
-        if (File.Exists(output) && !overwrite) throw new IOException($"Output exists: {output}");
-        Directory.CreateDirectory(Path.GetDirectoryName(output) ?? ".");
-
-        InspectWithRuntime(paths, runtimeOverride, cancellationToken).Adapter.Render(
-            new RenderRequest(paths.Skeleton, paths.Atlas, animation, timeSeconds, width, height, output, overwrite, pma, skins),
-            cancellationToken);
-        return output;
+        var selected = InspectWithRuntime(paths, runtimeOverride, cancellationToken);
+        var session = selected.Adapter.OpenSession(paths.Skeleton, paths.Atlas, cancellationToken);
+        return (selected.Result, new AssetRenderSession(session, paths.Skeleton, paths.Atlas));
     }
 
     public IReadOnlyList<string> RenderScene(
@@ -107,16 +169,15 @@ public sealed class AssetService
         string outputPath,
         CancellationToken cancellationToken = default)
     {
-        var inspection = Inspect(skeletonPath, atlasPath, runtimeOverride, cancellationToken);
+        var opened = OpenRenderSession(skeletonPath, atlasPath, runtimeOverride, cancellationToken);
+        using var session = opened.Session;
+        var inspection = opened.Inspection;
         var animation = inspection.Animations.FirstOrDefault()
             ?? throw new InvalidDataException("The current renderer requires an animation.");
         var skin = inspection.Skins.FirstOrDefault() ?? "default";
         try
         {
-            Render(
-                inspection.Asset.SkeletonPath,
-                inspection.Asset.AtlasPath,
-                inspection.Runtime.SelectedLine,
+            session.Render(
                 animation.Name,
                 animation.DurationSeconds / 2,
                 width,
@@ -175,14 +236,17 @@ public sealed class AssetService
         progress?.Report(new AnimationExportProgress(0, frameCount));
         try
         {
+            var opened = OpenRenderSession(
+                request.SkeletonPath,
+                request.AtlasPath,
+                request.RuntimeOverride,
+                cancellationToken);
+            using var session = opened.Session;
             for (var index = 0; index < frameCount; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var time = Math.Min(request.DurationSeconds, index / request.FramesPerSecond);
-                Render(
-                    request.SkeletonPath,
-                    request.AtlasPath,
-                    request.RuntimeOverride,
+                session.Render(
                     request.Animation,
                     time,
                     request.Width,

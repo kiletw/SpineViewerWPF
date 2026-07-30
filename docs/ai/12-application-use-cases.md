@@ -24,9 +24,9 @@ Input: skeleton, optional atlas, optional Runtime override. Output: identity, se
 
 Checks files, version support, atlas/textures, parse result, and blocking/non-blocking diagnostics without opening UI.
 
-### `OpenAssetSession`
+### `OpenRenderSession`
 
-Creates a disposable session owning the Runtime document and renderer-facing resources through abstractions.
+Creates a disposable, serialized session owning the selected Runtime document, atlas, and decoded textures through Application abstractions. WPF keeps one session per scene layer; sequence export opens one session for the complete frame loop.
 
 ### `SelectAnimation`, `SelectSkins`, `ControlPlayback`, `SeekPlayback`
 
@@ -38,7 +38,7 @@ Renders a deterministic frame from explicit dimensions, time, transform, backgro
 
 ### `ExportAnimation`
 
-Produces a deterministic PNG sequence at an explicit bounded FPS with progress, cancellation, overwrite policy, and diagnostics. Encoded GIF/video/PSD output remains deferred.
+Produces a deterministic PNG sequence at an explicit bounded FPS with progress, cancellation, overwrite policy, and diagnostics. The frame loop reuses one loaded render session. Encoded GIF/video/PSD output remains deferred.
 
 ### `LoadViewerProject`, `SaveViewerProject`
 

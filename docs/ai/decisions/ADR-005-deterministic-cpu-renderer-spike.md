@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted on 2026-07-26 after the TASK-001 prototype produced identical PNG bytes across repeated renders. Amended by TASK-008 to include bounded standard-library PNG texture decoding without selecting a production renderer.
+Accepted on 2026-07-26 after the TASK-001 prototype produced identical PNG bytes across repeated renders. Amended by TASK-008 to include bounded standard-library PNG texture decoding and by TASK-031 to reuse loaded Runtime resources during CPU playback/export without selecting a production renderer.
 
 ## Context
 
@@ -11,6 +11,8 @@ TASK-001 needs one deterministic, non-WPF render path. Selecting and distributin
 ## Decision
 
 Use a small standard-library CPU triangle rasterizer for the 4.1 vertical slice. It supports region and mesh attachments, normal alpha blending, P3 PPM test textures, bounded 8-bit non-interlaced PNG textures, and deterministic PNG output.
+
+The Application boundary may retain a disposable Runtime adapter session containing parsed skeleton data, atlas data, and decoded textures. Each frame still creates transient pose state and uses the same deterministic CPU rasterizer. WPF scene layers and sequence export own and dispose these sessions explicitly.
 
 Treat PMA, clipping attachments, non-normal blend modes, interlaced or non-8-bit PNG, other production image formats, and interactive rendering as explicitly unsupported. This spike does not select the production WPF renderer.
 
@@ -31,5 +33,6 @@ Two consecutive renders produced the same hash.
 
 - The CLI path is deterministic and has no new rendering dependency. Oversized static poses are scaled down and centered from the current Runtime pose bounds; poses that already fit retain the original transform.
 - Common generated PNG texture variants render through the same bounded CPU path without a package dependency.
+- Interactive CPU playback and sequence export avoid reparsing the skeleton, atlas, and textures for every frame.
 - Unsupported renderer features fail explicitly.
 - A production renderer still requires separate prototype evidence and an ADR update or replacement.

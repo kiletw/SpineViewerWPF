@@ -132,7 +132,7 @@ try
     Assert(previewViewModel.PreviewImagePath == previewPath && File.Exists(previewPath), "Static preview was not rendered.");
     Assert(
         Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(previewPath)))
-            == "7178BBFA4315C36332AB5C4743A413FE6A7CD165D75C907BBC34D88DB846301E",
+            == "9A675BC371474AC27AC4D00FB7BE3166AF03222B8D1D060074DB5F5704D922CC",
         "WPF preview did not match the deterministic render baseline.");
     Assert(
         new PreviewImageConverter().Convert(previewPath, typeof(object), null, CultureInfo.InvariantCulture) is not null,
@@ -202,7 +202,18 @@ try
     File.WriteAllBytes(pngTexture, validPng);
 
     var directPngPreview = Path.Combine(root, "png-preview-direct.png");
-    pngService.Render(pngSkeleton, pngAtlas, null, "move", 0.5f, 64, 64, directPngPreview, true, false, ["default"]);
+    pngService.Render(pngSkeleton, pngAtlas, null, "move", 0.5f, 512, 512, directPngPreview, true, false, ["default"]);
+    var sessionFirst = Path.Combine(root, "session-a.png");
+    var sessionSecond = Path.Combine(root, "session-b.png");
+    var openedSession = pngService.OpenRenderSession(pngSkeleton, pngAtlas, null);
+    using (openedSession.Session)
+    {
+        openedSession.Session.Render("move", 0.5f, 64, 64, sessionFirst, true, false, ["default"]);
+        openedSession.Session.Render("move", 0.5f, 64, 64, sessionSecond, true, false, ["default"]);
+    }
+    Assert(
+        File.ReadAllBytes(sessionFirst).SequenceEqual(File.ReadAllBytes(sessionSecond)),
+        "Reusable render session changed deterministic output.");
 
     var sequenceRequest = new AnimationExportRequest(
         pngSkeleton,
@@ -275,6 +286,8 @@ try
     Assert(realViewModel.FilteredAnimations.SequenceEqual(["move"]), "Real animation metadata was not mapped.");
     Assert(realViewModel.Skins.SequenceEqual(["default"]), "Real skin metadata was not mapped.");
     Assert(realViewModel.RuntimeLabel == "Runtime 4.1" && realViewModel.Duration == 1, "Runtime or duration was not mapped.");
+    Assert(realViewModel.SelectedAnimation == "move" && realViewModel.CanPlay && !realViewModel.IsDirty,
+        "Opening a real asset did not preserve its clean, playable animation selection.");
     Assert(realViewModel.SceneLayers.Count == 1, "Opening an asset did not create the initial scene layer.");
     Assert(Math.Abs(realViewModel.ExportFramesPerSecond - 30) < 0.001, "Export FPS default was not 30.");
     realViewModel.ExportFramesPerSecond = 10;
@@ -429,5 +442,6 @@ sealed class UnsupportedRuntimeAdapter : IRuntimeAdapter
     public string RuntimeLine => "4.1";
     public InspectResult Inspect(string skeletonPath, string atlasPath, bool overridden, CancellationToken cancellationToken) =>
         throw new NotSupportedException("Unsupported fixture.");
-    public void Render(RenderRequest request, CancellationToken cancellationToken) => throw new NotSupportedException();
+    public IRuntimeRenderSession OpenSession(string skeletonPath, string atlasPath, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
 }

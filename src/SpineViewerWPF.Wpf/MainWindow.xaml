@@ -498,7 +498,7 @@
                                        Stretch="Uniform"
                                        Opacity="{Binding Opacity}"
                                        Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                       RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                       RenderOptions.BitmapScalingMode="HighQuality"
                                        RenderTransformOrigin="0.5,0.5"
                                        AutomationProperties.AutomationId="Main.Viewport.RenderedPreview">
                                     <Image.RenderTransform>
