@@ -2,11 +2,11 @@
 
 ## Status
 
-Product direction accepted; TASK-029 validates a bounded WPF docking interaction and TASK-030 corrects its binding and production-chrome boundary. Toolkit selection and final visual styling remain open.
+Product direction accepted; TASK-029 validates a bounded WPF docking interaction, TASK-030 corrects its binding and production-chrome boundary, TASK-035 establishes the compact dark workspace baseline, TASK-037 adds the first built-in Light theme without a theme toolkit, TASK-043 makes scene-layer selection the single Properties editing context, and TASK-044 adds named attachment selection to the Slots workflow.
 
 ## Primary Goal
 
-Minimize the time and decisions between opening a Spine asset and seeing a useful animation preview, while allowing advanced tools to form a Photoshop-style workspace.
+Minimize the time and decisions between opening a Spine asset and seeing a useful live viewport, while allowing advanced tools to form a Photoshop-style workspace.
 
 ```text
 Open/drop asset
@@ -14,7 +14,7 @@ Open/drop asset
 -> detect Runtime
 -> fit viewport
 -> select remembered or first animation
--> preview
+-> live viewport
 ```
 
 ## Design Principles
@@ -23,7 +23,7 @@ Open/drop asset
 2. **Fast default** - first launch uses the validated TASK-002 quick-browse arrangement.
 3. **Dock when useful** - supporting panels may dock, tab, float, hide, and return to the default layout.
 4. **Progressive disclosure** - advanced panels do not dominate the initial workspace.
-5. **Safe defaults** - valid assets preview without configuration dialogs.
+5. **Safe defaults** - valid assets render in the viewport without configuration dialogs.
 6. **Visible compatibility** - selected Runtime and warnings remain discoverable.
 7. **Localization-ready** - user-facing text uses resource identities; runtime language switching may arrive later.
 8. **Deterministic states** - empty, loading, ready, warning, unsupported, failed, and renderer-unavailable remain visually distinct.
@@ -33,11 +33,12 @@ Open/drop asset
 ```text
 +------------------------------------------------------------------+
 | Open | Recent | Reload | Screenshot | Export | Window | Settings |
-+------------------+-----------------------------------------------+
-| Assets           |                                               |
-| Animations       |                 Viewport                      |
-| Skins            |                                               |
-+------------------+-----------------------------------------------+
++------------------+-----------------------------+-----------------+
+| Layers           |                             | Animation       |
+| visibility       |          Viewport           | Transform       |
+| order/actions    |                             | Render/Look     |
+| asset identity   |                             | Slots/Viewport  |
++------------------+-----------------------------+-----------------+
 | Play | Stop | Timeline | Loop | Speed | Fit | Reset              |
 +------------------------------------------------------------------+
 | Runtime | Load state | Warnings | Renderer state                 |
@@ -46,9 +47,21 @@ Open/drop asset
 
 Supporting panels may be moved into tab groups or separate owned windows. The command bar, central viewport, playback controls, and status remain available in the default layout.
 
+## Visual Density Baseline
+
+TASK-035 keeps the existing information architecture while making the viewport visually dominant:
+
+- compact command, playback, status, and panel chrome
+- one mint accent over neutral dark surfaces
+- dark native WPF inputs, sliders, checks, lists, and scroll tracks
+- small corner radii for controls and viewport framing
+- scrollable supporting panels rather than shrinking or hiding editor controls
+
+The operating-system title bar remains native. Replacing it requires a separate window-chrome task because that change also owns resize, drag, accessibility, and system-button behavior.
+
 ## Initial Product Scope
 
-- one active asset and viewport
+- multiple scene layers in one active Viewer project and viewport
 - open, drag/drop, recent files, reload
 - animation search and selection
 - skin selection
@@ -60,14 +73,21 @@ Supporting panels may be moved into tab groups or separate owned windows. The co
 - dock, float, redock, hide/show, and reset-layout behavior for selected supporting panels
 - non-destructive Inspector editing with dirty state, Undo/Redo, and `*.spineviewer.json` project save
 - visible selected-layer opacity, Track 0 Alpha, and PMA controls
+- selected-layer slot visibility, opacity, and named attachment controls
+- layer duplicate, reload, reorder, and scoped parameter copy/paste actions
+- precise finite transform fields without the earlier slider range ceilings
+- selected-layer Animation, Transform, Render, Appearance, Slots, and Viewport property categories
+- explicit GPU/CPU backend status and recoverable atlas selection
+- independently configurable 1-240 Preview FPS with a 30 FPS default
+- low-rate published FPS, preview work time, and coalesced-update status
 
 ## Deferred
 
-- multiple-model scene
 - wallpaper mode
 - embedded MCP controls
-- advanced attachment editor
-- final theme library decision
+- attachment transforms, creation, deletion, and source writing
+- multi-track animation, Physics controls, and Runtime-neutral debug geometry
+- expanded theme library beyond the built-in Dark/Light pair
 - runtime language switcher and translated resource sets
 - writing changes back to Spine JSON or binary source files
 

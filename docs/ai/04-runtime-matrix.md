@@ -2,9 +2,9 @@
 
 ## Status
 
-Inventory verified from v2 commit `79c6135`. Parser/renderer presence is code-verified. Project-authored JSON fixtures for every vendored line from 2.1.08 through 4.1 verify the isolated v3 adapters, deterministic CPU spike, and WPF static-preview integration. Test-generated PNG variants verify bounded 8-bit non-interlaced texture decoding and static rendering. TASK-009 verifies the official 4.1 `spineboy` JSON and binary example export, TASK-026 verifies the official 3.8.55 `spineboy` JSON/binary/PMA assets through the 3.8.95 adapter, TASK-027 adds bounded clipping/non-normal blend handling to the shared CPU bridge, TASK-028 verifies a project-authored two-page 4.1 atlas, TASK-031 desktop-checks user-supplied 3.6.53 and 4.1.14 binary exports, and TASK-032 maps the Runtime-neutral Track 0 Alpha contract to legacy `Mix` through 3.4 and `Alpha` from 3.5 onward without copying user assets into the repository. Official multi-page export parity remains unverified.
+Inventory verified from v2 commit `79c6135`. Project-authored JSON fixtures verify every connected line from 2.1.08 through 4.2. TASK-009 verifies official 4.1 JSON/binary, TASK-026 verifies official 3.8.55 JSON/binary/PMA, and TASK-041 pins official 4.2 commit `b81e5a58ed38704aee4f866f0e0ac672623ce914`, verifies its 4.2.22 JSON/binary example export, and exercises deterministic Physics replay. The shared Runtime-neutral CPU/GPU-scene bridges retain the clipping, blend, Track Alpha, slot, multi-page, and real-asset coverage recorded by TASK-027 through TASK-040. Official 4.2 PMA and multi-page export parity remain unverified.
 
-All snapshots are compiled into the WPF project under version-specific namespaces. License headers identify Esoteric Software Runtime source. Same-name official tags and their current Git object IDs were verified with `git ls-remote` on 2026-07-26, but file-for-file equality has not been proven after local namespace/XNA changes.
+Each snapshot is isolated in a version-specific assembly. Historical v2 sources retain their namespace/XNA patch uncertainty; the 4.1 and 4.2 projects use clean official sources with license headers. The 4.2 `spine-csharp/src` tree was compared file-for-file with its pinned commit with zero mismatches.
 
 | v2 selection | Vendored directory | Official tag candidate | JSON path | Binary path | PMA path | Multi-page | Fixture | v3 priority |
 |---|---|---|---:|---:|---:|---:|---|---|
@@ -22,7 +22,7 @@ All snapshots are compiled into the WPF project under version-specific namespace
 | 4.0.31 | `spine-runtimes-4.0.31` | `4.0.31` / `8770e31` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
 | 4.0.64 | `spine-runtimes-4.0.64` | `4.0.64` / `01524d4` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
 | 4.1.00 | `spine-runtimes-4.1.00` | `4.1.00` / `ab28b77` | Yes | Yes | Present | Project-authored two-page smoke; official TBD | Synthetic and two-page fixtures plus official `spineboy` JSON/binary export smoke | Prototype complete |
-| 4.2 | none | none | No | No | No | No | Missing | Future |
+| 4.2 | `runtimes/SpineRuntime.V42/src` | `4.2` branch / `b81e5a5` | Yes | Yes | Present | TBD | Project Physics fixture plus official 4.2.22 JSON/binary cache | Prototype complete |
 | 4.3 | none | current upstream line | No | No | No | No | Missing | Future |
 
 “Present” means the Player assigns the UI PMA/alpha flag to its Runtime renderer. It does not mean visual correctness is fixture-verified.
@@ -67,13 +67,15 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 - Verified multi-page atlas path: TASK-028 loads two project-authored PPM pages and renders attachments from both pages deterministically
 - Verified atlas discovery: TASK-011 resolves the official `-pro` skeletons to their base-stem atlas when the caller omits an explicit atlas path
 - Verified bounds-aware fit: TASK-010 keeps the 64 by 64 synthetic baseline unchanged and records deterministic 512 by 512 official JSON/binary renders with the full `spineboy` pose visible
-- Verified WPF playback: TASK-012 advances a real asset on a dispatcher tick and updates the timeline label; TASK-031 keeps one loaded Application render session per scene layer, renders 512 by 512 frames, and verifies the 4.1.14 binary sample with a clean selected animation and enabled playback
+- Verified WPF playback: TASK-012 advances a real asset on a dispatcher tick and updates the timeline label; TASK-031 keeps one loaded Application render session per scene layer; TASK-033 returns bounded in-memory BGRA fallback frames; TASK-036 returns Runtime-neutral clipped triangle scenes for normal GPU playback and validates the user-supplied 4.1.14 `xiu.skel` through a non-empty OpenGL framebuffer
+- Verified padded texture coordinates: TASK-033 preserves a non-zero atlas page size instead of replacing it with decoded PNG dimensions; Application smoke covers a deliberately mismatched atlas/texture size and the user-supplied 4.1.14 asset renders without global UV displacement
 - Verified Track 0 Alpha: TASK-032 proves that changing the Runtime-neutral track weight changes the rendered 4.1 fixture while the default value `1` retains the recorded baseline
 - Verified metadata: export `4.1.00`, animation `move` at 1 second, skin `default`
 - WPF metadata path: TASK-005 verified the same fixture through the native file-open composition, Application inspect use case, isolated adapter, and presentation mapping
 - WPF static preview: TASK-007 reuses the Application render use case off the UI thread; TASK-008 verifies the same Ready path for a generated PNG atlas texture
 - Verified render: 64 by 64 PNG at 0.5 seconds, SHA-256 `7178BBFA4315C36332AB5C4743A413FE6A7CD165D75C907BBC34D88DB846301E`
-- Still unverified: interlaced or non-8-bit PNG, official PMA fixture parity, full GPU-equation parity for clipping/non-normal blend modes, official multi-page exports, and other production texture formats
+- Verified GPU PMA composition: TASK-042 reproduces a user-supplied 3.5.51 export with one Screen slot, converts straight-alpha texture input to premultiplied shader output, and uses `(One, OneMinusSrcColor)` for Screen RGB with independent source-over alpha factors
+- Still unverified: interlaced or non-8-bit PNG, official PMA fixture parity, GPU-equation parity beyond the verified Screen source factor, official multi-page exports, and other production texture formats
 
 ## Rules
 
@@ -82,6 +84,15 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 - Do not copy these namespace-renamed sources into v3 as provenance-proof snapshots.
 - Pin a clean official upstream commit and record any adapter patch before adding a Runtime to v3.
 - Patch-level consolidation requires JSON and binary fixture evidence where both formats exist.
+
+## v3 4.2 Compatibility Slice
+
+- Official source: 4.2 branch snapshot `b81e5a58ed38704aee4f866f0e0ac672623ce914`; the vendored `spine-csharp/src` files have zero content mismatches and retain the official 2025 Runtime license.
+- Isolation: `SpineRuntime.V42` exposes only the existing Application adapter contracts; WPF and CLI register the adapter without receiving Runtime-specific types.
+- Official cache: `scripts/test-v42.ps1 -Offline` verifies the 4.2.22 `spineboy` JSON and binary exports, 11 animations, `default` skin, one atlas texture, explicit and automatic selection, and deterministic 512 by 512 renders.
+- Project fixture: `tests/fixtures/v42-minimal` verifies 4.2 Physics, deterministic 64 by 64 CPU output, visible Runtime-neutral textured triangles, and same-session A-B-A geometry equality.
+- Physics sampling: assets without Physics remain O(1); Physics assets reset at time zero and replay at 60 Hz up to 600 steps. Times over 10 seconds use 600 evenly distributed steps to keep interactive work bounded.
+- Still unverified: official 4.2 PMA, clipping/blend feature-isolated parity, multi-page exports, long-timeline Physics fidelity beyond the bounded replay ceiling, and production formats outside the existing PNG/PPM boundary.
 
 ## v3 4.0.64 Compatibility Slice
 
@@ -101,9 +112,9 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 
 ## v3 Historical Compatibility Slice
 
-- Isolated adapters now cover every vendored 2.1.08 through 4.0.31 line listed above, plus the existing 4.0.64 and 4.1.00 adapters.
+- Isolated adapters now cover every listed line from 2.1.08 through 4.2.
 - Each historical line has a project-authored JSON/atlas/P3 fixture, explicit and automatic selection smoke coverage, and a deterministic 64 by 64 render hash.
 - TASK-032 compiles the Track 0 weight against every historical adapter; lines through 3.4 use the matching legacy `Mix` property and 3.5 onward use `Alpha`.
 - TASK-031 additionally desktop-verifies the user-supplied 3.6.53 binary export, five-page atlas, first-animation selection, 512 by 512 preview, and active playback controls.
-- Binary `.skel`, official editor-export parity, official PMA fixture parity, feature-isolated clipping/non-normal blend fixtures, multi-page atlases, and production texture formats remain unverified unless listed in the 4.1 or 3.8 official sections. The 3.8 cache verifies the PMA load/render path; TASK-027 provides the bounded deterministic clipping/blend bridge.
-- 4.2 and 4.3 remain unsupported because this repository contains no vendored source snapshot for either line.
+- Binary `.skel`, official editor-export parity, official PMA fixture parity, feature-isolated clipping/non-normal blend fixtures, multi-page atlases, and production texture formats remain unverified unless listed in the 4.2, 4.1, or 3.8 official sections. The 3.8 cache verifies the PMA path; TASK-027 provides the bounded deterministic clipping/blend bridge.
+- 4.3 remains unsupported because it has no connected pinned adapter or verified fixture.

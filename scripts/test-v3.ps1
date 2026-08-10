@@ -4,16 +4,21 @@ $repository = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $repository 'src\SpineViewerWPF.Cli\SpineViewerWPF.Cli.csproj'
 $fixture = Join-Path $repository 'tests\fixtures\v41-minimal'
 $v40Fixture = Join-Path $repository 'tests\fixtures\v40-minimal'
+$v42Fixture = Join-Path $repository 'tests\fixtures\v42-minimal'
 $skeleton = Join-Path $fixture 'minimal.json'
 $atlas = Join-Path $fixture 'minimal.atlas'
 $v40Skeleton = Join-Path $v40Fixture 'minimal.json'
 $v40Atlas = Join-Path $v40Fixture 'minimal.atlas'
+$v42Skeleton = Join-Path $v42Fixture 'minimal.json'
+$v42Atlas = Join-Path $v42Fixture 'minimal.atlas'
 $artifacts = Join-Path $repository 'artifacts\v3-smoke'
 $first = Join-Path $artifacts 'frame-a.png'
 $second = Join-Path $artifacts 'frame-b.png'
 $pma = Join-Path $artifacts 'pma-frame.png'
 $v40First = Join-Path $artifacts 'v40-frame-a.png'
 $v40Second = Join-Path $artifacts 'v40-frame-b.png'
+$v42First = Join-Path $artifacts 'v42-frame-a.png'
+$v42Second = Join-Path $artifacts 'v42-frame-b.png'
 
 $buildMutex = [Threading.Mutex]::new($false, 'SpineViewerWPF.Build')
 $buildHeld = $false
@@ -80,6 +85,22 @@ if ($v40Hash -ne 'E16719DD53FB8CACED7D8C28E4BDD50DBEB8812483B041EC640913C13C09D2
     throw '4.0 rendered PNG does not match the recorded baseline.'
 }
 
+$v42InspectJson = & dotnet run --project $project -c Release --no-build -- inspect $v42Skeleton --atlas $v42Atlas --runtime 4.2 --format json
+if ($LASTEXITCODE -ne 0) { throw '4.2 inspect failed.' }
+$v42Inspect = $v42InspectJson | ConvertFrom-Json
+if (-not $v42Inspect.success -or $v42Inspect.runtime.selectedLine -ne '4.2' -or $v42Inspect.runtime.detectedExportVersion -ne '4.2.00') {
+    throw '4.2 Runtime selection contract failed.'
+}
+foreach ($output in @($v42First, $v42Second)) {
+    & dotnet run --project $project -c Release --no-build -- render $v42Skeleton --atlas $v42Atlas --runtime 4.2 --animation move --time 0.5 --width 64 --height 64 --output $output --overwrite | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "4.2 render failed: $output" }
+}
+$v42Hash = (Get-FileHash -LiteralPath $v42First -Algorithm SHA256).Hash
+if ($v42Hash -ne (Get-FileHash -LiteralPath $v42Second -Algorithm SHA256).Hash) { throw '4.2 rendered PNG is not deterministic.' }
+if ($v42Hash -ne '9F94B3309ABFC350372E67ED894971BF24A230C9087BF19C4AC628720579C7A9') {
+    throw '4.2 rendered PNG does not match the recorded baseline.'
+}
+
 $historical = @(
     @('v21_08-minimal', '2.1.08'), @('v21_25-minimal', '2.1.25'),
     @('v31_07-minimal', '3.1.07'), @('v32-minimal', '3.2.xx'),
@@ -113,5 +134,6 @@ foreach ($entry in $historical) {
     Sha256 = $firstHash
     Pma = 'passed'
     Runtime40 = 'passed'
+    Runtime42 = 'passed'
     HistoricalRuntimes = $historical.Count
 }

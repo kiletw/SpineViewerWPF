@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted on 2026-07-26 after the TASK-001 prototype produced identical PNG bytes across repeated renders. Amended by TASK-008 to include bounded standard-library PNG texture decoding, by TASK-031 to reuse loaded Runtime resources during CPU playback/export, and by TASK-032 to accept Runtime-neutral Track 0 Alpha and per-layer PMA without selecting a production renderer.
+Accepted on 2026-07-26 after the TASK-001 prototype produced identical PNG bytes across repeated renders. Amended by TASK-008 to include bounded standard-library PNG texture decoding, by TASK-031 to reuse loaded Runtime resources during CPU playback/export, by TASK-032 to accept Runtime-neutral Track 0 Alpha and per-layer PMA, by TASK-033 to expose a bounded in-memory interactive frame path, and by TASK-036 to retain that frame path as fallback/capture while normal RGBA playback moves to the GPU renderer selected by ADR-009.
 
 ## Context
 
@@ -14,7 +14,7 @@ Use a small standard-library CPU triangle rasterizer for the 4.1 vertical slice.
 
 The Application boundary may retain a disposable Runtime adapter session containing parsed skeleton data, atlas data, and decoded textures. Each frame still creates transient pose state, applies explicit Track 0 Alpha through the matching Runtime API, and uses the same deterministic CPU rasterizer. WPF scene layers and sequence export own and dispose these sessions explicitly.
 
-Treat interlaced or non-8-bit PNG, other production image formats, full GPU-equation parity beyond the bounded PMA/clipping/blend bridge, and interactive rendering as explicitly unsupported. This spike does not select the production WPF renderer.
+Treat interlaced or non-8-bit PNG, other production image formats, and full GPU-equation parity beyond the bounded PMA/clipping/blend bridge as explicitly unsupported. TASK-033 permits the same CPU rasterizer to return bounded BGRA pixels with presentation-only bilinear sampling and viewport framing. ADR-009 selects the separate production WPF interactive renderer.
 
 ## Prototype Evidence
 
@@ -34,5 +34,6 @@ Two consecutive renders produced the same hash.
 - The CLI path is deterministic and has no new rendering dependency. Oversized static poses are scaled down and centered from the current Runtime pose bounds; poses that already fit retain the original transform.
 - Common generated PNG texture variants render through the same bounded CPU path without a package dependency.
 - Interactive CPU playback and sequence export avoid reparsing the skeleton, atlas, and textures for every frame.
+- Interactive WPF frames avoid PNG encoding and disk I/O while deterministic file rendering retains the recorded sampling and hashes.
 - Unsupported renderer features fail explicitly.
-- A production renderer still requires separate prototype evidence and an ADR update or replacement.
+- Normal RGBA playback uses ADR-009; this CPU path remains authoritative for deterministic file output, screenshots, channel inspection, and GPU fallback.

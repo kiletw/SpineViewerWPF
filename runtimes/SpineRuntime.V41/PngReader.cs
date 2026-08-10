@@ -4,7 +4,9 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 
-#if SPINE_V40
+#if SPINE_V42
+namespace SpineRuntime.V42;
+#elif SPINE_V40
 namespace SpineRuntime.V40;
 #elif SPINE_LEGACY
 namespace SpineRuntime.Legacy;
@@ -231,7 +233,7 @@ internal static class PngReader
             };
         }
 
-        return new TextureData(width, height, pixels);
+        return new TextureData(path, width, height, pixels);
     }
 
     private static Pixel PalettePixel(string path, byte index, byte[] palette, byte[] transparency)

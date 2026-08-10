@@ -1,8 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-#if SPINE_V40
+using SpineViewerWPF.Core;
+#if SPINE_V42
+using Spine;
+namespace SpineRuntime.V42;
+#elif SPINE_V40
 using Spine4_0_64;
 namespace SpineRuntime.V40;
 #elif SPINE_LEGACY
@@ -51,22 +56,71 @@ internal enum CompositeMode
 
 internal sealed class TextureData
 {
-    internal TextureData(int width, int height, Pixel[] pixels)
+    private PreviewTexture previewTexture;
+
+    internal TextureData(string key, int width, int height, Pixel[] pixels)
     {
+        Key = Path.GetFullPath(key);
         Width = width;
         Height = height;
         Pixels = pixels;
     }
 
+    public string Key { get; }
     public int Width { get; }
     public int Height { get; }
     public Pixel[] Pixels { get; }
 
-    public Pixel Sample(float u, float v)
+    public PreviewTexture GetPreviewTexture()
     {
-        var x = Math.Clamp((int)(u * Width), 0, Width - 1);
-        var y = Math.Clamp((int)(v * Height), 0, Height - 1);
-        return Pixels[y * Width + x];
+        if (previewTexture is not null) return previewTexture;
+        var rgba = new byte[Pixels.Length * 4];
+        for (var index = 0; index < Pixels.Length; index++)
+        {
+            var pixel = Pixels[index];
+            var offset = index * 4;
+            rgba[offset] = pixel.R;
+            rgba[offset + 1] = pixel.G;
+            rgba[offset + 2] = pixel.B;
+            rgba[offset + 3] = pixel.A;
+        }
+        return previewTexture = new PreviewTexture(Key, Width, Height, rgba);
+    }
+
+    public Pixel Sample(float u, float v, bool linearFiltering)
+    {
+        if (!linearFiltering)
+        {
+            var nearestX = Math.Clamp((int)(u * Width), 0, Width - 1);
+            var nearestY = Math.Clamp((int)(v * Height), 0, Height - 1);
+            return Pixels[nearestY * Width + nearestX];
+        }
+
+        var sampleX = Math.Clamp(u * Width - 0.5f, 0, Width - 1);
+        var sampleY = Math.Clamp(v * Height - 0.5f, 0, Height - 1);
+        var x0 = (int)MathF.Floor(sampleX);
+        var y0 = (int)MathF.Floor(sampleY);
+        var x1 = Math.Min(x0 + 1, Width - 1);
+        var y1 = Math.Min(y0 + 1, Height - 1);
+        var tx = sampleX - x0;
+        var ty = sampleY - y0;
+        var topLeft = Pixels[y0 * Width + x0];
+        var topRight = Pixels[y0 * Width + x1];
+        var bottomLeft = Pixels[y1 * Width + x0];
+        var bottomRight = Pixels[y1 * Width + x1];
+
+        byte Channel(byte tl, byte tr, byte bl, byte br)
+        {
+            var top = tl + (tr - tl) * tx;
+            var bottom = bl + (br - bl) * tx;
+            return (byte)Math.Clamp(MathF.Round(top + (bottom - top) * ty), 0, 255);
+        }
+
+        return new Pixel(
+            Channel(topLeft.R, topRight.R, bottomLeft.R, bottomRight.R),
+            Channel(topLeft.G, topRight.G, bottomLeft.G, bottomRight.G),
+            Channel(topLeft.B, topRight.B, bottomLeft.B, bottomRight.B),
+            Channel(topLeft.A, topRight.A, bottomLeft.A, bottomRight.A));
     }
 
     public static TextureData LoadP3(string path)
@@ -89,7 +143,7 @@ internal sealed class TextureData
             byte Scale(string value) => (byte)(int.Parse(value, CultureInfo.InvariantCulture) * 255 / max);
             pixels[i] = new Pixel(Scale(tokens[4 + i * 3]), Scale(tokens[5 + i * 3]), Scale(tokens[6 + i * 3]), 255);
         }
-        return new TextureData(width, height, pixels);
+        return new TextureData(path, width, height, pixels);
     }
 
     public static TextureData LoadPng(string path) => PngReader.Load(path);
@@ -102,6 +156,123 @@ internal static class CpuRenderer
 
     public static void Render(Skeleton skeleton, int width, int height, string outputPath, bool pma, bool overwrite)
     {
+        var pixels = RasterizeScene(skeleton, width, height, pma, false, false);
+        PngWriter.Write(outputPath, width, height, pixels, overwrite);
+    }
+
+    public static RenderedFrame RenderFrame(Skeleton skeleton, int width, int height, bool pma, bool linearFiltering)
+    {
+        var pixels = RasterizeScene(skeleton, width, height, pma, linearFiltering, true);
+        var bgra = new byte[pixels.Length * 4];
+        for (var index = 0; index < pixels.Length; index++)
+        {
+            var pixel = pixels[index];
+            var offset = index * 4;
+            bgra[offset] = pixel.B;
+            bgra[offset + 1] = pixel.G;
+            bgra[offset + 2] = pixel.R;
+            bgra[offset + 3] = pixel.A;
+        }
+        return new RenderedFrame(width, height, bgra);
+    }
+
+    public static PreviewSceneFrame BuildPreviewScene(Skeleton skeleton, bool pma)
+    {
+        var boundsBuffer = Array.Empty<float>();
+#if SPINE_LEGACY_NO_BOUNDS
+        GetBounds(skeleton, out var boundsX, out var boundsY, out var boundsWidth, out var boundsHeight);
+#else
+        skeleton.GetBounds(out var boundsX, out var boundsY, out var boundsWidth, out var boundsHeight, ref boundsBuffer);
+#endif
+        if (!float.IsFinite(boundsX) || !float.IsFinite(boundsY)
+            || !float.IsFinite(boundsWidth) || !float.IsFinite(boundsHeight)
+            || boundsWidth <= 0 || boundsHeight <= 0)
+            boundsX = boundsY = boundsWidth = boundsHeight = 0;
+
+        var commands = new List<PreviewDrawCommand>();
+#if !SPINE_LEGACY_NO_CLIPPING
+        var clipper = new SkeletonClipping();
+#endif
+        foreach (var slot in skeleton.DrawOrder)
+        {
+            if (slot.Attachment is null)
+            {
+#if !SPINE_LEGACY_NO_CLIPPING
+                clipper.ClipEnd(slot);
+#endif
+                continue;
+            }
+#if !SPINE_LEGACY_NO_CLIPPING
+            if (slot.Attachment is ClippingAttachment clippingAttachment)
+            {
+                clipper.ClipStart(slot, clippingAttachment);
+                continue;
+            }
+#endif
+            var blendMode = ToPreviewBlendMode(GetCompositeMode(slot));
+            switch (slot.Attachment)
+            {
+                case RegionAttachment region:
+                {
+                    var positions = new float[8];
+#if SPINE_LEGACY && SPINE_LEGACY_SHORT
+                    region.ComputeWorldVertices(slot.Bone, positions);
+#elif SPINE_V40 || SPINE_LEGACY
+                    region.ComputeWorldVertices(slot.Bone, positions, 0);
+#else
+                    region.ComputeWorldVertices(slot, positions, 0);
+#endif
+#if !SPINE_LEGACY_NO_CLIPPING
+                    AddPreviewAttachment(clipper,
+#else
+                    AddPreviewAttachment(
+#endif
+                        commands, positions, region.UVs, QuadTriangles, GetTexture(region),
+                        skeleton.R * slot.R * region.R,
+                        skeleton.G * slot.G * region.G,
+                        skeleton.B * slot.B * region.B,
+                        skeleton.A * slot.A * region.A,
+                        blendMode, pma, slot.Data.Name);
+                    break;
+                }
+                case MeshAttachment mesh:
+                {
+#if SPINE_LEGACY && SPINE_LEGACY_OLD_MESH
+                    var positions = new float[mesh.Vertices.Length];
+#else
+                    var positions = new float[mesh.WorldVerticesLength];
+#endif
+                    mesh.ComputeWorldVertices(slot, positions);
+#if !SPINE_LEGACY_NO_CLIPPING
+                    AddPreviewAttachment(clipper,
+#else
+                    AddPreviewAttachment(
+#endif
+                        commands, positions, mesh.UVs, mesh.Triangles, GetTexture(mesh),
+                        skeleton.R * slot.R * mesh.R,
+                        skeleton.G * slot.G * mesh.G,
+                        skeleton.B * slot.B * mesh.B,
+                        skeleton.A * slot.A * mesh.A,
+                        blendMode, pma, slot.Data.Name);
+                    break;
+                }
+            }
+#if !SPINE_LEGACY_NO_CLIPPING
+            clipper.ClipEnd(slot);
+#endif
+        }
+
+        return new PreviewSceneFrame(boundsX, boundsY, boundsWidth, boundsHeight, commands);
+    }
+
+    private static Pixel[] RasterizeScene(
+        Skeleton skeleton,
+        int width,
+        int height,
+        bool pma,
+        bool linearFiltering,
+        bool fitViewport)
+    {
         var pixels = new Pixel[width * height];
         var boundsBuffer = Array.Empty<float>();
 #if SPINE_LEGACY_NO_BOUNDS
@@ -112,9 +283,15 @@ internal static class CpuRenderer
         var hasBounds = float.IsFinite(boundsX) && float.IsFinite(boundsY)
             && float.IsFinite(boundsWidth) && float.IsFinite(boundsHeight)
             && boundsWidth > 0 && boundsHeight > 0;
-        var shouldFit = hasBounds && (boundsWidth > width || boundsHeight > height);
+        // ponytail: keep tiny world-space fixtures stable; a production camera should persist its own framing.
+        var shouldFitViewport = fitViewport
+            && hasBounds
+            && (boundsWidth > width / 4f || boundsHeight > height / 4f);
+        var shouldFit = hasBounds && (shouldFitViewport || boundsWidth > width || boundsHeight > height);
         var viewScale = shouldFit
-            ? MathF.Min(1, MathF.Min(width / boundsWidth, height / boundsHeight))
+            ? shouldFitViewport
+                ? MathF.Min(1, MathF.Min(Math.Max(1, width - 32) / boundsWidth, Math.Max(1, height - 32) / boundsHeight))
+                : MathF.Min(1, MathF.Min(width / boundsWidth, height / boundsHeight))
             : 1;
         if (!float.IsFinite(viewScale) || viewScale <= 0) viewScale = 1;
         var viewCenterX = shouldFit ? boundsX + boundsWidth / 2 : 0;
@@ -163,7 +340,7 @@ internal static class CpuRenderer
                         skeleton.G * slot.G * region.G,
                         skeleton.B * slot.B * region.B,
                         skeleton.A * slot.A * region.A,
-                        viewCenterX, viewCenterY, viewScale, compositeMode, pma);
+                        viewCenterX, viewCenterY, viewScale, compositeMode, pma, linearFiltering);
                     break;
                 }
                 case MeshAttachment mesh:
@@ -185,7 +362,7 @@ internal static class CpuRenderer
                         skeleton.G * slot.G * mesh.G,
                         skeleton.B * slot.B * mesh.B,
                         skeleton.A * slot.A * mesh.A,
-                        viewCenterX, viewCenterY, viewScale, compositeMode, pma);
+                        viewCenterX, viewCenterY, viewScale, compositeMode, pma, linearFiltering);
                     break;
                 }
             }
@@ -194,7 +371,7 @@ internal static class CpuRenderer
 #endif
         }
 
-        PngWriter.Write(outputPath, width, height, pixels, overwrite);
+        return pixels;
     }
 
 #if SPINE_V40
@@ -306,6 +483,99 @@ internal static class CpuRenderer
 #endif
     }
 
+    private static PreviewBlendMode ToPreviewBlendMode(CompositeMode mode) => mode switch
+    {
+        CompositeMode.Additive => PreviewBlendMode.Additive,
+        CompositeMode.Multiply => PreviewBlendMode.Multiply,
+        CompositeMode.Screen => PreviewBlendMode.Screen,
+        _ => PreviewBlendMode.Normal
+    };
+
+    private static void AddPreviewAttachment(
+#if !SPINE_LEGACY_NO_CLIPPING
+        SkeletonClipping clipper,
+#endif
+        List<PreviewDrawCommand> commands,
+        float[] positions,
+        float[] uvs,
+        int[] triangles,
+        TextureData texture,
+        float tintR,
+        float tintG,
+        float tintB,
+        float tintA,
+        PreviewBlendMode blendMode,
+        bool pma,
+        string slotName)
+    {
+#if !SPINE_LEGACY_NO_CLIPPING
+        var isClipping =
+#if SPINE_RUNTIME_3632 || SPINE_RUNTIME_3639
+            clipper.IsClipping();
+#else
+            clipper.IsClipping;
+#endif
+        if (isClipping)
+        {
+#if SPINE_V42
+            clipper.ClipTriangles(positions, triangles, triangles.Length, uvs);
+#else
+            clipper.ClipTriangles(positions, positions.Length, triangles, triangles.Length, uvs);
+#endif
+            AddPreviewDraw(
+                commands,
+                clipper.ClippedVertices.Items, clipper.ClippedVertices.Count,
+                clipper.ClippedUVs.Items,
+                clipper.ClippedTriangles.Items, clipper.ClippedTriangles.Count,
+                texture, tintR, tintG, tintB, tintA, blendMode, pma, slotName);
+            return;
+        }
+#endif
+        AddPreviewDraw(
+            commands,
+            positions, positions.Length, uvs, triangles, triangles.Length,
+            texture, tintR, tintG, tintB, tintA, blendMode, pma, slotName);
+    }
+
+    private static void AddPreviewDraw(
+        List<PreviewDrawCommand> commands,
+        float[] positions,
+        int positionsLength,
+        float[] uvs,
+        int[] triangles,
+        int trianglesLength,
+        TextureData texture,
+        float tintR,
+        float tintG,
+        float tintB,
+        float tintA,
+        PreviewBlendMode blendMode,
+        bool pma,
+        string slotName = "")
+    {
+        var vertices = new PreviewVertex[positionsLength / 2];
+        for (var index = 0; index < vertices.Length; index++)
+            vertices[index] = new PreviewVertex(
+                positions[index * 2],
+                positions[index * 2 + 1],
+                uvs[index * 2],
+                uvs[index * 2 + 1]);
+
+        var indices = new int[trianglesLength];
+        Array.Copy(triangles, indices, trianglesLength);
+        commands.Add(new PreviewDrawCommand(
+            texture.GetPreviewTexture(),
+            vertices,
+            indices,
+            tintR,
+            tintG,
+            tintB,
+            tintA,
+            blendMode,
+            pma,
+            slotName));
+    }
+
     private static void DrawAttachment(
 #if !SPINE_LEGACY_NO_CLIPPING
         SkeletonClipping clipper,
@@ -325,7 +595,8 @@ internal static class CpuRenderer
         float viewCenterY,
         float viewScale,
         CompositeMode compositeMode,
-        bool pma)
+        bool pma,
+        bool linearFiltering)
     {
 #if !SPINE_LEGACY_NO_CLIPPING
         var isClipping =
@@ -336,14 +607,18 @@ internal static class CpuRenderer
 #endif
         if (isClipping)
         {
+#if SPINE_V42
+            clipper.ClipTriangles(positions, triangles, triangles.Length, uvs);
+#else
             clipper.ClipTriangles(positions, positions.Length, triangles, triangles.Length, uvs);
+#endif
             Draw(
                 target, width, height,
                 clipper.ClippedVertices.Items, clipper.ClippedVertices.Count,
                 clipper.ClippedUVs.Items,
                 clipper.ClippedTriangles.Items, clipper.ClippedTriangles.Count,
                 texture, tintR, tintG, tintB, tintA,
-                viewCenterX, viewCenterY, viewScale, compositeMode, pma);
+                viewCenterX, viewCenterY, viewScale, compositeMode, pma, linearFiltering);
             return;
         }
 #endif
@@ -351,7 +626,7 @@ internal static class CpuRenderer
             target, width, height,
             positions, positions.Length, uvs, triangles, triangles.Length,
             texture, tintR, tintG, tintB, tintA,
-            viewCenterX, viewCenterY, viewScale, compositeMode, pma);
+            viewCenterX, viewCenterY, viewScale, compositeMode, pma, linearFiltering);
     }
 
     private static void Draw(
@@ -372,7 +647,8 @@ internal static class CpuRenderer
         float viewCenterY,
         float viewScale,
         CompositeMode compositeMode,
-        bool pma)
+        bool pma,
+        bool linearFiltering)
     {
         var vertices = new Vertex[positionsLength / 2];
         for (var i = 0; i < vertices.Length; i++)
@@ -383,7 +659,7 @@ internal static class CpuRenderer
                 uvs[i * 2 + 1]);
 
         for (var i = 0; i < trianglesLength; i += 3)
-            Rasterize(target, width, height, vertices[triangles[i]], vertices[triangles[i + 1]], vertices[triangles[i + 2]], texture, tintR, tintG, tintB, tintA, compositeMode, pma);
+            Rasterize(target, width, height, vertices[triangles[i]], vertices[triangles[i + 1]], vertices[triangles[i + 2]], texture, tintR, tintG, tintB, tintA, compositeMode, pma, linearFiltering);
     }
 
     private static void Rasterize(
@@ -399,7 +675,8 @@ internal static class CpuRenderer
         float tintB,
         float tintA,
         CompositeMode compositeMode,
-        bool pma)
+        bool pma,
+        bool linearFiltering)
     {
         static float Edge(Vertex p, Vertex q, float x, float y) => (x - p.X) * (q.Y - p.Y) - (y - p.Y) * (q.X - p.X);
 
@@ -420,7 +697,10 @@ internal static class CpuRenderer
             var wc = 1 - wa - wb;
             if (wa < -0.0001f || wb < -0.0001f || wc < -0.0001f) continue;
 
-            var source = texture.Sample(wa * a.U + wb * b.U + wc * c.U, wa * a.V + wb * b.V + wc * c.V);
+            var source = texture.Sample(
+                wa * a.U + wb * b.U + wc * c.U,
+                wa * a.V + wb * b.V + wc * c.V,
+                linearFiltering);
             Blend(target, y * width + x, source, tintR, tintG, tintB, tintA, compositeMode, pma);
         }
     }

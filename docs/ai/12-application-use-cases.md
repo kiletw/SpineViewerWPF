@@ -30,19 +30,29 @@ Creates a disposable, serialized session owning the selected Runtime document, a
 
 ### `SelectAnimation`, `SelectSkins`, `ControlPlayback`, `SeekPlayback`
 
-Modify a session through stable state transitions.
+Modify a session through stable state transitions. Interactive preview cadence
+is a WPF session preference bounded from 1 through 240 FPS, defaults to 30, and
+remains independent from deterministic export FPS and Viewer project state.
 
 ### `RenderFrame`
 
 Renders a deterministic frame from explicit dimensions, time, Track 0 Alpha, and PMA settings. `RenderScene` applies the same contract to a bounded list of independent scene layers, each with its own animation, skin, Track 0 Alpha, and PMA selection.
 
+### `RenderInteractiveFrame`
+
+Returns a Runtime-neutral bounded BGRA frame from a reusable render session. The CPU fallback may use bilinear texture sampling and bounds-aware viewport framing; it does not encode or write a PNG. WPF owns presentation-only RGBA/RGB/Alpha inspection.
+
+### `RenderInteractiveScene`
+
+Returns Runtime-neutral bounds, decoded RGBA textures, clipped vertices, UVs, triangle indices, tint, blend mode, and PMA intent from a reusable render session. WPF owns GPU resources and presentation transforms; Runtime-specific and OpenGL types do not cross this boundary.
+
 ### `ExportAnimation`
 
-Produces a deterministic PNG sequence at an explicit bounded FPS with progress, cancellation, overwrite policy, Track 0 Alpha, PMA, and diagnostics. The frame loop reuses one loaded render session. Encoded GIF/video/PSD output remains deferred.
+Produces a deterministic PNG sequence at an explicit bounded FPS with progress, cancellation, overwrite policy, Track 0 Alpha, PMA, slot visibility/opacity/attachment selection, and diagnostics. The frame loop reuses one loaded render session. Encoded GIF/video/PSD output remains deferred.
 
 ### `LoadViewerProject`, `SaveViewerProject`
 
-Loads and saves project-owned viewer settings through a versioned `*.spineviewer.json` sidecar. Schema version 1 stores source references, selected animation and skin, model transform, playback settings, background mode, and optional per-layer Track 0 Alpha/PMA fields. Missing per-layer Alpha falls back to the prior top-level primary-layer value. It never writes Spine JSON, binary, atlas, or texture sources.
+Loads and saves project-owned viewer settings through a versioned `*.spineviewer.json` sidecar. Schema version 1 stores source references, selected animation and skin, model transform, playback settings, background mode, optional per-layer Track 0 Alpha/PMA fields, and slot visibility/opacity plus optional named attachment settings. Missing per-layer Alpha falls back to the prior top-level primary-layer value; a missing attachment setting retains animation/setup behavior. It never writes Spine JSON, binary, atlas, or texture sources.
 
 ## Error Model
 

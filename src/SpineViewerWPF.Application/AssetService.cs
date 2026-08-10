@@ -12,6 +12,8 @@ public interface IRuntimeAdapter
 public interface IRuntimeRenderSession : IDisposable
 {
     void Render(RenderRequest request, CancellationToken cancellationToken);
+    RenderedFrame RenderFrame(FrameRenderRequest request, CancellationToken cancellationToken);
+    PreviewSceneFrame RenderScene(PreviewSceneRequest request, CancellationToken cancellationToken);
 }
 
 public sealed class AssetRenderSession : IDisposable
@@ -39,7 +41,8 @@ public sealed class AssetRenderSession : IDisposable
         bool pma,
         IReadOnlyList<string> skins,
         CancellationToken cancellationToken = default,
-        float trackAlpha = 1)
+        float trackAlpha = 1,
+        IReadOnlyList<SlotDisplayDocument>? slots = null)
     {
         if (string.IsNullOrWhiteSpace(animation)) throw new ArgumentException("Animation is required.");
         if (!float.IsFinite(timeSeconds) || timeSeconds < 0) throw new ArgumentOutOfRangeException(nameof(timeSeconds));
@@ -56,10 +59,63 @@ public sealed class AssetRenderSession : IDisposable
             if (File.Exists(output) && !overwrite) throw new IOException($"Output exists: {output}");
             Directory.CreateDirectory(Path.GetDirectoryName(output) ?? ".");
             session.Render(
-                new RenderRequest(skeletonPath, atlasPath, animation, timeSeconds, width, height, output, overwrite, pma, skins, trackAlpha),
+                new RenderRequest(skeletonPath, atlasPath, animation, timeSeconds, width, height, output, overwrite, pma, skins, trackAlpha, slots),
                 cancellationToken);
         }
         return output;
+    }
+
+    public RenderedFrame RenderFrame(
+        string animation,
+        float timeSeconds,
+        int width,
+        int height,
+        bool pma,
+        IReadOnlyList<string> skins,
+        CancellationToken cancellationToken = default,
+        float trackAlpha = 1,
+        bool linearFiltering = true,
+        IReadOnlyList<SlotDisplayDocument>? slots = null)
+    {
+        if (string.IsNullOrWhiteSpace(animation)) throw new ArgumentException("Animation is required.");
+        if (!float.IsFinite(timeSeconds) || timeSeconds < 0) throw new ArgumentOutOfRangeException(nameof(timeSeconds));
+        if (!float.IsFinite(trackAlpha) || trackAlpha is < 0 or > 1)
+            throw new ArgumentOutOfRangeException(nameof(trackAlpha), "Track alpha must be between 0 and 1.");
+        if (width is < 1 or > 4096 || height is < 1 or > 4096)
+            throw new ArgumentOutOfRangeException(nameof(width), "Interactive frame dimensions must be between 1 and 4096.");
+
+        lock (gate)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            cancellationToken.ThrowIfCancellationRequested();
+            return session.RenderFrame(
+                new FrameRenderRequest(animation, timeSeconds, width, height, pma, skins, trackAlpha, linearFiltering, slots),
+                cancellationToken);
+        }
+    }
+
+    public PreviewSceneFrame RenderScene(
+        string animation,
+        float timeSeconds,
+        bool pma,
+        IReadOnlyList<string> skins,
+        CancellationToken cancellationToken = default,
+        float trackAlpha = 1,
+        IReadOnlyList<SlotDisplayDocument>? slots = null)
+    {
+        if (string.IsNullOrWhiteSpace(animation)) throw new ArgumentException("Animation is required.");
+        if (!float.IsFinite(timeSeconds) || timeSeconds < 0) throw new ArgumentOutOfRangeException(nameof(timeSeconds));
+        if (!float.IsFinite(trackAlpha) || trackAlpha is < 0 or > 1)
+            throw new ArgumentOutOfRangeException(nameof(trackAlpha), "Track alpha must be between 0 and 1.");
+
+        lock (gate)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            cancellationToken.ThrowIfCancellationRequested();
+            return session.RenderScene(
+                new PreviewSceneRequest(animation, timeSeconds, pma, skins, trackAlpha, slots),
+                cancellationToken);
+        }
     }
 
     public void Dispose()
@@ -112,11 +168,12 @@ public sealed class AssetService
         bool pma,
         IReadOnlyList<string> skins,
         CancellationToken cancellationToken = default,
-        float trackAlpha = 1)
+        float trackAlpha = 1,
+        IReadOnlyList<SlotDisplayDocument>? slots = null)
     {
         var opened = OpenRenderSession(skeletonPath, atlasPath, runtimeOverride, cancellationToken);
         using (opened.Session)
-            return opened.Session.Render(animation, timeSeconds, width, height, outputPath, overwrite, pma, skins, cancellationToken, trackAlpha);
+            return opened.Session.Render(animation, timeSeconds, width, height, outputPath, overwrite, pma, skins, cancellationToken, trackAlpha, slots);
     }
 
     public (InspectResult Inspection, AssetRenderSession Session) OpenRenderSession(
@@ -160,7 +217,8 @@ public sealed class AssetService
                 request.Pma,
                 request.Skins ?? [],
                 cancellationToken,
-                request.TrackAlpha);
+                request.TrackAlpha,
+                request.Slots);
         }
         return outputs;
     }
@@ -261,7 +319,8 @@ public sealed class AssetService
                     request.Pma,
                     request.Skins ?? [],
                     cancellationToken,
-                    request.TrackAlpha);
+                    request.TrackAlpha,
+                    request.Slots);
                 created.Add(outputs[index]);
                 progress?.Report(new AnimationExportProgress(index + 1, frameCount));
             }

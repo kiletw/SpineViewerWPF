@@ -17,9 +17,10 @@ The competitor documents the following useful ideas:
 | Area | Referenced capability | v3 treatment |
 |---|---|---|
 | Import | drag/drop, paste, file and folder loading | retain as product input; implement through Application use cases |
-| Browse | models, browser, canvas, focus and centering | Asset Browser panel candidate |
+| Browse | models, browser, canvas, focus and centering | TASK-043 layer list and contextual actions; folder browser remains separate |
 | Playback | animation and skin groups, multiple tracks, speed and track alpha | TASK-019 per-layer animation/skin; TASK-032 effective Track 0 Alpha/PMA; multiple tracks remain separate |
-| Scene | multiple skeletons, ordering and non-overlap layout | TASK-018/TASK-020 bounded layer preview and grid layout; full scene editing remains separate |
+| Scene | multiple skeletons, ordering, parameter reuse and non-overlap layout | TASK-018/TASK-020 layer preview/layout; TASK-043 duplicate, reload, reorder and scoped parameter copy/paste |
+| Properties | transform, render, appearance, slots, animation and debug categories | TASK-043 selected-layer Properties categories; TASK-044 named slot attachment selection; attachment authoring, multi-track and debug geometry remain separate |
 | Diagnostics | debug rendering and compatibility visibility | retain diagnostics direction |
 | Export | still image, GIF, video, PSD layers and FFmpeg options | separate export tasks |
 | Media | non-PNG textures and wallpaper mode | separate compatibility/product tasks |

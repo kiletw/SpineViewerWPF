@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
@@ -23,7 +24,9 @@ public enum WorkspaceState
 
 public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 {
-    private const int PreviewSize = 512;
+    private const int ExportSize = 512;
+    private const int MaxPreviewWidth = 1536;
+    private const int MaxPreviewHeight = 1024;
     private static readonly string[] DefaultAnimations = ["idle", "walk", "attack", "victory"];
     private static readonly string[] DefaultSkins = ["default", "armor", "shadow"];
     private static readonly IReadOnlyDictionary<WorkspaceState, StateDefinition> Definitions =
@@ -31,30 +34,31 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         {
             [WorkspaceState.Empty] = new("No asset open", "Drop a skeleton here or choose Open asset.", false, false, false),
             [WorkspaceState.Loading] = new("Opening asset", "Resolving atlas, textures, and Runtime…", false, false, false),
-            [WorkspaceState.Ready] = new("Ready", "Preview ready.", true, true, true),
-            [WorkspaceState.ReadyWithWarnings] = new("Ready with warnings", "Preview is available; one texture uses a fallback filter.", true, true, true),
+            [WorkspaceState.Ready] = new("Ready", "Viewport ready.", true, true, true),
+            [WorkspaceState.ReadyWithWarnings] = new("Ready with warnings", "Viewport is available; one texture uses a fallback filter.", true, true, true),
             [WorkspaceState.Unsupported] = new("Unsupported export", "No compatible Runtime could open this export.", true, false, false),
             [WorkspaceState.Failed] = new("Could not open asset", "Check the skeleton, atlas, and texture paths.", true, false, false),
-            [WorkspaceState.RendererUnavailable] = new("Renderer unavailable", "Metadata loaded, but preview rendering is not available.", true, false, false),
-            [WorkspaceState.Exporting] = new("Exporting frame", "Writing PNG frames without blocking the current preview.", true, true, false)
+            [WorkspaceState.RendererUnavailable] = new("Renderer unavailable", "Metadata loaded, but viewport rendering is not available.", true, false, false),
+            [WorkspaceState.Exporting] = new("Exporting frame", "Writing PNG frames without blocking the current viewport.", true, true, false)
         };
 
     private readonly AssetService? assetService;
     private readonly ViewerProjectStore projectStore;
     private readonly Func<string?> chooseAssetPath;
+    private readonly Func<string?> chooseAtlasPath;
     private readonly Func<string, string?> chooseProjectPath;
     private readonly Func<string?> chooseProjectPathToOpen;
     private readonly Func<string?> chooseScreenshotPath;
     private readonly Func<string?> chooseExportPath;
     private readonly Func<IReadOnlyList<string>?> chooseAssetPaths;
     private readonly Func<bool> confirmDiscardChanges;
-    private readonly Func<string> createPreviewPath;
     private readonly DispatcherTimer playbackTimer;
     private readonly CancellationTokenSource playbackCancellation = new();
     private readonly ObservableCollection<SceneLayerViewModel> sceneLayers = [];
     // ponytail: in-memory history is enough for one fake document; cap or persist it with multi-document editing.
-    private readonly Stack<EditorSnapshot> undo = [];
-    private readonly Stack<EditorSnapshot> redo = [];
+    private readonly Stack<UndoEntry> undo = [];
+    private readonly Stack<UndoEntry> redo = [];
+    private LayerParameterClipboard? layerParameterClipboard;
     private WorkspaceState state;
     private EditorSnapshot savedSnapshot;
     private string[] animations = DefaultAnimations;
@@ -73,6 +77,14 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private bool isPlaying;
     private DateTime lastPlaybackTick;
     private int previewRenderInProgress;
+    private int previewRenderPending;
+    private long previewMetricWindowStarted = Stopwatch.GetTimestamp();
+    private int previewMetricPublishedFrames;
+    private int previewMetricCoalescedFrames;
+    private double previewMetricWorkMilliseconds;
+    private string previewPerformanceLabel = "Paused";
+    private bool gpuPreviewAvailable;
+    private string? gpuPreviewFailure;
     private int exportInProgress;
     private int exportCompletedFrames;
     private int exportTotalFrames;
@@ -96,11 +108,15 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private bool flipY;
     private bool loop = true;
     private double playbackSpeed = 1;
+    private double previewFramesPerSecond = 30;
     private double exportFramesPerSecond = 30;
     private double trackAlpha = 1;
     private string backgroundMode = "Checkerboard";
+    private string themeMode = "Dark";
+    private string previewChannel = "RGBA";
+    private int previewPixelWidth = 768;
+    private int previewPixelHeight = 768;
     private string? projectPath;
-    private string? previewImagePath;
     private bool isPrototypePreview = true;
     private string lastAction = "Ready";
 
@@ -111,8 +127,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         Func<string, string?>? chooseProjectPath = null,
         AssetService? assetService = null,
         Func<string?>? chooseAssetPath = null,
+        Func<string?>? chooseAtlasPath = null,
         Func<bool>? confirmDiscardChanges = null,
-        Func<string>? createPreviewPath = null,
         Func<string?>? chooseScreenshotPath = null,
         Func<string?>? chooseExportPath = null,
         Func<IReadOnlyList<string>?>? chooseAssetPaths = null,
@@ -147,10 +163,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         });
         this.assetService = assetService;
         this.chooseAssetPath = chooseAssetPath ?? (() => null);
+        this.chooseAtlasPath = chooseAtlasPath ?? (() => null);
         this.confirmDiscardChanges = confirmDiscardChanges ?? (() => false);
-        this.createPreviewPath = createPreviewPath ?? (() =>
-            Path.Combine(Path.GetTempPath(), "SpineViewerWPF", $"{Guid.NewGuid():N}.png"));
-        playbackTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
+        playbackTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1d / previewFramesPerSecond) };
         playbackTimer.Tick += AdvancePlayback;
         savedSnapshot = Capture();
 
@@ -170,6 +185,13 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         RemoveLayerCommand = new RelayCommand(RemoveSelectedLayer, () => CanRemoveLayer);
         MoveLayerUpCommand = new RelayCommand(() => MoveSelectedLayer(-1), () => CanMoveSelectedLayer(-1));
         MoveLayerDownCommand = new RelayCommand(() => MoveSelectedLayer(1), () => CanMoveSelectedLayer(1));
+        DuplicateLayerCommand = new RelayCommand(StartDuplicateLayer, () => CanDuplicateLayer);
+        ReloadLayerCommand = new RelayCommand(StartReloadLayer, () => CanReloadLayer);
+        CopyAllLayerParametersCommand = new RelayCommand(() => CopyLayerParameters(LayerParameterScope.All), () => HasSelectedSceneLayer);
+        CopyTransformParametersCommand = new RelayCommand(() => CopyLayerParameters(LayerParameterScope.Transform), () => HasSelectedSceneLayer);
+        CopyRenderParametersCommand = new RelayCommand(() => CopyLayerParameters(LayerParameterScope.Render), () => HasSelectedSceneLayer);
+        CopyAppearanceParametersCommand = new RelayCommand(() => CopyLayerParameters(LayerParameterScope.Appearance), () => HasSelectedSceneLayer);
+        PasteLayerParametersCommand = new RelayCommand(PasteLayerParameters, () => HasSelectedSceneLayer && layerParameterClipboard is not null);
         ScreenshotCommand = new RelayCommand(CaptureScreenshot, () => HasRenderedPreview && CanPlay);
         TogglePlayCommand = new RelayCommand(() => IsPlaying = !IsPlaying, () => CanPlay);
         StopCommand = new RelayCommand(() =>
@@ -192,7 +214,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public IReadOnlyList<string> FilteredAnimations =>
-        animations.Where(x => x.Contains(AnimationFilter, StringComparison.OrdinalIgnoreCase)).ToArray();
+        (selectedSceneLayer?.Animations ?? animations)
+        .Where(x => x.Contains(AnimationFilter, StringComparison.OrdinalIgnoreCase))
+        .ToArray();
     public IReadOnlyList<string> Skins => skinNames;
     public ObservableCollection<SceneLayerViewModel> SceneLayers => sceneLayers;
     public SceneLayerViewModel? SelectedSceneLayer
@@ -204,11 +228,16 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             selectedSceneLayer = value;
             Changed();
             Changed(nameof(HasSelectedSceneLayer));
+            Changed(nameof(FilteredAnimations));
+            Changed(nameof(Duration));
+            Changed(nameof(PlaybackTimeLabel));
             RefreshCommands();
         }
     }
     public bool HasSelectedSceneLayer => selectedSceneLayer is not null;
     public IReadOnlyList<string> BackgroundModes { get; } = ["Checkerboard", "Dark", "Light"];
+    public IReadOnlyList<string> ThemeModes { get; } = ["Dark", "Light"];
+    public IReadOnlyList<string> PreviewChannels { get; } = ["RGBA", "RGB", "Alpha"];
 
     public ICommand OpenAssetCommand { get; }
     public ICommand OpenProjectCommand { get; }
@@ -220,6 +249,13 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public ICommand RemoveLayerCommand { get; }
     public ICommand MoveLayerUpCommand { get; }
     public ICommand MoveLayerDownCommand { get; }
+    public ICommand DuplicateLayerCommand { get; }
+    public ICommand ReloadLayerCommand { get; }
+    public ICommand CopyAllLayerParametersCommand { get; }
+    public ICommand CopyTransformParametersCommand { get; }
+    public ICommand CopyRenderParametersCommand { get; }
+    public ICommand CopyAppearanceParametersCommand { get; }
+    public ICommand PasteLayerParametersCommand { get; }
     public ICommand ScreenshotCommand { get; }
     public ICommand TogglePlayCommand { get; }
     public ICommand StopCommand { get; }
@@ -246,6 +282,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             isDiagnosticsVisible = false;
             lastPlaybackTick = DateTime.UtcNow;
             position = 0;
+            ResetPreviewMetrics();
             Changed(string.Empty);
             UpdatePlaybackTimer();
             RefreshCommands();
@@ -293,6 +330,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             if (isPlaying == value) return;
             isPlaying = value;
             lastPlaybackTick = DateTime.UtcNow;
+            ResetPreviewMetrics();
             UpdatePlaybackTimer();
             Changed();
             Changed(nameof(PlaybackLabel));
@@ -418,7 +456,11 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public double PlaybackSpeed
     {
         get => playbackSpeed;
-        set => Edit(ref playbackSpeed, value, nameof(PlaybackSpeed));
+        set
+        {
+            var next = Math.Clamp(double.IsFinite(value) ? value : 1, 0.01, 10);
+            Edit(ref playbackSpeed, next, nameof(PlaybackSpeed));
+        }
     }
 
     public double ExportFramesPerSecond
@@ -433,6 +475,19 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    public double PreviewFramesPerSecond
+    {
+        get => previewFramesPerSecond;
+        set
+        {
+            var next = Math.Clamp(double.IsFinite(value) ? value : 30, 1, 240);
+            if (Math.Abs(previewFramesPerSecond - next) < 0.001) return;
+            previewFramesPerSecond = next;
+            UpdatePlaybackTimer();
+            Changed(nameof(PreviewFramesPerSecond));
+        }
+    }
+
     public double TrackAlpha
     {
         get => trackAlpha;
@@ -443,6 +498,35 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         get => backgroundMode;
         set => Edit(ref backgroundMode, value ?? "Checkerboard", nameof(BackgroundMode));
+    }
+
+    public string ThemeMode
+    {
+        get => themeMode;
+        set
+        {
+            var next = ThemeModes.Contains(value, StringComparer.Ordinal) ? value : "Dark";
+            if (themeMode == next) return;
+            themeMode = next;
+            Changed();
+        }
+    }
+
+    public string PreviewChannel
+    {
+        get => previewChannel;
+        set
+        {
+            var next = PreviewChannels.Contains(value, StringComparer.Ordinal) ? value : "RGBA";
+            if (previewChannel == next) return;
+            previewChannel = next;
+            Changed();
+            Changed(nameof(UseGpuPreview));
+            Changed(nameof(HasGpuPreview));
+            Changed(nameof(IsCpuPreviewVisible));
+            UpdatePlaybackTimer();
+            QueuePreviewRender();
+        }
     }
 
     public string LastAction
@@ -462,12 +546,19 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public bool IsExporting => State == WorkspaceState.Exporting;
     public bool HasAsset => Definition.HasAsset;
     public bool HasPreview => Definition.HasPreview;
-    public bool HasRenderedPreview => PreviewImagePath is not null;
+    public bool HasRenderedPreview => sceneLayers.Any(layer => layer.PreviewFrame is not null);
+    public bool UseGpuPreview => gpuPreviewAvailable && PreviewChannel == "RGBA";
+    public bool HasGpuPreview => UseGpuPreview && sceneLayers.Any(layer => layer.PreviewScene is not null);
+    public bool IsCpuPreviewVisible => !HasGpuPreview;
+    public string PreviewBackendLabel => UseGpuPreview ? "GPU" : "CPU fallback";
+    public string PreviewPerformanceLabel => previewPerformanceLabel;
     public bool HasPrototypePreview => HasPreview && isPrototypePreview;
-    public bool CanPlay => Definition.CanPlay && SelectedAnimation is not null && Duration > 0;
+    public bool CanPlay => Definition.CanPlay && sceneLayers.Count > 0 && Duration > 0;
     public bool CanExport => assetService is not null && CanPlay && !IsExporting && Volatile.Read(ref exportInProgress) == 0;
     public bool CanAddLayer => assetService is not null && sceneLayers.Count < 8 && !IsLoading && Volatile.Read(ref sceneLayerOperationInProgress) == 0;
     public bool CanRemoveLayer => selectedSceneLayer is not null && sceneLayers.Count > 1 && !IsLoading;
+    public bool CanDuplicateLayer => CanAddLayer && selectedSceneLayer is not null;
+    public bool CanReloadLayer => assetService is not null && selectedSceneLayer is not null && !IsLoading && Volatile.Read(ref sceneLayerOperationInProgress) == 0;
     public double ExportProgress => exportTotalFrames == 0 ? 0 : (double)exportCompletedFrames / exportTotalFrames;
     public string ExportProgressLabel => exportTotalFrames == 0
         ? "Exporting…"
@@ -498,7 +589,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public string WindowTitle => $"Spine Viewer · {DocumentTitle}";
     public string ProjectPathLabel => ProjectPath ?? "Not saved";
     public string? ProjectPath => projectPath;
-    public string? PreviewImagePath => previewImagePath;
+    public RenderedFrame? PreviewFrame => sceneLayers.FirstOrDefault()?.PreviewFrame;
+    public int PreviewPixelWidth => previewPixelWidth;
+    public int PreviewPixelHeight => previewPixelHeight;
+    public string PreviewResolutionLabel => HasRenderedPreview ? $"{previewPixelWidth} × {previewPixelHeight}" : "";
     public double PreviewX => ModelX * ViewportZoom + ViewportPanX;
     public double PreviewY => ModelY * ViewportZoom + ViewportPanY;
     public double ViewportZoom => viewportZoom;
@@ -506,10 +600,47 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public double ViewportPanY => viewportPanY;
     public double PreviewScaleX => ModelScale * ViewportZoom * (FlipX ? -1 : 1);
     public double PreviewScaleY => ModelScale * ViewportZoom * (FlipY ? -1 : 1);
-    public double Duration => SelectedAnimation is not null && animationDurations.TryGetValue(SelectedAnimation, out var duration)
-        ? duration
-        : 0;
+    public double Duration => SelectedSceneLayer?.Duration
+        ?? (SelectedAnimation is not null && animationDurations.TryGetValue(SelectedAnimation, out var duration) ? duration : 0);
     public string PlaybackTimeLabel => $"{FormatTime(Position)} / {FormatTime(Duration)}";
+
+    public void SetGpuPreviewAvailable(bool available, string? failure = null)
+    {
+        if (gpuPreviewAvailable == available && failure is null) return;
+        gpuPreviewAvailable = available;
+        gpuPreviewFailure = available ? null : failure ?? gpuPreviewFailure;
+        SetDiagnostics(diagnostics.Where(item => item.Code != "GPU_FALLBACK").ToArray());
+        if (!available && !string.IsNullOrWhiteSpace(gpuPreviewFailure))
+        {
+            LastAction = "GPU unavailable; using CPU preview";
+        }
+        Changed(nameof(UseGpuPreview));
+        Changed(nameof(HasGpuPreview));
+        Changed(nameof(IsCpuPreviewVisible));
+        Changed(nameof(PreviewBackendLabel));
+        ResetPreviewMetrics();
+        UpdatePlaybackTimer();
+        QueuePreviewRender();
+    }
+
+    public void SetViewportSize(double physicalWidth, double physicalHeight)
+    {
+        if (!double.IsFinite(physicalWidth) || !double.IsFinite(physicalHeight)
+            || physicalWidth < 1 || physicalHeight < 1)
+            return;
+
+        var scale = Math.Min(1, Math.Min(MaxPreviewWidth / physicalWidth, MaxPreviewHeight / physicalHeight));
+        var width = Math.Clamp((int)Math.Round(physicalWidth * scale), 256, MaxPreviewWidth);
+        var height = Math.Clamp((int)Math.Round(physicalHeight * scale), 256, MaxPreviewHeight);
+        if (previewPixelWidth == width && previewPixelHeight == height) return;
+
+        previewPixelWidth = width;
+        previewPixelHeight = height;
+        Changed(nameof(PreviewPixelWidth));
+        Changed(nameof(PreviewPixelHeight));
+        Changed(nameof(PreviewResolutionLabel));
+        QueuePreviewRender();
+    }
 
     public void ZoomViewport(double factor)
     {
@@ -548,7 +679,12 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     private void SetDiagnostics(IReadOnlyList<Diagnostic> next)
     {
-        diagnostics = next.ToArray();
+        diagnostics = string.IsNullOrWhiteSpace(gpuPreviewFailure)
+            ? next.Where(item => item.Code != "GPU_FALLBACK").ToArray()
+            : [
+                .. next.Where(item => item.Code != "GPU_FALLBACK"),
+                new Diagnostic("warning", "GPU_FALLBACK", gpuPreviewFailure)
+            ];
         Changed(nameof(Diagnostics));
         Changed(nameof(DiagnosticsSummary));
         Changed(nameof(DiagnosticLabel));
@@ -568,17 +704,29 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     private void CaptureScreenshot()
     {
-        var source = PreviewImagePath;
+        var source = PreviewFrame;
         var target = chooseScreenshotPath();
         if (source is null || target is null) return;
 
         try
         {
+            if (UseGpuPreview && sceneLayers.FirstOrDefault() is { } layer)
+            {
+                source = layer.RenderSession.RenderFrame(
+                    layer.Animation,
+                    Math.Min((float)Position, (float)layer.Duration),
+                    previewPixelWidth,
+                    previewPixelHeight,
+                    layer.Pma,
+                    string.IsNullOrWhiteSpace(layer.SelectedSkin) ? [] : [layer.SelectedSkin],
+                    playbackCancellation.Token,
+                    (float)layer.TrackAlpha,
+                    slots: layer.SlotDisplaySettings);
+                layer.PublishFrame(source);
+            }
             var output = Path.GetFullPath(target);
-            if (string.Equals(Path.GetFullPath(source), output, StringComparison.OrdinalIgnoreCase))
-                throw new IOException("Screenshot output must differ from the active preview.");
             Directory.CreateDirectory(Path.GetDirectoryName(output) ?? ".");
-            File.Copy(source, output, true);
+            PreviewFrameBitmap.SavePng(source, PreviewChannel, output);
             LastAction = $"Captured {Path.GetFileName(output)}";
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
@@ -616,6 +764,136 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         _ = AddLayersAsync(targets);
     }
 
+    private void StartDuplicateLayer()
+    {
+        var source = selectedSceneLayer;
+        if (source is null || disposed || Interlocked.Exchange(ref sceneLayerOperationInProgress, 1) != 0) return;
+        _ = DuplicateLayerAsync(source);
+    }
+
+    private async Task DuplicateLayerAsync(SceneLayerViewModel source)
+    {
+        try
+        {
+            var document = source.ToDocument();
+            var duplicate = await Task.Run(() => OpenLayerFromDocument(document, source.ZIndex + 1));
+            if (!sceneLayers.Contains(source))
+            {
+                duplicate.Dispose();
+                return;
+            }
+
+            sceneLayers.Insert(sceneLayers.IndexOf(source) + 1, duplicate);
+            RefreshLayerZIndices();
+            SelectedSceneLayer = duplicate;
+            MarkSceneEdited();
+            QueuePreviewRender();
+            LastAction = $"Duplicated layer {source.DisplayName}";
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            SetDiagnostics([new Diagnostic("error", "LAYER_DUPLICATE_FAILED", exception.Message, source.SkeletonPath)]);
+            LastAction = "Layer duplicate failed";
+        }
+        finally
+        {
+            Interlocked.Exchange(ref sceneLayerOperationInProgress, 0);
+            RefreshCommands();
+        }
+    }
+
+    private void StartReloadLayer()
+    {
+        var source = selectedSceneLayer;
+        if (source is null || disposed || Interlocked.Exchange(ref sceneLayerOperationInProgress, 1) != 0) return;
+        _ = ReloadLayerAsync(source);
+    }
+
+    private async Task ReloadLayerAsync(SceneLayerViewModel source)
+    {
+        try
+        {
+            var document = source.ToDocument();
+            var replacement = await Task.Run(() => OpenLayerFromDocument(document, source.ZIndex));
+            var index = sceneLayers.IndexOf(source);
+            if (index < 0)
+            {
+                replacement.Dispose();
+                return;
+            }
+
+            sceneLayers[index] = replacement;
+            source.Dispose();
+            SelectedSceneLayer = replacement;
+            Changed(nameof(SceneLayers));
+            Changed(nameof(PreviewFrame));
+            Changed(nameof(HasRenderedPreview));
+            QueuePreviewRender();
+            LastAction = $"Reloaded layer {replacement.DisplayName}";
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            SetDiagnostics([new Diagnostic("error", "LAYER_RELOAD_FAILED", exception.Message, source.SkeletonPath)]);
+            LastAction = "Layer reload failed";
+        }
+        finally
+        {
+            Interlocked.Exchange(ref sceneLayerOperationInProgress, 0);
+            RefreshCommands();
+        }
+    }
+
+    private SceneLayerViewModel OpenLayerFromDocument(SceneLayerDocument document, int zIndex)
+    {
+        AssetRenderSession? session = null;
+        try
+        {
+            var opened = assetService!.OpenRenderSession(document.SkeletonPath, document.AtlasPath, document.RuntimeOverride);
+            session = opened.Session;
+            var animation = opened.Inspection.Animations.Any(item => item.Name == document.Animation)
+                ? document.Animation
+                : opened.Inspection.Animations.FirstOrDefault()?.Name
+                    ?? throw new InvalidDataException("The current renderer requires an animation.");
+            var skin = opened.Inspection.Skins.Contains(document.SelectedSkin, StringComparer.Ordinal)
+                ? document.SelectedSkin
+                : opened.Inspection.Skins.FirstOrDefault() ?? "default";
+            var duration = opened.Inspection.Animations.First(item => item.Name == animation).DurationSeconds;
+            var normalized = document with { Animation = animation, SelectedSkin = skin, ZIndex = zIndex };
+            var frame = session.RenderFrame(
+                animation,
+                duration / 2,
+                previewPixelWidth,
+                previewPixelHeight,
+                normalized.Pma ?? false,
+                [skin],
+                trackAlpha: (float)(normalized.TrackAlpha ?? 1),
+                slots: normalized.Slots);
+            var layer = new SceneLayerViewModel(opened.Inspection, animation, skin, frame, session, zIndex, SceneLayerChanged, SceneLayerChanging);
+            layer.ApplyDocument(normalized);
+            return layer;
+        }
+        catch
+        {
+            session?.Dispose();
+            throw;
+        }
+    }
+
+    private void CopyLayerParameters(LayerParameterScope scope)
+    {
+        if (selectedSceneLayer is null) return;
+        layerParameterClipboard = new LayerParameterClipboard(scope, selectedSceneLayer.ToDocument());
+        LastAction = $"Copied {scope.ToString().ToLowerInvariant()} layer parameters";
+        RefreshCommands();
+    }
+
+    private void PasteLayerParameters()
+    {
+        if (selectedSceneLayer is null || layerParameterClipboard is null) return;
+        selectedSceneLayer.ApplyParameters(layerParameterClipboard.Document, layerParameterClipboard.Scope);
+        LastAction = $"Pasted {layerParameterClipboard.Scope.ToString().ToLowerInvariant()} layer parameters";
+    }
+
     private async Task AddLayersAsync(IReadOnlyList<string> paths)
     {
         var added = 0;
@@ -649,6 +927,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 RefreshLayerZIndices();
                 ArrangeSceneLayers();
                 MarkSceneEdited();
+                if (UseGpuPreview) QueuePreviewRender();
+                else QueueSlotMetadata();
             }
             LastAction = added == 0
                 ? paths.Count == 1 ? "Layer add failed" : "No additional layers added"
@@ -691,7 +971,6 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     private SceneLayerViewModel InspectAndRenderLayer(string path)
     {
-        var previewPath = createPreviewPath();
         AssetRenderSession? session = null;
         try
         {
@@ -701,28 +980,26 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             var animation = result.Animations.FirstOrDefault()
                 ?? throw new InvalidDataException("The current renderer requires an animation.");
             var skin = result.Skins.FirstOrDefault() ?? "default";
-            session.Render(
+            var frame = session.RenderFrame(
                 animation.Name,
                 animation.DurationSeconds / 2,
-                PreviewSize,
-                PreviewSize,
-                previewPath,
-                true,
+                previewPixelWidth,
+                previewPixelHeight,
                 false,
                 [skin]);
             return new SceneLayerViewModel(
                 result,
                 animation.Name,
                 skin,
-                previewPath,
+                frame,
                 session,
                 sceneLayers.Count,
-                SceneLayerChanged);
+                SceneLayerChanged,
+                SceneLayerChanging);
         }
         catch
         {
             session?.Dispose();
-            DeletePreview(previewPath);
             throw;
         }
     }
@@ -734,11 +1011,11 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         var index = sceneLayers.IndexOf(layer);
         sceneLayers.RemoveAt(index);
         layer.Dispose();
-        DeletePreview(layer.PreviewImagePath);
         RefreshLayerZIndices();
         SelectedSceneLayer = sceneLayers[Math.Min(index, sceneLayers.Count - 1)];
-        previewImagePath = sceneLayers[0].PreviewImagePath;
-        Changed(nameof(PreviewImagePath));
+        Changed(nameof(PreviewFrame));
+        Changed(nameof(HasRenderedPreview));
+        Changed(nameof(PreviewResolutionLabel));
         MarkSceneEdited();
         LastAction = $"Removed layer {layer.DisplayName}";
     }
@@ -780,7 +1057,17 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private void SceneLayerChanged()
     {
         MarkSceneEdited();
+        Changed(nameof(Duration));
+        Changed(nameof(PlaybackTimeLabel));
         QueuePreviewRender();
+    }
+
+    private void SceneLayerChanging()
+    {
+        if (disposed) return;
+        undo.Push(CaptureUndo());
+        redo.Clear();
+        RefreshCommands();
     }
 
     private void SyncPrimaryLayerPlayback()
@@ -797,15 +1084,14 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private void ClearSceneLayers()
     {
         foreach (var layer in sceneLayers)
-        {
             layer.Dispose();
-            DeletePreview(layer.PreviewImagePath);
-        }
         sceneLayers.Clear();
         selectedSceneLayer = null;
         Changed(nameof(SceneLayers));
         Changed(nameof(SelectedSceneLayer));
         Changed(nameof(HasSelectedSceneLayer));
+        Changed(nameof(HasGpuPreview));
+        Changed(nameof(IsCpuPreviewVisible));
     }
 
     private void CancelExport() => exportCancellation?.Cancel();
@@ -832,14 +1118,15 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 SelectedAnimation ?? throw new InvalidOperationException("Animation is required."),
                 (float)Duration,
                 (float)ExportFramesPerSecond,
-                PreviewSize,
-                PreviewSize,
+                ExportSize,
+                ExportSize,
                 Path.GetDirectoryName(output) ?? ".",
                 Path.GetFileName(output),
                 false,
                 primaryLayer?.Pma ?? false,
                 string.IsNullOrWhiteSpace(SelectedSkin) ? [] : [SelectedSkin],
-                (float)(primaryLayer?.TrackAlpha ?? 1));
+                (float)(primaryLayer?.TrackAlpha ?? 1),
+                primaryLayer?.SlotDisplaySettings);
             var progress = new Progress<AnimationExportProgress>(value =>
             {
                 exportCompletedFrames = value.CompletedFrames;
@@ -881,7 +1168,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         Path.GetDirectoryName(skeletonPath) ?? "",
         $"{Path.GetFileNameWithoutExtension(SkeletonFileName)}{ViewerProjectStore.Extension}");
 
-    public async Task OpenAssetAsync(string? path = null)
+    public async Task OpenAssetAsync(string? path = null, string? atlasPath = null)
     {
         if (assetService is null)
         {
@@ -900,8 +1187,22 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
         try
         {
-            var opened = await Task.Run(() => InspectAndRender(path));
-            ApplyAsset(opened.Result, opened.Session, opened.PreviewPath, opened.RenderError);
+            string? atlasOverride = atlasPath;
+            (InspectResult Result, AssetRenderSession? Session, RenderedFrame? Frame, string? RenderError) opened;
+            while (true)
+            {
+                try
+                {
+                    opened = await Task.Run(() => InspectAndRender(path, atlasOverride));
+                    break;
+                }
+                catch (Exception exception) when (atlasOverride is null && IsAtlasSelectionError(exception))
+                {
+                    atlasOverride = chooseAtlasPath();
+                    if (string.IsNullOrWhiteSpace(atlasOverride)) throw;
+                }
+            }
+            ApplyAsset(opened.Result, opened.Session, opened.Frame, opened.RenderError);
         }
         catch (NotSupportedException exception)
         {
@@ -919,6 +1220,14 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             LastAction = "Asset open failed";
             Changed(nameof(StateDetail));
         }
+    }
+
+    private static bool IsAtlasSelectionError(Exception exception)
+    {
+        var message = exception.Message;
+        return exception is FileNotFoundException { FileName: { } file } &&
+               string.Equals(Path.GetExtension(file), ".atlas", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("atlas", StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task OpenProjectAsync(string? path = null)
@@ -981,7 +1290,6 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             for (var documentIndex = 0; documentIndex < documents.Count; documentIndex++)
             {
                 var document = documents[documentIndex];
-                var previewPath = createPreviewPath();
                 AssetRenderSession? session = null;
                 try
                 {
@@ -1000,25 +1308,25 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                     var duration = opened.Inspection.Animations.First(item => item.Name == animation).DurationSeconds;
                     var layerTrackAlpha = document.TrackAlpha ?? (documentIndex == 0 ? project.TrackAlpha : 1);
                     var layerPma = document.Pma ?? false;
-                    session.Render(
+                    var frame = session.RenderFrame(
                         animation,
                         duration / 2,
-                        PreviewSize,
-                        PreviewSize,
-                        previewPath,
-                        true,
+                        previewPixelWidth,
+                        previewPixelHeight,
                         layerPma,
                         [skin],
-                        trackAlpha: (float)layerTrackAlpha);
+                        trackAlpha: (float)layerTrackAlpha,
+                        slots: document.Slots);
 
                     var layer = new SceneLayerViewModel(
                         opened.Inspection,
                         animation,
                         skin,
-                        previewPath,
+                        frame,
                         session,
                         document.ZIndex,
-                        SceneLayerChanged);
+                        SceneLayerChanged,
+                        SceneLayerChanging);
                     layer.ApplyDocument(
                         document with { Animation = animation, SelectedSkin = skin },
                         documentIndex == 0 ? project.TrackAlpha : null);
@@ -1027,7 +1335,6 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 catch
                 {
                     session?.Dispose();
-                    DeletePreview(previewPath);
                     throw;
                 }
             }
@@ -1037,10 +1344,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         catch
         {
             foreach (var loaded in layers)
-            {
                 loaded.Layer.Dispose();
-                DeletePreview(loaded.Layer.PreviewImagePath);
-            }
             throw;
         }
     }
@@ -1052,7 +1356,6 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         var primary = loaded[0].Inspection;
         ClearSceneLayers();
-        ReplacePreview(null);
         isPrototypePreview = false;
         animations = primary.Animations.Select(item => item.Name).ToArray();
         skinNames = primary.Skins.Count == 0 ? ["default"] : primary.Skins.ToArray();
@@ -1082,7 +1385,6 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         foreach (var loadedLayer in loaded)
             sceneLayers.Add(loadedLayer.Layer);
         SelectedSceneLayer = sceneLayers[0];
-        ReplacePreview(sceneLayers[0].PreviewImagePath);
         projectPath = Path.GetFullPath(path);
         sceneDirty = false;
         undo.Clear();
@@ -1092,14 +1394,18 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         State = diagnostics.Count == 0 ? WorkspaceState.Ready : WorkspaceState.ReadyWithWarnings;
         LastAction = $"Opened {Path.GetFileName(projectPath)}";
         Changed(nameof(SceneLayers));
+        Changed(nameof(PreviewFrame));
+        Changed(nameof(HasRenderedPreview));
+        Changed(nameof(PreviewResolutionLabel));
         Changed(string.Empty);
+        if (UseGpuPreview) QueuePreviewRender();
+        else QueueSlotMetadata();
         RefreshCommands();
     }
 
     private void ApplyFakeAsset()
     {
         ClearSceneLayers();
-        ReplacePreview(null);
         isPrototypePreview = true;
         animations = DefaultAnimations;
         skinNames = DefaultSkins;
@@ -1112,19 +1418,20 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         selectedSkin = skinNames[0];
         ResetEditor();
         State = WorkspaceState.Ready;
-        LastAction = "Preview opened in 1 interaction";
+        LastAction = "Workspace opened in 1 interaction";
         Changed(string.Empty);
         RefreshCommands();
     }
 
-    private (InspectResult Result, AssetRenderSession? Session, string? PreviewPath, string? RenderError) InspectAndRender(string path)
+    private (InspectResult Result, AssetRenderSession? Session, RenderedFrame? Frame, string? RenderError) InspectAndRender(
+        string path,
+        string? atlasPathOverride = null)
     {
-        var result = assetService!.Inspect(path, null, null);
+        var result = assetService!.Inspect(path, atlasPathOverride, null);
         var animation = result.Animations.FirstOrDefault();
         if (animation is null)
             return (result, null, null, "The current renderer requires an animation.");
 
-        var previewPath = createPreviewPath();
         AssetRenderSession? session = null;
         try
         {
@@ -1132,29 +1439,25 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 result.Asset.SkeletonPath,
                 result.Asset.AtlasPath,
                 result.Runtime.SelectedLine).Session;
-            session.Render(
+            var frame = session.RenderFrame(
                 animation.Name,
                 animation.DurationSeconds / 2,
-                PreviewSize,
-                PreviewSize,
-                previewPath,
-                true,
+                previewPixelWidth,
+                previewPixelHeight,
                 false,
                 result.Skins.Take(1).ToArray());
-            return (result, session, previewPath, null);
+            return (result, session, frame, null);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             session?.Dispose();
-            DeletePreview(previewPath);
             return (result, null, null, exception.Message);
         }
     }
 
-    private void ApplyAsset(InspectResult result, AssetRenderSession? session, string? previewPath, string? renderError)
+    private void ApplyAsset(InspectResult result, AssetRenderSession? session, RenderedFrame? frame, string? renderError)
     {
         ClearSceneLayers();
-        ReplacePreview(previewPath);
         isPrototypePreview = false;
         animations = result.Animations.Select(x => x.Name).ToArray();
         skinNames = result.Skins.Count == 0 ? [DefaultSkins[0]] : result.Skins.ToArray();
@@ -1167,20 +1470,24 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             : [.. result.Diagnostics, new Diagnostic("error", "RENDER_FAILED", renderError, result.Asset.SkeletonPath)]);
         selectedAnimation = animations.FirstOrDefault();
         selectedSkin = skinNames[0];
-        if (renderError is null && session is not null && previewPath is not null && selectedAnimation is not null)
+        if (renderError is null && session is not null && frame is not null && selectedAnimation is not null)
         {
             var layer = new SceneLayerViewModel(
                 result,
                 selectedAnimation,
                 selectedSkin,
-                previewPath,
+                frame,
                 session,
                 0,
-                SceneLayerChanged);
+                SceneLayerChanged,
+                SceneLayerChanging);
             sceneLayers.Add(layer);
             selectedSceneLayer = layer;
             Changed(nameof(SceneLayers));
             Changed(nameof(SelectedSceneLayer));
+            Changed(nameof(PreviewFrame));
+            Changed(nameof(HasRenderedPreview));
+            Changed(nameof(PreviewResolutionLabel));
         }
         else
         {
@@ -1197,17 +1504,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         }
         LastAction = renderError is null ? $"Rendered {SkeletonFileName}" : $"Opened metadata for {SkeletonFileName}";
         Changed(string.Empty);
+        if (UseGpuPreview) QueuePreviewRender();
+        else QueueSlotMetadata();
         RefreshCommands();
-    }
-
-    private void ReplacePreview(string? path)
-    {
-        if (previewImagePath == path) return;
-        DeletePreview(previewImagePath);
-        previewImagePath = path;
-        Changed(nameof(PreviewImagePath));
-        Changed(nameof(HasRenderedPreview));
-        Changed(nameof(HasPrototypePreview));
     }
 
     private void AdvancePlayback(object? sender, EventArgs e)
@@ -1239,7 +1538,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     private void UpdatePlaybackTimer()
     {
-        if (assetService is not null && IsPlaying && CanPlay)
+        playbackTimer.Interval = TimeSpan.FromSeconds(1d / previewFramesPerSecond);
+        if (assetService is not null && IsPlaying && CanPlay && HasRenderedPreview)
             playbackTimer.Start();
         else
             playbackTimer.Stop();
@@ -1248,44 +1548,116 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private void QueuePreviewRender()
     {
         if (disposed || assetService is null || !HasRenderedPreview || !CanPlay) return;
-        if (Interlocked.Exchange(ref previewRenderInProgress, 1) != 0) return;
+        if (Interlocked.Exchange(ref previewRenderInProgress, 1) != 0)
+        {
+            if (IsPlaying) Interlocked.Increment(ref previewMetricCoalescedFrames);
+            Interlocked.Exchange(ref previewRenderPending, 1);
+            return;
+        }
         _ = RenderPreviewAsync();
+    }
+
+    private void QueueSlotMetadata()
+    {
+        var layers = sceneLayers.Where(layer => layer.PreviewFrame is not null && layer.PreviewScene is null).ToArray();
+        foreach (var layer in layers)
+            _ = LoadSlotMetadataAsync(layer);
+    }
+
+    private async Task LoadSlotMetadataAsync(SceneLayerViewModel layer)
+    {
+        try
+        {
+            var scene = await Task.Run(
+                () => layer.RenderSession.RenderScene(
+                    layer.Animation,
+                    Math.Min((float)Position, (float)layer.Duration),
+                    layer.Pma,
+                    string.IsNullOrWhiteSpace(layer.SelectedSkin) ? [] : [layer.SelectedSkin],
+                    playbackCancellation.Token,
+                    (float)layer.TrackAlpha,
+                    layer.SlotDisplaySettings),
+                playbackCancellation.Token);
+            if (disposed || !sceneLayers.Contains(layer)) return;
+            layer.PublishScene(scene);
+            Changed(nameof(HasGpuPreview));
+            Changed(nameof(IsCpuPreviewVisible));
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception)
+        {
+            // Slot metadata is an enhancement; the authoritative CPU frame remains usable.
+        }
     }
 
     private async Task RenderPreviewAsync()
     {
+        var workStarted = Stopwatch.GetTimestamp();
         try
         {
             var time = (float)Position;
+            var width = previewPixelWidth;
+            var height = previewPixelHeight;
             var layers = sceneLayers
-                .Where(layer => layer.PreviewImagePath is not null && layer.IsVisible)
+                .Where(layer => layer.PreviewFrame is not null && layer.IsVisible)
                 .ToArray();
             if (layers.Length == 0) return;
-            await Task.Run(
-                () =>
-                {
-                    foreach (var layer in layers)
+            if (UseGpuPreview)
+            {
+                var rendered = await Task.Run(
+                    () => layers.Select(layer =>
                     {
                         playbackCancellation.Token.ThrowIfCancellationRequested();
-                        layer.RenderSession.Render(
+                        var scene = layer.RenderSession.RenderScene(
                             layer.Animation,
                             Math.Min(time, (float)layer.Duration),
-                            PreviewSize,
-                            PreviewSize,
-                            layer.PreviewImagePath!,
-                            true,
                             layer.Pma,
                             string.IsNullOrWhiteSpace(layer.SelectedSkin) ? [] : [layer.SelectedSkin],
                             playbackCancellation.Token,
-                            (float)layer.TrackAlpha);
-                    }
-                },
-                playbackCancellation.Token);
-            if (!playbackCancellation.IsCancellationRequested)
+                            (float)layer.TrackAlpha,
+                            layer.SlotDisplaySettings);
+                        return (Layer: layer, Scene: scene);
+                    }).ToArray(),
+                    playbackCancellation.Token);
+                if (!playbackCancellation.IsCancellationRequested && layers.All(sceneLayers.Contains))
+                {
+                    foreach (var item in rendered)
+                        item.Layer.PublishScene(item.Scene);
+                    Changed(nameof(HasGpuPreview));
+                    Changed(nameof(IsCpuPreviewVisible));
+                    RecordPreviewPublished(workStarted);
+                }
+            }
+            else
             {
-                foreach (var layer in layers)
-                    layer.RefreshPreview();
-                Changed(nameof(PreviewImagePath));
+                var rendered = await Task.Run(
+                    () => layers.Select(layer =>
+                    {
+                        playbackCancellation.Token.ThrowIfCancellationRequested();
+                        var frame = layer.RenderSession.RenderFrame(
+                            layer.Animation,
+                            Math.Min(time, (float)layer.Duration),
+                            width,
+                            height,
+                            layer.Pma,
+                            string.IsNullOrWhiteSpace(layer.SelectedSkin) ? [] : [layer.SelectedSkin],
+                            playbackCancellation.Token,
+                            (float)layer.TrackAlpha,
+                            slots: layer.SlotDisplaySettings);
+                        return (Layer: layer, Frame: frame);
+                    }).ToArray(),
+                    playbackCancellation.Token);
+                if (!playbackCancellation.IsCancellationRequested && layers.All(sceneLayers.Contains))
+                {
+                    foreach (var item in rendered)
+                        item.Layer.PublishFrame(item.Frame);
+                    Changed(nameof(PreviewFrame));
+                    Changed(nameof(HasRenderedPreview));
+                    Changed(nameof(PreviewResolutionLabel));
+                    RecordPreviewPublished(workStarted);
+                }
             }
         }
         catch (OperationCanceledException)
@@ -1294,6 +1666,11 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         catch (Exception exception)
         {
             if (disposed) return;
+            if (UseGpuPreview)
+            {
+                SetGpuPreviewAvailable(false, exception.Message);
+                return;
+            }
             SetDiagnostics([new Diagnostic("error", "RENDER_FAILED", exception.Message, skeletonPath)]);
             IsPlaying = false;
             State = WorkspaceState.RendererUnavailable;
@@ -1303,7 +1680,37 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         finally
         {
             Interlocked.Exchange(ref previewRenderInProgress, 0);
+            if (Interlocked.Exchange(ref previewRenderPending, 0) != 0)
+                QueuePreviewRender();
         }
+    }
+
+    private void RecordPreviewPublished(long workStarted)
+    {
+        if (!IsPlaying) return;
+        previewMetricPublishedFrames++;
+        previewMetricWorkMilliseconds += Stopwatch.GetElapsedTime(workStarted).TotalMilliseconds;
+        var window = Stopwatch.GetElapsedTime(previewMetricWindowStarted);
+        if (window < TimeSpan.FromSeconds(1)) return;
+
+        var fps = previewMetricPublishedFrames / window.TotalSeconds;
+        var averageMilliseconds = previewMetricWorkMilliseconds / Math.Max(1, previewMetricPublishedFrames);
+        var coalesced = Interlocked.Exchange(ref previewMetricCoalescedFrames, 0);
+        previewPerformanceLabel = $"{fps:0.0} FPS · {averageMilliseconds:0.0} ms work · {coalesced} coalesced";
+        previewMetricWindowStarted = Stopwatch.GetTimestamp();
+        previewMetricPublishedFrames = 0;
+        previewMetricWorkMilliseconds = 0;
+        Changed(nameof(PreviewPerformanceLabel));
+    }
+
+    private void ResetPreviewMetrics()
+    {
+        previewMetricWindowStarted = Stopwatch.GetTimestamp();
+        previewMetricPublishedFrames = 0;
+        previewMetricWorkMilliseconds = 0;
+        Interlocked.Exchange(ref previewMetricCoalescedFrames, 0);
+        previewPerformanceLabel = IsPlaying ? "Measuring preview…" : "Paused";
+        Changed(nameof(PreviewPerformanceLabel));
     }
 
     private static string FormatTime(double seconds)
@@ -1311,21 +1718,6 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         if (!double.IsFinite(seconds) || seconds < 0) seconds = 0;
         var time = TimeSpan.FromSeconds(seconds);
         return $"{(int)time.TotalMinutes}:{time.Seconds:00}.{time.Milliseconds / 100}";
-    }
-
-    private static void DeletePreview(string? path)
-    {
-        if (path is null) return;
-        try
-        {
-            File.Delete(path);
-        }
-        catch (IOException)
-        {
-        }
-        catch (UnauthorizedAccessException)
-        {
-        }
     }
 
     public void Dispose()
@@ -1337,7 +1729,6 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         playbackCancellation.Cancel();
         playbackCancellation.Dispose();
         ClearSceneLayers();
-        ReplacePreview(null);
     }
 
     private void ResetEditor()
@@ -1402,29 +1793,38 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     private void Undo()
     {
-        redo.Push(Capture());
+        redo.Push(CaptureUndo());
         Restore(undo.Pop());
     }
 
     private void Redo()
     {
-        undo.Push(Capture());
+        undo.Push(CaptureUndo());
         Restore(redo.Pop());
     }
 
-    private void Restore(EditorSnapshot snapshot)
+    private void Restore(UndoEntry entry)
     {
+        var snapshot = entry.Editor;
         (selectedAnimation, selectedSkin, modelX, modelY, modelScale, modelRotation, flipX, flipY, loop, playbackSpeed, trackAlpha, backgroundMode) =
             (snapshot.SelectedAnimation, snapshot.SelectedSkin, snapshot.ModelX, snapshot.ModelY, snapshot.ModelScale, snapshot.ModelRotation,
                 snapshot.FlipX, snapshot.FlipY, snapshot.Loop, snapshot.PlaybackSpeed, snapshot.TrackAlpha, snapshot.BackgroundMode);
+        if (entry.Layers.Count == sceneLayers.Count
+            && entry.Layers.Select(layer => layer.SkeletonPath).SequenceEqual(
+                sceneLayers.Select(layer => layer.SkeletonPath),
+                StringComparer.OrdinalIgnoreCase))
+            for (var index = 0; index < sceneLayers.Count; index++)
+                sceneLayers[index].ApplyDocument(entry.Layers[index]);
+        sceneDirty = entry.SceneDirty;
         Changed(string.Empty);
+        QueuePreviewRender();
         RefreshCommands();
     }
 
     private void Edit<T>(ref T field, T value, string propertyName, params string[] dependentProperties)
     {
         if (EqualityComparer<T>.Default.Equals(field, value)) return;
-        undo.Push(Capture());
+        undo.Push(CaptureUndo());
         redo.Clear();
         field = value;
         Changed(propertyName);
@@ -1449,12 +1849,19 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         TrackAlpha,
         BackgroundMode);
 
+    private UndoEntry CaptureUndo() => new(
+        Capture(),
+        sceneLayers.Select(layer => layer.ToDocument()).ToArray(),
+        sceneDirty);
+
     private void RefreshCommands()
     {
         foreach (var command in new[]
                  {
                      OpenAssetCommand, OpenProjectCommand, ReloadCommand, ExportCommand, CancelExportCommand, ScreenshotCommand, TogglePlayCommand, StopCommand, FitCommand,
                      AddLayerCommand, AutoLayoutCommand, RemoveLayerCommand, MoveLayerUpCommand, MoveLayerDownCommand,
+                     DuplicateLayerCommand, ReloadLayerCommand, CopyAllLayerParametersCommand, CopyTransformParametersCommand,
+                     CopyRenderParametersCommand, CopyAppearanceParametersCommand, PasteLayerParametersCommand,
                      SaveCommand, SaveAsCommand, UndoCommand, RedoCommand
                  })
             ((RelayCommand)command).Refresh();
@@ -1464,6 +1871,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
     private sealed record StateDefinition(string Title, string Detail, bool HasAsset, bool HasPreview, bool CanPlay);
+
+    private sealed record LayerParameterClipboard(LayerParameterScope Scope, SceneLayerDocument Document);
+
+    private sealed record UndoEntry(EditorSnapshot Editor, IReadOnlyList<SceneLayerDocument> Layers, bool SceneDirty);
 
     private sealed record EditorSnapshot(
         string? SelectedAnimation,

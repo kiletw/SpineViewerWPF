@@ -75,7 +75,37 @@ public sealed class LegacyRuntimeAdapter : IRuntimeAdapter
             new RuntimeDescriptor(asset.Data.Version, RuntimeLine, RuntimeInfo.Commit, overridden),
             asset.Data.Animations.Select(item => new AnimationDescriptor(item.Name, item.Duration)).ToArray(),
             asset.Data.Skins.Select(item => item.Name).ToArray(),
-            Array.Empty<Diagnostic>());
+            Array.Empty<Diagnostic>(),
+            BuildSlots(asset.Data));
+    }
+
+    private static IReadOnlyList<SlotDescriptor> BuildSlots(RuntimeSpine.SkeletonData data)
+    {
+        var result = new List<SlotDescriptor>(data.Slots.Count);
+        for (var slotIndex = 0; slotIndex < data.Slots.Count; slotIndex++)
+        {
+#if SPINE_RUNTIME_2108 || SPINE_RUNTIME_2125
+            var slot = data.Slots[slotIndex];
+#else
+            var slot = data.Slots.Items[slotIndex];
+#endif
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var skin in data.Skins)
+            {
+#if SPINE_RUNTIME_3895 || SPINE_RUNTIME_4031
+                var entries = new List<RuntimeSpine.Skin.SkinEntry>();
+                skin.GetAttachments(slotIndex, entries);
+                foreach (var entry in entries) names.Add(entry.Name);
+#else
+                var skinNames = new List<string>();
+                skin.FindNamesForSlot(slotIndex, skinNames);
+                foreach (var name in skinNames) names.Add(name);
+#endif
+            }
+            if (!string.IsNullOrWhiteSpace(slot.AttachmentName)) names.Add(slot.AttachmentName);
+            result.Add(new SlotDescriptor(slot.Name, slot.AttachmentName, names.OrderBy(x => x, StringComparer.Ordinal).ToArray()));
+        }
+        return result;
     }
 
     public IRuntimeRenderSession OpenSession(string skeletonPath, string atlasPath, CancellationToken cancellationToken)
@@ -88,25 +118,63 @@ public sealed class LegacyRuntimeAdapter : IRuntimeAdapter
     private sealed class RenderSession : IRuntimeRenderSession
     {
         private LoadedAsset asset;
+        private readonly RuntimeSpine.Skeleton skeleton;
+        private readonly RuntimeSpine.AnimationStateData stateData;
 
-        public RenderSession(LoadedAsset asset) => this.asset = asset;
+        public RenderSession(LoadedAsset asset)
+        {
+            this.asset = asset;
+            skeleton = new RuntimeSpine.Skeleton(asset.Data);
+            stateData = new RuntimeSpine.AnimationStateData(asset.Data);
+        }
 
         public void Render(RenderRequest request, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var skeleton = Pose(new FrameRenderRequest(
+                request.Animation,
+                request.TimeSeconds,
+                request.Width,
+                request.Height,
+                request.Pma,
+                request.Skins,
+                request.TrackAlpha,
+                false,
+                request.Slots));
+            CpuRenderer.Render(skeleton, request.Width, request.Height, request.OutputPath, request.Pma, request.Overwrite);
+        }
+
+        public RenderedFrame RenderFrame(FrameRenderRequest request, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var skeleton = Pose(request);
+            return CpuRenderer.RenderFrame(skeleton, request.Width, request.Height, request.Pma, request.LinearFiltering);
+        }
+
+        public PreviewSceneFrame RenderScene(PreviewSceneRequest request, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var skeleton = Pose(new FrameRenderRequest(
+                request.Animation, request.TimeSeconds, 1, 1, request.Pma, request.Skins, request.TrackAlpha, false, request.Slots));
+            return CpuRenderer.BuildPreviewScene(skeleton, request.Pma);
+        }
+
+        private RuntimeSpine.Skeleton Pose(FrameRenderRequest request)
+        {
             var loaded = asset ?? throw new ObjectDisposedException(nameof(RenderSession));
             var animation = loaded.Data.FindAnimation(request.Animation)
                 ?? throw new InvalidDataException($"Animation not found: {request.Animation}");
             if (request.Skins.Count > 1) throw new NotSupportedException("This vertical slice supports at most one skin.");
 
-            var skeleton = new RuntimeSpine.Skeleton(loaded.Data);
+            skeleton.Skin = null;
+            skeleton.SetToSetupPose();
             if (request.Skins.Count == 1)
             {
                 skeleton.SetSkin(request.Skins[0]);
                 skeleton.SetSlotsToSetupPose();
             }
 
-            var state = new RuntimeSpine.AnimationState(new RuntimeSpine.AnimationStateData(loaded.Data));
+            var state = new RuntimeSpine.AnimationState(stateData);
             var entry = state.SetAnimation(0, animation, false);
 #if SPINE_RUNTIME_2108 || SPINE_RUNTIME_2125 || SPINE_RUNTIME_3107 || SPINE_RUNTIME_32XX || SPINE_RUNTIME_3402
             entry.Mix = request.TrackAlpha;
@@ -115,8 +183,35 @@ public sealed class LegacyRuntimeAdapter : IRuntimeAdapter
 #endif
             state.Update(request.TimeSeconds);
             state.Apply(skeleton);
+            ApplySlotDisplaySettings(skeleton, request.Slots);
             skeleton.UpdateWorldTransform();
-            CpuRenderer.Render(skeleton, request.Width, request.Height, request.OutputPath, request.Pma, request.Overwrite);
+            return skeleton;
+        }
+
+        private static void ApplySlotDisplaySettings(RuntimeSpine.Skeleton skeleton, IReadOnlyList<SlotDisplayDocument> settings)
+        {
+            if (settings is null || settings.Count == 0) return;
+            var byName = settings.ToDictionary(item => item.Name, StringComparer.Ordinal);
+            for (var index = 0; index < skeleton.Slots.Count; index++)
+            {
+#if SPINE_RUNTIME_2108 || SPINE_RUNTIME_2125
+                var slot = skeleton.Slots[index];
+#else
+                var slot = skeleton.Slots.Items[index];
+#endif
+                if (!byName.TryGetValue(slot.Data.Name, out var setting)) continue;
+                if (!setting.IsVisible)
+                {
+                    slot.Attachment = null;
+                    continue;
+                }
+                if (!string.IsNullOrWhiteSpace(setting.AttachmentName))
+                {
+                    var attachment = skeleton.GetAttachment(index, setting.AttachmentName);
+                    if (attachment is not null) slot.Attachment = attachment;
+                }
+                slot.A *= Math.Clamp((float)setting.Opacity, 0, 1);
+            }
         }
 
         public void Dispose()
@@ -183,8 +278,11 @@ public sealed class LegacyRuntimeAdapter : IRuntimeAdapter
                 _ => throw new NotSupportedException($"Texture metadata format is not supported: {fullPath}")
             };
             page.rendererObject = fullPath;
-            page.width = size.Width;
-            page.height = size.Height;
+            if (page.width <= 0 || page.height <= 0)
+            {
+                page.width = size.Width;
+                page.height = size.Height;
+            }
             paths.Add(fullPath);
         }
 
@@ -226,8 +324,11 @@ public sealed class LegacyRuntimeAdapter : IRuntimeAdapter
                 ".ppm" => TextureData.LoadP3(fullPath),
                 _ => throw new NotSupportedException($"Render texture format is not supported: {fullPath}")
             };
-            page.width = ((TextureData)page.rendererObject).Width;
-            page.height = ((TextureData)page.rendererObject).Height;
+            if (page.width <= 0 || page.height <= 0)
+            {
+                page.width = ((TextureData)page.rendererObject).Width;
+                page.height = ((TextureData)page.rendererObject).Height;
+            }
             paths.Add(fullPath);
         }
 

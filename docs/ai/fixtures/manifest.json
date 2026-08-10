@@ -2,8 +2,34 @@
   "schemaVersion": 1,
   "repositoryBaseline": "kiletw/SpineViewerWPF@79c6135",
   "assetsCommitted": true,
-  "note": "Project-authored minimal JSON fixtures cover every vendored historical Runtime line. Official 4.1 and 3.8 caches now verify JSON, binary, PNG, and (for 3.8) PMA loading through the offline scripts. A project-authored two-page 4.1 atlas verifies page discovery/rendering. The shared CPU bridge includes bounded premultiplied-alpha, clipping, and slot blend handling; feature-isolated visual parity and production-renderer gaps remain explicit.",
+  "note": "Project-authored minimal JSON fixtures cover every connected Runtime line through 4.2. Official 4.2, 4.1, and 3.8 caches verify JSON, binary, atlas, PNG, and (for 3.8) PMA loading through offline scripts. The 4.2 project fixture also verifies bounded deterministic Physics replay. A project-authored two-page 4.1 atlas verifies page discovery/rendering. Feature-isolated visual parity and production-renderer gaps remain explicit.",
   "officialCaches": [
+    {
+      "runtimeSelection": "4.2",
+      "exportVersion": "4.2.22",
+      "sourceCommit": "b81e5a58ed38704aee4f866f0e0ac672623ce914",
+      "path": "artifacts/official-v42/spineboy",
+      "downloadScript": "scripts/test-v42.ps1",
+      "files": {
+        "json": "spineboy-pro.json",
+        "binary": "spineboy-pro.skel",
+        "atlas": "spineboy.atlas",
+        "texture": "spineboy.png",
+        "license": "license.txt"
+      },
+      "sha256": {
+        "json": "488FACE411DDFAD77EE3239B29431DEB574D73F4FECA7ECA541452AD24BB6BFC",
+        "binary": "1345DE0E8E4729559F39060ED614429B21AB39BFC09ED2E1F58FCF054A8B5925",
+        "atlas": "FC90C2A604C14BB3AE1A81F9C950660863A41654CB29C869423A86E127FA75AE",
+        "texture": "071A6ADEC73378EEBD802A047D274DEEFE11ABEE3CE689A1E71ACB4CB41E331E",
+        "license": "08074C5F8C5F072626A0830250304FE3063D9D49F8F9B039E063BB238F2B993B"
+      },
+      "renderSha256": {
+        "json": "6065E7919809405F237A29A77871A13402E3EF8120176689D5FA821690AE919A",
+        "binary": "DD3A2C6E92B0B89A999CE907B12C03D2236AA7FC14612A2255EDD1F217B1FB67"
+      },
+      "legalStatus": "Official example cache; keep license.txt beside the files; do not commit binaries."
+    },
     {
       "runtimeSelection": "4.1.00",
       "sourceCommit": "ab28b77c70e3aa766be5bdb759d7aedac9fd0bde",
@@ -281,6 +307,25 @@
       "expectedSkins": [ "default" ],
       "legalStatus": "Project-authored test data; not a Spine Editor export.",
       "expectedLocalDirectory": "fixtures-local/4.1.00-multipage"
+    },
+    {
+      "runtimeSelection": "4.2",
+      "officialTagCandidate": "4.2 branch at b81e5a58ed38704aee4f866f0e0ac672623ce914",
+      "json": "tests/fixtures/v42-minimal/minimal.json",
+      "binary": "verified through the official cache",
+      "atlas": "tests/fixtures/v42-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v42-minimal/minimal.ppm",
+      "sha256": {
+        "json": "DA7B06495DD998FD01B8A6E2317D9E036553291CEAF4E89AFFE625A16EFF10AC",
+        "atlas": "80E44885B32A10947F67A606FF6E80E8BEFFC4964BE6465257B969329F3FD81B",
+        "texture": "83C1C13A32583E56E33EAFAF162E210DDBDBC5DA02399F8A0A0CAFA636392A86",
+        "render64x64At0.5": "9F94B3309ABFC350372E67ED894971BF24A230C9087BF19C4AC628720579C7A9"
+      },
+      "expectedAnimation": { "name": "move", "durationSeconds": 1 },
+      "expectedSkins": [ "default" ],
+      "verifiedFeature": "Physics replay, named slot attachment selection, and A-B-A absolute-time determinism",
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/4.2"
     }
   ]
 }

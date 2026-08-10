@@ -15,24 +15,25 @@ These stay in the main workspace:
 
 ## Dockable Panels
 
-### Asset Browser
+### Browse / Layers
 
-- opened assets
-- recent assets
-- reload and focus actions
-
-### Animations and Skins
-
-- animation filter and list
-- skin selection
-- later multi-track or grouped selection only through separate tasks
+- ordered scene layers with visibility and Runtime identity
+- add, duplicate, reload, remove, reorder, and auto-layout actions
+- scoped copy/paste for all, transform, render, or appearance settings
+- current asset identity
 
 ### Properties
 
-- model transform
-- layer opacity, Track 0 Alpha, and PMA/render options
+- selected-layer Animation with search, playback speed, loop, preview FPS, and export FPS
+- precise Transform values and flips
+- Render visibility, layer opacity, Track 0 Alpha, and PMA options
+- Appearance skin selection
+- searchable selected-layer slot visibility, opacity, and named attachment selection
+- Viewport display channel and current physical render dimensions
+- active GPU/CPU preview backend
 - background
-- Runtime override
+- theme and Viewer project identity
+- multi-track animation and attachment authoring remain separate tasks
 
 ### Diagnostics
 
@@ -40,13 +41,13 @@ These stay in the main workspace:
 - load and renderer details
 - actionable error information
 
-TASK-029 proves dock, float, redock, hide/show, and reset-layout behavior for the Browse and Inspector panels. TASK-030 keeps both panels data-bound while floating and removes prototype-only state controls from the normal shell. Additional panels can follow without changing the viewport-first shell contract.
+TASK-029 proves dock, float, redock, hide/show, and reset-layout behavior for the Browse and Inspector panels. TASK-030 keeps both panels data-bound while floating and removes prototype-only state controls from the normal shell. TASK-033 adds RGBA/RGB/Alpha viewport inspection. TASK-035 compacts the stable shell regions. TASK-037 adds slot controls and a theme selector. TASK-043 removes the stacked selected-layer editor from Browse, gives Layers a contextual workflow, and groups all selected-layer editing in Properties. TASK-044 adds the attachment selector within the existing Slots category. Additional panels can follow without changing the viewport-first shell contract.
 
 ## Secondary Workflows
 
 - Export remains a dialog until a real queued workflow requires a panel.
 - Settings remains a dialog or drawer.
-- Multiple-model scene, wallpaper, and attachment editing remain deferred.
+- Wallpaper, attachment transforms/authoring, multi-track animation, debug geometry, and additional export formats remain deferred.
 
 ## Default Layout Rules
 
@@ -56,6 +57,7 @@ TASK-029 proves dock, float, redock, hide/show, and reset-layout behavior for th
 - closing a panel hides it rather than destroying product state
 - Window menu restores hidden panels and resets the default layout
 - compact layouts may auto-collapse supporting panels
+- supporting panels scroll vertically when their editor controls exceed available height
 
 ## Localization Boundary
 

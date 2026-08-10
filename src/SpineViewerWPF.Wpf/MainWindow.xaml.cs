@@ -5,7 +5,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using SpineViewerWPF.Core;
 
 namespace SpineViewerWPF.Wpf;
 
@@ -19,8 +22,117 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        DataContextChanged += MainWindowDataContextChanged;
         Closing += ConfirmUnsavedChanges;
         Closed += MainWindowClosed;
+    }
+
+    private void MainWindowDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.OldValue is ShellViewModel oldViewModel)
+            oldViewModel.PropertyChanged -= ViewModelPropertyChanged;
+        if (e.NewValue is ShellViewModel viewModel)
+        {
+            viewModel.PropertyChanged += ViewModelPropertyChanged;
+            ApplyTheme(viewModel.ThemeMode);
+        }
+    }
+
+    private void ViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(ShellViewModel.ThemeMode) or "")
+            ApplyTheme((sender as ShellViewModel)?.ThemeMode ?? "Dark");
+    }
+
+    private void ApplyTheme(string mode)
+    {
+        var light = string.Equals(mode, "Light", StringComparison.OrdinalIgnoreCase);
+        SetBrush("WindowBrush", light ? "#F4F6F8" : "#0D0F14");
+        SetBrush("TextBrush", light ? "#1F2937" : "#E8ECF3");
+        SetBrush("ControlBrush", light ? "#FFFFFF" : "#202530");
+        SetBrush("ControlHoverBrush", light ? "#E7EEF5" : "#394758");
+        SetBrush("ControlPressedBrush", light ? "#CBD8E6" : "#4B5B70");
+        SetBrush("ControlBorderBrush", light ? "#AAB7C6" : "#536176");
+        SetBrush("PanelBrush", light ? "#E8EDF3" : "#151820");
+        SetBrush("PanelRaisedBrush", light ? "#DCE4EC" : "#1B1F29");
+        SetBrush("BorderBrush", light ? "#AAB7C6" : "#2A303C");
+        SetBrush("MutedBrush", light ? "#526174" : "#929BAD");
+        SetBrush("AccentBrush", light ? "#087F70" : "#68E0C1");
+        SetBrush("SelectionBrush", light ? "#B9D8CF" : "#285C50");
+        SetBrush("SelectionHoverBrush", light ? "#CFE6DF" : "#347365");
+        SetBrush("SelectionTextBrush", light ? "#12332D" : "#FFFFFF");
+        SetBrush("StatusBrush", light ? "#E1E7ED" : "#101218");
+        Background = TryFindResource("WindowBrush") as Brush;
+        Foreground = TryFindResource("TextBrush") as Brush;
+    }
+
+    private void SetBrush(string key, string color)
+    {
+        var value = (Color)ColorConverter.ConvertFromString(color);
+        if (TryFindResource(key) is not SolidColorBrush brush) return;
+        if (brush.IsFrozen)
+        {
+            Resources[key] = new SolidColorBrush(value);
+            return;
+        }
+        brush.Color = value;
+    }
+
+    private void WindowLoaded(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is ShellViewModel viewModel)
+        {
+            ApplyTheme(viewModel.ThemeMode);
+            Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
+            {
+                if (ViewportSurface.ActualWidth > 0 && ViewportSurface.ActualHeight > 0)
+                {
+                    var dpi = VisualTreeHelper.GetDpi(ViewportSurface);
+                    viewModel.SetViewportSize(
+                        ViewportSurface.ActualWidth * dpi.DpiScaleX,
+                        ViewportSurface.ActualHeight * dpi.DpiScaleY);
+                }
+            }));
+        }
+    }
+
+    private void WindowDragOver(object sender, DragEventArgs e)
+    {
+        var paths = e.Data.GetData(DataFormats.FileDrop) as string[];
+        var canOpen = paths?.Any(path => IsSkeletonPath(path)) == true;
+        e.Effects = canOpen ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private async void WindowDrop(object sender, DragEventArgs e)
+    {
+        var paths = e.Data.GetData(DataFormats.FileDrop) as string[];
+        var path = paths?.FirstOrDefault(IsSkeletonPath);
+        var atlas = paths?.FirstOrDefault(IsAtlasPath);
+        if (path is not null && DataContext is ShellViewModel viewModel)
+            await viewModel.OpenAssetAsync(path, atlas);
+        e.Handled = true;
+    }
+
+    private static bool IsSkeletonPath(string path) =>
+        string.Equals(Path.GetExtension(path), ".json", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(Path.GetExtension(path), ".skel", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsAtlasPath(string path) =>
+        string.Equals(Path.GetExtension(path), ".atlas", StringComparison.OrdinalIgnoreCase);
+
+    private void SceneLayerListPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not ListBox list || e.OriginalSource is not DependencyObject source) return;
+        if (ItemsControl.ContainerFromElement(list, source) is ListBoxItem item)
+            item.IsSelected = true;
+    }
+
+    private void NumericTextBoxKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || sender is not TextBox textBox) return;
+        textBox.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+        e.Handled = true;
     }
 
     private void OpenWindowMenu(object sender, RoutedEventArgs e)
@@ -180,6 +292,13 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void ViewportSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (sender is not Visual visual || DataContext is not ShellViewModel viewModel) return;
+        var dpi = VisualTreeHelper.GetDpi(visual);
+        viewModel.SetViewportSize(e.NewSize.Width * dpi.DpiScaleX, e.NewSize.Height * dpi.DpiScaleY);
+    }
+
     private void ViewportMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (!Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) return;
@@ -239,23 +358,59 @@ internal sealed class FloatingPanelWindow : Window
     }
 }
 
-public sealed class PreviewImageConverter : IValueConverter
+public sealed class PreviewFrameConverter : IMultiValueConverter
 {
-    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    public object? Convert(object[] values, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not string path || !File.Exists(path)) return null;
-        using var stream = File.OpenRead(path);
-        var image = new BitmapImage();
-        image.BeginInit();
-        image.CacheOption = BitmapCacheOption.OnLoad;
-        image.StreamSource = stream;
-        image.EndInit();
-        image.Freeze();
-        return image;
+        if (values.FirstOrDefault() is not RenderedFrame frame) return null;
+        return PreviewFrameBitmap.Create(frame, values.ElementAtOrDefault(1) as string ?? "RGBA");
     }
 
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+    public object[] ConvertBack(object? value, Type[] targetTypes, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();
+}
+
+internal static class PreviewFrameBitmap
+{
+    public static BitmapSource Create(RenderedFrame frame, string channel)
+    {
+        var expectedLength = checked(frame.Width * frame.Height * 4);
+        if (frame.Width < 1 || frame.Height < 1 || frame.Bgra32.Length != expectedLength)
+            throw new InvalidDataException("The interactive frame has invalid BGRA dimensions.");
+
+        var pixels = frame.Bgra32;
+        if (!string.Equals(channel, "RGBA", StringComparison.Ordinal))
+        {
+            pixels = (byte[])pixels.Clone();
+            for (var offset = 0; offset < pixels.Length; offset += 4)
+            {
+                var alpha = pixels[offset + 3];
+                if (string.Equals(channel, "Alpha", StringComparison.Ordinal))
+                    pixels[offset] = pixels[offset + 1] = pixels[offset + 2] = alpha;
+                pixels[offset + 3] = 255;
+            }
+        }
+
+        var bitmap = BitmapSource.Create(
+            frame.Width,
+            frame.Height,
+            96,
+            96,
+            PixelFormats.Bgra32,
+            null,
+            pixels,
+            frame.Width * 4);
+        bitmap.Freeze();
+        return bitmap;
+    }
+
+    public static void SavePng(RenderedFrame frame, string channel, string path)
+    {
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(Create(frame, channel)));
+        using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
+        encoder.Save(stream);
+    }
 }
 
 public sealed class BooleanScaleConverter : IValueConverter

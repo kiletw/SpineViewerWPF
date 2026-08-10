@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted on 2026-07-26 after TASK-004 validated project round-trip, edit history, source isolation, and the WPF Inspector workflow. Amended by TASK-032 to add backward-compatible optional per-layer Track 0 Alpha and PMA fields.
+Accepted on 2026-07-26 after TASK-004 validated project round-trip, edit history, source isolation, and the WPF Inspector workflow. Amended by TASK-032 to add backward-compatible optional per-layer Track 0 Alpha and PMA fields, and by TASK-044 to add an optional named attachment override to each slot display setting.
 
 ## Context
 
@@ -11,7 +11,7 @@ The product is expected to modify content and save it. Writing version-specific 
 ## Decision
 
 1. Store the first editable session in a versioned `*.spineviewer.json` sidecar.
-2. Include source references, selected animation and skin, model transform, playback settings, track alpha, PMA, and background mode. Schema-version-1 scene layers may add optional Track 0 Alpha and PMA fields; missing values retain the prior top-level primary-layer fallback.
+2. Include source references, selected animation and skin, model transform, playback settings, track alpha, PMA, and background mode. Schema-version-1 scene layers may add optional Track 0 Alpha and PMA fields; slot settings may add an optional named attachment override. Missing values retain prior behavior.
 3. Save through an Application service using a temporary file in the destination directory.
 4. Restrict Save and Save As to the sidecar extension.
 5. Keep Spine JSON, binary, atlas, and texture sources read-only.

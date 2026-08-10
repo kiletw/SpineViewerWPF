@@ -26,7 +26,7 @@ Preserve the previous Ready asset until replacement succeeds where practical.
 
 TASK-005 keeps the previous document metadata when a replacement fails. During inspection the UI enters Loading, and then maps unsupported input to Unsupported and other expected open failures to Failed.
 
-TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM and TASK-008 PNG renders reach Ready; an asset whose metadata loads but whose texture or attachment the CPU renderer rejects reaches RendererUnavailable without discarding metadata or project-save behavior.
+TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM and TASK-008 PNG renders reach Ready; an asset whose metadata loads but whose texture or attachment the CPU renderer rejects reaches RendererUnavailable without discarding metadata or project-save behavior. TASK-033 keeps the successful frame in memory and does not create a temporary playback PNG.
 
 ## Quick-Browse Defaults
 
@@ -36,7 +36,8 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
 - No animations: display setup pose.
 - Auto-play the selected animation after successful load, as accepted by ADR-004.
 - Skin and advanced settings remain collapsed by default; selected-layer opacity, Track 0 Alpha, and PMA remain visible because they directly affect rendering.
-- Warnings do not interrupt preview unless blocking.
+- RGBA/RGB/Alpha changes viewport presentation and screenshot capture only; it does not modify source alpha or project state.
+- Warnings do not interrupt the viewport unless blocking.
 
 ## Interaction Contracts
 
@@ -44,10 +45,31 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
 - Drag: viewport pan.
 - Model transform requires explicit controls or a visible mode.
 - Layer opacity fades the complete WPF scene layer; Track 0 Alpha changes Runtime animation mixing; PMA changes texture compositing. These controls are not interchangeable.
+- Display channel selects RGBA, opaque RGB, or opaque grayscale Alpha inspection from the current in-memory frame.
+- The status bar and Inspector identify whether normal RGBA playback is using
+  GPU triangles or the CPU fallback renderer.
+- Preview FPS defaults to 30, accepts 1 through 240, and controls the common GPU
+  and CPU playback cadence. It remains independent from Export FPS and does not
+  dirty the Viewer project or enter Undo/Redo history.
+- Dropping a skeleton opens it directly; a missing or ambiguous atlas offers a
+  manual atlas picker before the load is failed.
+- Selected-layer slot visibility, opacity, and named attachment selection are
+  presentation edits stored in the Viewer sidecar; source Spine files remain
+  read-only. Slot visibility uses a full-row name-and-switch target so the edit
+  is not limited to a small checkbox; the switch updates immediately, survives
+  preview rerendering, and participates in Undo/Redo. The empty attachment
+  choice follows animation/setup behavior.
+- Theme selection is a presentation preference with Dark and Light modes.
 - Fit changes view only.
 - Reset semantics must be explicit: viewport reset and model reset are distinct commands if both exist.
 - Space: play/pause when focus context permits.
 - Search/filter does not alter playback until a selection is made.
+- Selecting a scene layer changes the Properties editing context and the timeline duration reference; it does not reorder the scene.
+- Duplicate opens an independent render session and preserves the source layer's editable settings without changing source files.
+- Reload replaces only the selected layer after the replacement render session succeeds; failure preserves the existing scene.
+- Parameter copy/paste never copies source paths or z-order. The supported scopes are all, transform, render, and appearance.
+- Numeric transform input accepts finite coordinates beyond the earlier slider limits; scale remains finite and greater than zero.
+- Slot attachment selection applies after animation posing. An unavailable saved name falls back to animation/setup behavior without unloading the asset.
 
 ## Presentation State
 
@@ -62,6 +84,7 @@ ViewModels may expose primitives, presentation DTOs, commands, and observable co
 - Closing a dirty project offers Save, Discard, and Cancel.
 - Spine JSON, binary, atlas, and texture sources remain read-only.
 - Per-layer Track 0 Alpha and PMA round-trip in the Viewer sidecar; older schema-version-1 documents use the top-level Track Alpha as the first-layer fallback.
+- Optional slot attachment names round-trip inside schema-version-1 slot settings; older files without the field preserve animated/setup attachments.
 
 ## Command Enablement
 
@@ -73,6 +96,10 @@ ViewModels may expose primitives, presentation DTOs, commands, and observable co
 | Screenshot | asset ready and renderer available |
 | Export | asset ready, selection valid, no blocking diagnostic |
 | Reload | asset identity known and not in unsafe operation |
+| Duplicate layer | selected layer, fewer than eight layers, no layer operation in progress |
+| Reload layer | selected layer, Runtime service available, no layer operation in progress |
+| Copy layer parameters | selected layer |
+| Paste layer parameters | selected layer and an in-memory parameter snapshot |
 | Runtime override | not exporting; reload confirmation if needed |
 | Save project | asset ready; project is dirty or has no project path |
 | Save project as | asset ready |

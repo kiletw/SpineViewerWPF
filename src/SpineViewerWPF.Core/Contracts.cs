@@ -4,6 +4,11 @@ public sealed record Diagnostic(string Severity, string Code, string Message, st
 
 public sealed record AnimationDescriptor(string Name, float DurationSeconds);
 
+public sealed record SlotDescriptor(
+    string Name,
+    string? SetupAttachment,
+    IReadOnlyList<string> Attachments);
+
 public sealed record AssetDescriptor(string SkeletonPath, string AtlasPath, IReadOnlyList<string> Textures);
 
 public sealed record RuntimeDescriptor(
@@ -18,7 +23,8 @@ public sealed record InspectResult(
     RuntimeDescriptor Runtime,
     IReadOnlyList<AnimationDescriptor> Animations,
     IReadOnlyList<string> Skins,
-    IReadOnlyList<Diagnostic> Diagnostics);
+    IReadOnlyList<Diagnostic> Diagnostics,
+    IReadOnlyList<SlotDescriptor>? Slots = null);
 
 public sealed record RenderRequest(
     string SkeletonPath,
@@ -31,7 +37,60 @@ public sealed record RenderRequest(
     bool Overwrite,
     bool Pma,
     IReadOnlyList<string> Skins,
-    float TrackAlpha = 1);
+    float TrackAlpha = 1,
+    IReadOnlyList<SlotDisplayDocument>? Slots = null);
+
+public sealed record FrameRenderRequest(
+    string Animation,
+    float TimeSeconds,
+    int Width,
+    int Height,
+    bool Pma,
+    IReadOnlyList<string> Skins,
+    float TrackAlpha = 1,
+    bool LinearFiltering = true,
+    IReadOnlyList<SlotDisplayDocument>? Slots = null);
+
+public sealed record RenderedFrame(int Width, int Height, byte[] Bgra32);
+
+public enum PreviewBlendMode
+{
+    Normal,
+    Additive,
+    Multiply,
+    Screen
+}
+
+public readonly record struct PreviewVertex(float X, float Y, float U, float V);
+
+public sealed record PreviewTexture(string Key, int Width, int Height, byte[] Rgba32);
+
+public sealed record PreviewDrawCommand(
+    PreviewTexture Texture,
+    PreviewVertex[] Vertices,
+    int[] Indices,
+    float Red,
+    float Green,
+    float Blue,
+    float Alpha,
+    PreviewBlendMode BlendMode,
+    bool Pma,
+    string SlotName = "");
+
+public sealed record PreviewSceneFrame(
+    float BoundsX,
+    float BoundsY,
+    float BoundsWidth,
+    float BoundsHeight,
+    IReadOnlyList<PreviewDrawCommand> DrawCommands);
+
+public sealed record PreviewSceneRequest(
+    string Animation,
+    float TimeSeconds,
+    bool Pma,
+    IReadOnlyList<string> Skins,
+    float TrackAlpha = 1,
+    IReadOnlyList<SlotDisplayDocument>? Slots = null);
 
 public sealed record SceneLayerRenderRequest(
     string SkeletonPath,
@@ -43,13 +102,20 @@ public sealed record SceneLayerRenderRequest(
     bool Overwrite,
     bool Pma,
     IReadOnlyList<string> Skins,
-    float TrackAlpha = 1);
+    float TrackAlpha = 1,
+    IReadOnlyList<SlotDisplayDocument>? Slots = null);
 
 public sealed record SceneLayerOpenResult(
     InspectResult Inspection,
     string Animation,
     string SelectedSkin,
     string PreviewPath);
+
+public sealed record SlotDisplayDocument(
+    string Name,
+    bool IsVisible,
+    double Opacity,
+    string? AttachmentName = null);
 
 public sealed record SceneLayerDocument(
     string SkeletonPath,
@@ -67,7 +133,8 @@ public sealed record SceneLayerDocument(
     double Opacity,
     int ZIndex,
     double? TrackAlpha = null,
-    bool? Pma = null);
+    bool? Pma = null,
+    IReadOnlyList<SlotDisplayDocument>? Slots = null);
 
 public sealed record AnimationExportRequest(
     string SkeletonPath,
@@ -83,7 +150,8 @@ public sealed record AnimationExportRequest(
     bool Overwrite,
     bool Pma,
     IReadOnlyList<string> Skins,
-    float TrackAlpha = 1);
+    float TrackAlpha = 1,
+    IReadOnlyList<SlotDisplayDocument>? Slots = null);
 
 public sealed record AnimationExportResult(
     IReadOnlyList<string> OutputPaths,

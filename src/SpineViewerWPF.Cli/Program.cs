@@ -28,7 +28,7 @@ static class Cli
                 new SpineRuntime.V36_32.LegacyRuntimeAdapter(), new SpineRuntime.V36_39.LegacyRuntimeAdapter(),
                 new SpineRuntime.V36_53.LegacyRuntimeAdapter(), new SpineRuntime.V37_94.LegacyRuntimeAdapter(),
                 new SpineRuntime.V38_95.LegacyRuntimeAdapter(), new SpineRuntime.V40_31.LegacyRuntimeAdapter(),
-                new SpineV40Adapter(), new SpineV41Adapter()
+                new SpineV40Adapter(), new SpineV41Adapter(), new SpineRuntime.V42.Adapter()
             });
             return command switch
             {

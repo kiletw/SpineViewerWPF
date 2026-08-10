@@ -29,8 +29,20 @@ public sealed class SpineV41Adapter : IRuntimeAdapter
             new RuntimeDescriptor(asset.Data.Version, RuntimeLine, "4.1.00@ab28b77", overridden),
             asset.Data.Animations.Select(x => new AnimationDescriptor(x.Name, x.Duration)).ToArray(),
             asset.Data.Skins.Select(x => x.Name).ToArray(),
-            Array.Empty<Diagnostic>());
+            Array.Empty<Diagnostic>(),
+            BuildSlots(asset.Data));
     }
+
+    private static IReadOnlyList<SlotDescriptor> BuildSlots(SkeletonData data) =>
+        data.Slots.Select((slot, slotIndex) =>
+        {
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var skin in data.Skins)
+            foreach (var entry in skin.Attachments)
+                if (entry.SlotIndex == slotIndex) names.Add(entry.Name);
+            if (!string.IsNullOrWhiteSpace(slot.AttachmentName)) names.Add(slot.AttachmentName);
+            return new SlotDescriptor(slot.Name, slot.AttachmentName, names.OrderBy(x => x, StringComparer.Ordinal).ToArray());
+        }).ToArray();
 
     public IRuntimeRenderSession OpenSession(string skeletonPath, string atlasPath, CancellationToken cancellationToken)
     {
@@ -42,31 +54,92 @@ public sealed class SpineV41Adapter : IRuntimeAdapter
     private sealed class RenderSession : IRuntimeRenderSession
     {
         private LoadedAsset asset;
+        private readonly Skeleton skeleton;
+        private readonly AnimationStateData stateData;
 
-        public RenderSession(LoadedAsset asset) => this.asset = asset;
+        public RenderSession(LoadedAsset asset)
+        {
+            this.asset = asset;
+            skeleton = new Skeleton(asset.Data);
+            stateData = new AnimationStateData(asset.Data);
+        }
 
         public void Render(RenderRequest request, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var skeleton = Pose(new FrameRenderRequest(
+                request.Animation,
+                request.TimeSeconds,
+                request.Width,
+                request.Height,
+                request.Pma,
+                request.Skins,
+                request.TrackAlpha,
+                false,
+                request.Slots));
+            CpuRenderer.Render(skeleton, request.Width, request.Height, request.OutputPath, request.Pma, request.Overwrite);
+        }
+
+        public RenderedFrame RenderFrame(FrameRenderRequest request, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var skeleton = Pose(request);
+            return CpuRenderer.RenderFrame(skeleton, request.Width, request.Height, request.Pma, request.LinearFiltering);
+        }
+
+        public PreviewSceneFrame RenderScene(PreviewSceneRequest request, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var skeleton = Pose(new FrameRenderRequest(
+                request.Animation, request.TimeSeconds, 1, 1, request.Pma, request.Skins, request.TrackAlpha, false, request.Slots));
+            return CpuRenderer.BuildPreviewScene(skeleton, request.Pma);
+        }
+
+        private Skeleton Pose(FrameRenderRequest request)
+        {
             var loaded = asset ?? throw new ObjectDisposedException(nameof(RenderSession));
             var animation = loaded.Data.FindAnimation(request.Animation)
                 ?? throw new InvalidDataException($"Animation not found: {request.Animation}");
             if (request.Skins.Count > 1)
                 throw new NotSupportedException("This vertical slice supports at most one skin.");
 
-            var skeleton = new Skeleton(loaded.Data);
+            skeleton.Skin = null;
+            skeleton.SetToSetupPose();
             if (request.Skins.Count == 1)
             {
                 skeleton.SetSkin(request.Skins[0]);
                 skeleton.SetSlotsToSetupPose();
             }
 
-            var state = new AnimationState(new AnimationStateData(loaded.Data));
+            var state = new AnimationState(stateData);
             state.SetAnimation(0, animation, false).Alpha = request.TrackAlpha;
             state.Update(request.TimeSeconds);
             state.Apply(skeleton);
+            ApplySlotDisplaySettings(skeleton, request.Slots);
             skeleton.UpdateWorldTransform();
-            CpuRenderer.Render(skeleton, request.Width, request.Height, request.OutputPath, request.Pma, request.Overwrite);
+            return skeleton;
+        }
+
+        private static void ApplySlotDisplaySettings(Skeleton skeleton, IReadOnlyList<SlotDisplayDocument> settings)
+        {
+            if (settings is null || settings.Count == 0) return;
+            var byName = settings.ToDictionary(item => item.Name, StringComparer.Ordinal);
+            for (var index = 0; index < skeleton.Slots.Count; index++)
+            {
+                var slot = skeleton.Slots.Items[index];
+                if (!byName.TryGetValue(slot.Data.Name, out var setting)) continue;
+                if (!setting.IsVisible)
+                {
+                    slot.Attachment = null;
+                    continue;
+                }
+                if (!string.IsNullOrWhiteSpace(setting.AttachmentName))
+                {
+                    var attachment = skeleton.GetAttachment(index, setting.AttachmentName);
+                    if (attachment is not null) slot.Attachment = attachment;
+                }
+                slot.A *= Math.Clamp((float)setting.Opacity, 0, 1);
+            }
         }
 
         public void Dispose()
@@ -134,8 +207,11 @@ internal sealed class MetadataTextureLoader : TextureLoader
             _ => throw new NotSupportedException($"Texture metadata format is not supported: {fullPath}")
         };
         page.rendererObject = fullPath;
-        page.width = size.Width;
-        page.height = size.Height;
+        if (page.width <= 0 || page.height <= 0)
+        {
+            page.width = size.Width;
+            page.height = size.Height;
+        }
         paths.Add(fullPath);
     }
 
@@ -189,8 +265,11 @@ internal sealed class RenderTextureLoader : TextureLoader
             ".ppm" => TextureData.LoadP3(fullPath),
             _ => throw new NotSupportedException($"Render texture format is not supported: {fullPath}")
         };
-        page.width = ((TextureData)page.rendererObject).Width;
-        page.height = ((TextureData)page.rendererObject).Height;
+        if (page.width <= 0 || page.height <= 0)
+        {
+            page.width = ((TextureData)page.rendererObject).Width;
+            page.height = ((TextureData)page.rendererObject).Height;
+        }
         paths.Add(fullPath);
     }
 

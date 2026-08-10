@@ -15,9 +15,24 @@ public partial class App : System.Windows.Application
         var stateArgument = e.Args.FirstOrDefault(x => x.StartsWith("--state=", StringComparison.OrdinalIgnoreCase));
         if (stateArgument is not null)
             Enum.TryParse(stateArgument["--state=".Length..], true, out state);
+        var assetArgument = e.Args.FirstOrDefault(x => x.StartsWith("--asset=", StringComparison.OrdinalIgnoreCase));
+        var startupAsset = assetArgument?["--asset=".Length..];
 
         string? ChooseAssetPath()
             => ChooseAssetPaths()?.FirstOrDefault();
+
+        string? ChooseAtlasPath()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "Select atlas file",
+                Filter = "Spine atlas (*.atlas)|*.atlas|All files (*.*)|*.*",
+                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                CheckFileExists = true,
+                Multiselect = false
+            };
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
 
         IReadOnlyList<string>? ChooseAssetPaths()
         {
@@ -90,30 +105,34 @@ public partial class App : System.Windows.Application
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning) == MessageBoxResult.Yes;
 
+        var viewModel = new ShellViewModel(
+            state,
+            !e.Args.Contains("--compact", StringComparer.OrdinalIgnoreCase),
+            new ViewerProjectStore(),
+            ChooseProjectPath,
+            new AssetService(new IRuntimeAdapter[]
+            {
+                new SpineRuntime.V21_08.LegacyRuntimeAdapter(), new SpineRuntime.V21_25.LegacyRuntimeAdapter(),
+                new SpineRuntime.V31_07.LegacyRuntimeAdapter(), new SpineRuntime.V32.LegacyRuntimeAdapter(),
+                new SpineRuntime.V34_02.LegacyRuntimeAdapter(), new SpineRuntime.V35_51.LegacyRuntimeAdapter(),
+                new SpineRuntime.V36_32.LegacyRuntimeAdapter(), new SpineRuntime.V36_39.LegacyRuntimeAdapter(),
+                new SpineRuntime.V36_53.LegacyRuntimeAdapter(), new SpineRuntime.V37_94.LegacyRuntimeAdapter(),
+                new SpineRuntime.V38_95.LegacyRuntimeAdapter(), new SpineRuntime.V40_31.LegacyRuntimeAdapter(),
+                new SpineV40Adapter(), new SpineV41Adapter(), new SpineRuntime.V42.Adapter()
+            }),
+            ChooseAssetPath,
+            chooseAtlasPath: ChooseAtlasPath,
+            confirmDiscardChanges: ConfirmDiscardChanges,
+            chooseScreenshotPath: ChooseScreenshotPath,
+            chooseExportPath: ChooseExportPath,
+            chooseAssetPaths: ChooseAssetPaths,
+            chooseProjectPathToOpen: ChooseProjectPathToOpen);
         MainWindow = new MainWindow
         {
-            DataContext = new ShellViewModel(
-                state,
-                !e.Args.Contains("--compact", StringComparer.OrdinalIgnoreCase),
-                new ViewerProjectStore(),
-                ChooseProjectPath,
-                new AssetService(new IRuntimeAdapter[]
-                {
-                    new SpineRuntime.V21_08.LegacyRuntimeAdapter(), new SpineRuntime.V21_25.LegacyRuntimeAdapter(),
-                    new SpineRuntime.V31_07.LegacyRuntimeAdapter(), new SpineRuntime.V32.LegacyRuntimeAdapter(),
-                    new SpineRuntime.V34_02.LegacyRuntimeAdapter(), new SpineRuntime.V35_51.LegacyRuntimeAdapter(),
-                    new SpineRuntime.V36_32.LegacyRuntimeAdapter(), new SpineRuntime.V36_39.LegacyRuntimeAdapter(),
-                    new SpineRuntime.V36_53.LegacyRuntimeAdapter(), new SpineRuntime.V37_94.LegacyRuntimeAdapter(),
-                    new SpineRuntime.V38_95.LegacyRuntimeAdapter(), new SpineRuntime.V40_31.LegacyRuntimeAdapter(),
-                    new SpineV40Adapter(), new SpineV41Adapter()
-                }),
-                ChooseAssetPath,
-                ConfirmDiscardChanges,
-                chooseScreenshotPath: ChooseScreenshotPath,
-                chooseExportPath: ChooseExportPath,
-                chooseAssetPaths: ChooseAssetPaths,
-                chooseProjectPathToOpen: ChooseProjectPathToOpen)
+            DataContext = viewModel
         };
         MainWindow.Show();
+        if (!string.IsNullOrWhiteSpace(startupAsset))
+            _ = viewModel.OpenAssetAsync(startupAsset);
     }
 }

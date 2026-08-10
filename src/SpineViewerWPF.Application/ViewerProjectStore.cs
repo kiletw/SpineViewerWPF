@@ -86,6 +86,14 @@ public sealed class ViewerProjectStore
                     throw new InvalidDataException("Scene layer transform or opacity is outside the supported range.");
                 if (layer.TrackAlpha is { } alpha && (!double.IsFinite(alpha) || alpha is < 0 or > 1))
                     throw new InvalidDataException("Scene layer track alpha must be between 0 and 1.");
+                if (layer.Slots is { } slots)
+                    foreach (var slot in slots)
+                    {
+                        if (string.IsNullOrWhiteSpace(slot.Name))
+                            throw new InvalidDataException("Slot display settings require a slot name.");
+                        if (!double.IsFinite(slot.Opacity) || slot.Opacity is < 0 or > 1)
+                            throw new InvalidDataException("Slot opacity must be between 0 and 1.");
+                    }
             }
         }
     }
