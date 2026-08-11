@@ -4,24 +4,24 @@
 
 Inventory verified from v2 commit `79c6135`. Project-authored JSON fixtures verify every connected line from 2.1.08 through 4.2. TASK-009 verifies official 4.1 JSON/binary, TASK-026 verifies official 3.8.55 JSON/binary/PMA, and TASK-041 pins official 4.2 commit `b81e5a58ed38704aee4f866f0e0ac672623ce914`, verifies its 4.2.22 JSON/binary example export, and exercises deterministic Physics replay. The shared Runtime-neutral CPU/GPU-scene bridges retain the clipping, blend, Track Alpha, slot, multi-page, and real-asset coverage recorded by TASK-027 through TASK-040. Official 4.2 PMA and multi-page export parity remain unverified.
 
-Each snapshot is isolated in a version-specific assembly. Historical v2 sources retain their namespace/XNA patch uncertainty; the 4.1 and 4.2 projects use clean official sources with license headers. The 4.2 `spine-csharp/src` tree was compared file-for-file with its pinned commit with zero mismatches.
+Each snapshot is isolated in a version-specific assembly under `runtimes/`. Historical sources retain their namespace/patch provenance uncertainty, but TASK-047 removes the unused XNA helpers and verifies that all 484 active historical `.cs` inputs are byte-identical after relocation. The 4.1 and 4.2 projects use clean official sources with license headers. The 4.2 `spine-csharp/src` tree was compared file-for-file with its pinned commit with zero mismatches.
 
 | v2 selection | Vendored directory | Official tag candidate | JSON path | Binary path | PMA path | Multi-page | Fixture | v3 priority |
 |---|---|---|---:|---:|---:|---:|---|---|
-| 2.1.08 | `spine-runtimes-2.1.08` | `2.1.08` / `39ce4b2` | Yes | No | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
-| 2.1.25 | `spine-runtimes-2.1.25` | `2.1.25` / `142e770` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
-| 3.1.07 | `spine-runtimes-3.1.07` | `3.1.07` / `e74b61e` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
-| 3.2.xx | `spine-runtimes-3.2.xx` | TBD; no exact tag identified | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
-| 3.4.02 | `spine-runtimes-3.4.02` | `3.4.02` / `ef50131` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
-| 3.5.51 | `spine-runtimes-3.5.51` | `3.5.51` / `2cd9467` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
-| 3.6.32 | `spine-runtimes-3.6.32` | `3.6.32` / `283f63b` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
-| 3.6.39 | `spine-runtimes-3.6.39` | `3.6.39` / `43f37ce` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
-| 3.6.53 | `spine-runtimes-3.6.53` | `3.6.53` / `a4a36d8` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
-| 3.7.94 | `spine-runtimes-3.7.94` | `3.7.94` / `45b8125` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
-| 3.8.95 | `spine-runtimes-3.8.95` | `3.8.95` / `3e93e2d` | Yes | Yes | Present | TBD | Official 3.8.55 cache plus project-authored fixture | Official cache verified (JSON/Binary/PMA) |
-| 4.0.31 | `spine-runtimes-4.0.31` | `4.0.31` / `8770e31` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
-| 4.0.64 | `spine-runtimes-4.0.64` | `4.0.64` / `01524d4` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
-| 4.1.00 | `spine-runtimes-4.1.00` | `4.1.00` / `ab28b77` | Yes | Yes | Present | Project-authored two-page smoke; official TBD | Synthetic and two-page fixtures plus official `spineboy` JSON/binary export smoke | Prototype complete |
+| 2.1.08 | `runtimes/SpineRuntime.V21_08/src` | `2.1.08` / `39ce4b2` | Yes | No | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 2.1.25 | `runtimes/SpineRuntime.V21_25/src` | `2.1.25` / `142e770` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.1.07 | `runtimes/SpineRuntime.V31_07/src` | `3.1.07` / `e74b61e` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.2.xx | `runtimes/SpineRuntime.V32/src` | TBD; no exact tag identified | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.4.02 | `runtimes/SpineRuntime.V34_02/src` | `3.4.02` / `ef50131` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.5.51 | `runtimes/SpineRuntime.V35_51/src` | `3.5.51` / `2cd9467` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.6.32 | `runtimes/SpineRuntime.V36_32/src` | `3.6.32` / `283f63b` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.6.39 | `runtimes/SpineRuntime.V36_39/src` | `3.6.39` / `43f37ce` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.6.53 | `runtimes/SpineRuntime.V36_53/src` | `3.6.53` / `a4a36d8` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.7.94 | `runtimes/SpineRuntime.V37_94/src` | `3.7.94` / `45b8125` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 3.8.95 | `runtimes/SpineRuntime.V38_95/src` | `3.8.95` / `3e93e2d` | Yes | Yes | Present | TBD | Official 3.8.55 cache plus project-authored fixture | Official cache verified (JSON/Binary/PMA) |
+| 4.0.31 | `runtimes/SpineRuntime.V40_31/src` | `4.0.31` / `8770e31` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 4.0.64 | `runtimes/SpineRuntime.V40/src` | `4.0.64` / `01524d4` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
+| 4.1.00 | `runtimes/SpineRuntime.V41/src` | `4.1.00` / `ab28b77` | Yes | Yes | Present | Project-authored two-page smoke; official TBD | Synthetic and two-page fixtures plus official `spineboy` JSON/binary export smoke | Prototype complete |
 | 4.2 | `runtimes/SpineRuntime.V42/src` | `4.2` branch / `b81e5a5` | Yes | Yes | Present | TBD | Project Physics fixture plus official 4.2.22 JSON/binary cache | Prototype complete |
 | 4.3 | none | current upstream line | No | No | No | No | Missing | Future |
 

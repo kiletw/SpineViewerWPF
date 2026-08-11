@@ -7,8 +7,8 @@
     <DefineConstants>$(DefineConstants);SPINE_LEGACY;SPINE_RUNTIME_2108;SPINE_LEGACY_SHORT;SPINE_LEGACY_OLD_MESH;SPINE_LEGACY_NO_BOUNDS;SPINE_LEGACY_NO_BLEND;SPINE_LEGACY_NO_CLIPPING</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../../SpineViewerWPF/SpineLibrary/spine-runtimes-2.1.08/*.cs" />
-    <Compile Include="../../SpineViewerWPF/SpineLibrary/spine-runtimes-2.1.08/Attachments/*.cs" />
+    <Compile Include="src/*.cs" />
+    <Compile Include="src/Attachments/*.cs" />
     <Compile Include="../SpineRuntime.Legacy/Adapter.cs" Link="Adapter.cs" />
     <Compile Include="../SpineRuntime.V41/CpuRenderer.cs" Link="CpuRenderer.cs" />
     <Compile Include="../SpineRuntime.V41/PngReader.cs" Link="PngReader.cs" />

@@ -316,11 +316,14 @@ try {
     $slotsTabPattern = $slotsTab.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern)
     ([System.Windows.Automation.SelectionItemPattern] $slotsTabPattern).Select()
     Start-Sleep -Milliseconds 500
-    $assetWindowBounds = $assetWindow.Current.BoundingRectangle
+    # WPF's TabControl peer exposes the selected tab header but not controls in
+    # its DataTemplate. Anchor the physical click to that DPI-aware header
+    # instead of a hard-coded window coordinate.
+    $slotsTabBounds = $slotsTab.Current.BoundingRectangle
     [SpineViewerWpfUiMouse]::Click(
         [IntPtr]$assetWindow.Current.NativeWindowHandle,
-        [int]($assetWindowBounds.Right - 289),
-        [int]($assetWindowBounds.Top + 268))
+        [int]($slotsTabBounds.Right - [Math]::Max(8, $slotsTabBounds.Width * 0.12)),
+        [int]($slotsTabBounds.Bottom + ($slotsTabBounds.Height * 2)))
     $undoButton = Wait-AutomationId $assetWindow 'Main.Command.Undo'
     foreach ($attempt in 1..50) {
         if ($undoButton -and $undoButton.Current.IsEnabled) { break }
@@ -333,6 +336,10 @@ try {
     $redoButton = Wait-AutomationId $assetWindow 'Main.Command.Redo'
     if (-not $redoButton -or -not $redoButton.Current.IsEnabled) { throw 'Undoing Slot visibility did not enable Redo.' }
     Invoke-AutomationElement $redoButton
+    foreach ($attempt in 1..50) {
+        if ($assetWindow.Current.Name.EndsWith('*')) { break }
+        Start-Sleep -Milliseconds 100
+    }
     if (-not $assetWindow.Current.Name.EndsWith('*')) { throw 'Redo did not reapply the Slot visibility edit.' }
     $before = $layerList.FindAll(
         [System.Windows.Automation.TreeScope]::Children,

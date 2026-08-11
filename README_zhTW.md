@@ -1,44 +1,86 @@
 # SpineViewerWPF
-這是一個能選擇你要的Spine運行庫來查看Spine動畫並可匯出png或gif的工具。
 
-## 快捷鍵
-* Ctrl+Mousewheel 縮放視窗
-* Alt+Mousewheel  縮放Spine物件
-* Ctrl+Mousedown+Mousemove  移動視窗
-* Alt+Mousedown+Mousemove  移動Spine物件
+SpineViewerWPF v3 是 Windows/.NET 8 的 Spine 資產檢視器，可讀取多個歷史
+Runtime 版本匯出的檔案。
 
-## 特色
-* 支持的Spine運行庫版本 
-  * **2.1.08**
-  * **2.1.25**
-  * **3.1.07**
-  * **3.2.xx**
-  * **3.4.02**
-  * **3.5.51**
-  * **3.6.32**
-  * **3.6.39**
-  * **3.6.53**
-  * **3.7.94**
-  * **3.8.95**
-  * **4.0.31**
-  * **4.0.64**
-  * **4.1.00**
-* 將Spine動畫匯出成png或gif。
-* 能用不同功能選項瀏覽Spine動畫。
+[English](README.md)
 
+## 功能
 
-## 運用
+- 透過隔離的 Runtime Adapter，自動偵測並載入 `2.1.08` 到 `4.2` 的 Spine
+  匯出檔。
+- 一般 RGBA 播放使用 OpenTK GPU viewport；GPU 初始化或渲染失敗時會保留
+  資產並切換為 CPU fallback。
+- Screenshot、色彩通道檢視、CLI 輸出與 PNG 序列匯出使用可重現的 CPU
+  renderer。
+- 可透過檔案對話框或拖放開啟 JSON／binary skeleton，自動尋找 atlas，找不到
+  時可手動指定。
+- 提供動畫／Skin、播放速度、預覽 FPS、平移／縮放／Fit、多場景圖層、
+  Dark／Light theme 與 GPU／CPU 效能狀態。
+- 圖層、Transform、Slot 顯示／透明度及具名 Attachment 選擇會以非破壞方式
+  儲存在版本化的 `*.spineviewer.json` sidecar。
 
-類別庫:
-- [ImageSharp](https://github.com/SixLabors/ImageSharp)
-- [WpfXnaControl](https://github.com/erickeek/WpfXnaControl)
-- [spine-runtimes](https://github.com/EsotericSoftware/spine-runtimes)
+支援的 Runtime 選項：
 
+```text
+2.1.08  2.1.25  3.1.07  3.2.xx  3.4.02  3.5.51  3.6.32
+3.6.39  3.6.53  3.7.94  3.8.95  4.0.31  4.0.64  4.1  4.2
+```
 
-要求:
-- [.NET Framework 4.7.2](http://go.microsoft.com/fwlink/?linkid=863265)
-- [Microsoft XNA Framework Redistributable 4.0](https://www.microsoft.com/en-us/download/details.aspx?id=20914)
+## 系統需求
 
-## 問題:
-1.部分動畫圖層之間會有錯誤的陰影
-*  \_(:3」∠)\_
+- Windows
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+
+互動播放建議使用支援 OpenGL 的 GPU。程式會顯示目前使用 GPU 或 CPU
+fallback。
+
+## 專案入口
+
+- WPF 程式：`src/SpineViewerWPF.Wpf/SpineViewerWPF.Wpf.csproj`
+- CLI：`src/SpineViewerWPF.Cli/SpineViewerWPF.Cli.csproj`
+- Application／Core contract：`src/SpineViewerWPF.Application`、
+  `src/SpineViewerWPF.Core`
+- 隔離的 Runtime Adapter：`runtimes/SpineRuntime.*`
+
+## 建置與執行
+
+```powershell
+dotnet restore SpineViewerWPF.sln
+dotnet build SpineViewerWPF.sln -c Release --no-restore
+dotnet run --project src/SpineViewerWPF.Wpf/SpineViewerWPF.Wpf.csproj -c Release --no-restore
+```
+
+CLI 範例：
+
+```powershell
+dotnet run --project src/SpineViewerWPF.Cli/SpineViewerWPF.Cli.csproj -c Release -- inspect "asset.skel" --atlas "asset.atlas" --format json
+dotnet run --project src/SpineViewerWPF.Cli/SpineViewerWPF.Cli.csproj -c Release -- render "asset.skel" --atlas "asset.atlas" --animation "idle" --time 0.5 --output "frame.png" --overwrite
+```
+
+需要強制指定 Runtime 時可加入 `--runtime`；省略時會使用匯出檔內的版本資訊
+自動選擇。
+
+## 驗證
+
+```powershell
+dotnet run --project tests/SpineViewerWPF.Application.Smoke/SpineViewerWPF.Application.Smoke.csproj -c Release --no-restore
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-v3.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-v42.ps1 -Offline
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-ui-shell.ps1
+```
+
+3.8、4.1 與 4.2 的離線相容性腳本使用 gitignored 的官方範例 cache。若 cache
+尚未建立，先將對應腳本移除 `-Offline` 執行一次。
+
+## 目前限制
+
+- 尚未支援 Runtime 4.3。
+- Spine JSON、binary、atlas 與 texture 原始檔皆為唯讀；Save／Save As 儲存的是
+  Viewer sidecar，不會修改 Spine 原始檔。
+- 目前輸出 Screenshot 與可重現的 PNG 序列；尚未實作 GIF、影片及 PSD。
+- Viewport 可使用多個場景圖層，但可重現的動畫序列匯出目前只處理主要圖層。
+- 多 Track 動畫混合、Attachment 製作、完整 Adobe 式拖曳 Dock、執行期間語言
+  切換及 MCP 工具仍為 deferred。
+
+官方 Spine Runtime 原始碼的授權與 commit metadata 保留在 `runtimes/`。

@@ -7,9 +7,9 @@
     <DefineConstants>$(DefineConstants);SPINE_V40</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <!-- The v2 snapshot is linked read-only; only the project-owned adapter and shared renderer live here. -->
-    <Compile Include="../../SpineViewerWPF/SpineLibrary/spine-runtimes-4.0.64/*.cs" />
-    <Compile Include="../../SpineViewerWPF/SpineLibrary/spine-runtimes-4.0.64/Attachments/*.cs" />
+    <!-- The vendored Runtime snapshot is local and read-only; project-owned adapter and shared renderer remain separate. -->
+    <Compile Include="src/*.cs" />
+    <Compile Include="src/Attachments/*.cs" />
     <Compile Include="../SpineRuntime.V41/CpuRenderer.cs" Link="CpuRenderer.cs" />
     <Compile Include="../SpineRuntime.V41/PngReader.cs" Link="PngReader.cs" />
     <Compile Include="../SpineRuntime.V41/PngWriter.cs" Link="PngWriter.cs" />
