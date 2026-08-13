@@ -4,6 +4,20 @@
              xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
+        <sys:String x:Key="Text.File">_File</sys:String>
+        <sys:String x:Key="Text.Edit">_Edit</sys:String>
+        <sys:String x:Key="Text.View">_View</sys:String>
+        <sys:String x:Key="Text.PlaybackMenu">_Playback</sys:String>
+        <sys:String x:Key="Text.Layer">_Layer</sys:String>
+        <sys:String x:Key="Text.ExportMenu">E_xport</sys:String>
+        <sys:String x:Key="Text.Help">_Help</sys:String>
+        <sys:String x:Key="Text.OpenAsset">Open asset</sys:String>
+        <sys:String x:Key="Text.Reload">Reload</sys:String>
+        <sys:String x:Key="Text.Stop">Stop</sys:String>
+        <sys:String x:Key="Text.Fit">Fit</sys:String>
+        <sys:String x:Key="Text.Properties">Properties</sys:String>
+        <sys:String x:Key="Text.PlayPause">Play / Pause</sys:String>
+        <sys:String x:Key="Text.Loop">Loop</sys:String>
         <sys:String x:Key="Text.Save">Save</sys:String>
         <sys:String x:Key="Text.SaveAs">Save As</sys:String>
         <sys:String x:Key="Text.Screenshot">Screenshot</sys:String>
@@ -80,7 +94,7 @@
         <sys:String x:Key="Text.Project">Project</sys:String>
         <sys:String x:Key="Text.ProjectPath">Project path</sys:String>
         <sys:String x:Key="Text.PerformanceHint">Published animation updates, average preview work time, and coalesced updates during the last sample window.</sys:String>
-        <sys:String x:Key="Text.Window">Window</sys:String>
+        <sys:String x:Key="Text.Window">_Window</sys:String>
         <sys:String x:Key="Text.ToggleBrowse">Show/Hide Browse panel</sys:String>
         <sys:String x:Key="Text.ToggleInspector">Show/Hide Inspector</sys:String>
         <sys:String x:Key="Text.FloatBrowse">Float Browse panel</sys:String>

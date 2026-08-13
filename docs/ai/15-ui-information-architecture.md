@@ -8,10 +8,19 @@ The application is a viewport-first workspace. Its default arrangement preserves
 
 These stay in the main workspace:
 
-- command bar
+- conventional command menu
+- frequent-action toolbar
+- left panel activity rail
 - central viewport
 - playback bar
 - compact status bar
+
+## Command and Activity Separation
+
+- File, Edit, View, Playback, Layer, Export, Window, and Help menus own discoverable commands and shortcuts.
+- The toolbar is limited to frequent Open, Save, Undo, Redo, Screenshot, and Export actions.
+- The activity rail switches or reveals Layers, Properties, and Diagnostics; it does not become a second command menu.
+- Window remains the recovery surface for hidden, floating, and redocked panels.
 
 ## Dockable Panels
 

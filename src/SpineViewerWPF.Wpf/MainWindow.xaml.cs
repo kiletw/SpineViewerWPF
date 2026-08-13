@@ -14,6 +14,11 @@ namespace SpineViewerWPF.Wpf;
 
 public partial class MainWindow : Window
 {
+    public static RoutedUICommand FloatInspectorCommand { get; } = new(
+        "Float Inspector",
+        nameof(FloatInspectorCommand),
+        typeof(MainWindow));
+
     private Point? viewportDragStart;
     private FloatingPanelWindow? browsePanelWindow;
     private FloatingPanelWindow? inspectorPanelWindow;
@@ -26,6 +31,9 @@ public partial class MainWindow : Window
         Closing += ConfirmUnsavedChanges;
         Closed += MainWindowClosed;
     }
+
+    private void ExecuteFloatInspectorCommand(object sender, ExecutedRoutedEventArgs e) =>
+        FloatInspectorPanel(sender, e);
 
     private void MainWindowDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
@@ -133,13 +141,6 @@ public partial class MainWindow : Window
         if (e.Key != Key.Enter || sender is not TextBox textBox) return;
         textBox.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
         e.Handled = true;
-    }
-
-    private void OpenWindowMenu(object sender, RoutedEventArgs e)
-    {
-        if (sender is not FrameworkElement element || element.ContextMenu is not { } menu) return;
-        menu.PlacementTarget = element;
-        menu.IsOpen = true;
     }
 
     private void ToggleBrowsePanel(object sender, RoutedEventArgs e)

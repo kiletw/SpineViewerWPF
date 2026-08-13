@@ -37,10 +37,15 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
 - Auto-play the selected animation after successful load, as accepted by ADR-004.
 - Skin and advanced settings remain collapsed by default; selected-layer opacity, Track 0 Alpha, and PMA remain visible because they directly affect rendering.
 - RGBA/RGB/Alpha changes viewport presentation and screenshot capture only; it does not modify source alpha or project state.
+- Screenshot captures the current visible scene-layer composition at the viewport pixel dimensions, then applies RGBA/RGB/Alpha inspection to the final frame. PNG sequence export captures the same ordered layer presentation at Export Size as raw RGBA and is not changed by the inspection channel.
+- Checkerboard, Dark, and Light viewport backgrounds are presentation-only and are not baked into Screenshot or PNG sequence output; all-hidden scenes therefore produce a transparent frame.
 - Warnings do not interrupt the viewport unless blocking.
 
 ## Interaction Contracts
 
+- File, Edit, View, Playback, Layer, Export, Window, and Help provide the stable desktop command taxonomy.
+- The activity rail is reserved for panel navigation. Menu items and toolbar buttons reuse the same commands, enablement, and shortcuts rather than duplicating use-case logic.
+- Window menu operations continue to use the dock-aware show, hide, float, redock, and reset handlers. Float Inspector also has the `Ctrl+Shift+I` shortcut.
 - Mouse wheel: viewport zoom.
 - Drag: viewport pan.
 - Model transform requires explicit controls or a visible mode.
@@ -70,6 +75,7 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
 - Parameter copy/paste never copies source paths or z-order. The supported scopes are all, transform, render, and appearance.
 - Numeric transform input accepts finite coordinates beyond the earlier slider limits; scale remains finite and greater than zero.
 - Slot attachment selection applies after animation posing. An unavailable saved name falls back to animation/setup behavior without unloading the asset.
+- Screenshot and PNG sequence export snapshot the layer list before background rendering. Visible layers use stable ascending Z order and include layer opacity, transform, flips, animation, skin, Track 0 Alpha, PMA, and slot settings. Model translation is interpreted as 96-DPI output pixels; viewport pan and zoom remain preview-only.
 
 ## Presentation State
 
@@ -93,7 +99,7 @@ ViewModels may expose primitives, presentation DTOs, commands, and observable co
 | Play | asset ready, animation selected, not blocked |
 | Pause | playing |
 | Seek | duration known and asset ready |
-| Screenshot | asset ready and renderer available |
+| Screenshot | asset ready, renderer available, not exporting |
 | Export | asset ready, selection valid, no blocking diagnostic |
 | Reload | asset identity known and not in unsafe operation |
 | Duplicate layer | selected layer, fewer than eight layers, no layer operation in progress |
@@ -111,6 +117,7 @@ ViewModels may expose primitives, presentation DTOs, commands, and observable co
 - Blocking: concise summary, file, Runtime, next action, diagnostics link.
 - Warning: status indicator and diagnostics; avoid repeated modal dialogs.
 - Export failure: keep current asset loaded.
+- Screenshot failure: keep the current asset loaded and publish a `CAPTURE_FAILED` diagnostic through the existing status path.
 
 ## AI/Automation Validation
 

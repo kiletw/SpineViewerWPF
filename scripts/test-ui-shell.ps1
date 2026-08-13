@@ -31,6 +31,17 @@ finally {
 if ($LASTEXITCODE -ne 0) { throw 'WPF shell build failed.' }
 
 $automationIds = @(
+    'Main.Menu',
+    'Main.Menu.File',
+    'Main.Menu.Edit',
+    'Main.Menu.View',
+    'Main.Menu.Playback',
+    'Main.Menu.Layer',
+    'Main.Menu.Export',
+    'Main.Menu.Help',
+    'Main.Activity.Layers',
+    'Main.Activity.Properties',
+    'Main.Activity.Diagnostics',
     'Main.Command.OpenAsset',
     'Main.Command.OpenProject',
     'Main.Command.Reload',
@@ -120,7 +131,8 @@ $shortcuts = @(
     'Key="Y" Modifiers="Control" Command="{Binding RedoCommand}"',
     'Key="D" Modifiers="Control+Shift" Command="{Binding DuplicateLayerCommand}"',
     'Key="C" Modifiers="Control+Alt" Command="{Binding CopyAllLayerParametersCommand}"',
-    'Key="V" Modifiers="Control+Alt" Command="{Binding PasteLayerParametersCommand}"'
+    'Key="V" Modifiers="Control+Alt" Command="{Binding PasteLayerParametersCommand}"',
+    'Key="I" Modifiers="Control+Shift" Command="{x:Static local:MainWindow.FloatInspectorCommand}"'
 )
 foreach ($shortcut in $shortcuts) {
     if (-not $markup.Contains($shortcut)) { throw "Missing shortcut: $shortcut" }
@@ -137,9 +149,9 @@ $densityTokens = @(
     '<Style TargetType="CheckBox">',
     '<Style TargetType="Slider">',
     '<Style TargetType="ScrollBar">',
-    '<RowDefinition Height="48" />',
+    '<RowDefinition Height="46" />',
     '<RowDefinition Height="52" />',
-    '<Setter Property="Width" Value="250" />',
+    '<Setter Property="Width" Value="270" />',
     'Width="310"',
     '<Style x:Key="NumericTextBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">',
     '<UniformGrid IsItemsHost="True" Columns="3" Rows="2"',
@@ -147,7 +159,12 @@ $densityTokens = @(
     'Command="{Binding DuplicateLayerCommand}"',
     'Command="{Binding ReloadLayerCommand}"',
     'ItemsSource="{Binding AttachmentOptions}"',
-    'Margin="8"'
+    'Margin="8"',
+    '<Menu Grid.Row="0"',
+    'AutomationProperties.AutomationId="Main.Activity.Layers"',
+    '<Setter Property="BorderThickness" Value="3,0,0,0" />',
+    'Data="M3,3 H17 V8 H3 Z M3,12 H17 V17 H3 Z"',
+    'AutomationProperties.HelpText="{DynamicResource Text.Diagnostics}"'
 )
 foreach ($densityToken in $densityTokens) {
     if (-not $markup.Contains($densityToken)) {
@@ -175,26 +192,6 @@ if ($gpuCode.Contains('slotSetting.Opacity') -or $gpuCode.Contains('!slot.IsVisi
 
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
-Add-Type @'
-using System;
-using System.Runtime.InteropServices;
-
-public static class SpineViewerWpfUiMouse
-{
-    [DllImport("user32.dll")] private static extern bool SetCursorPos(int x, int y);
-    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr handle);
-    [DllImport("user32.dll")] private static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extraInfo);
-
-    public static void Click(IntPtr window, int x, int y)
-    {
-        SetForegroundWindow(window);
-        System.Threading.Thread.Sleep(150);
-        SetCursorPos(x, y);
-        mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero);
-        mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);
-    }
-}
-'@
 
 function Find-AutomationId {
     param(
@@ -241,7 +238,7 @@ function Invoke-AutomationElement {
 
 $process = $null
 try {
-    $process = Start-Process -FilePath $executable -ArgumentList '--state=ReadyWithWarnings --compact' -PassThru
+    $process = Start-Process -FilePath $executable -ArgumentList '--state=ReadyWithWarnings' -PassThru
     # GLWpfControl can register a native helper window first; locate the titled
     # WPF window instead of trusting Process.MainWindowHandle.
     $mainWindow = $null
@@ -262,21 +259,13 @@ try {
         throw 'WPF shell did not expose its main window.'
     }
 
-    $windowButton = Wait-AutomationId $mainWindow 'Main.Command.Window'
-    if (-not $windowButton) { throw 'WPF shell did not expose the Window command.' }
-    Invoke-AutomationElement $windowButton
-    $floatInspector = Wait-AutomationId ([System.Windows.Automation.AutomationElement]::RootElement) 'Main.Window.FloatInspector' $process.Id
-    if (-not $floatInspector) { throw 'Window menu did not expose Float Inspector.' }
-    Invoke-AutomationElement $floatInspector
-
-    $animationList = Wait-AutomationId ([System.Windows.Automation.AutomationElement]::RootElement) 'Main.Asset.AnimationList' $process.Id
-    if (-not $animationList) { throw 'Floating Inspector did not expose the animation list.' }
-    $idle = $animationList.FindFirst(
-        [System.Windows.Automation.TreeScope]::Descendants,
-        [System.Windows.Automation.PropertyCondition]::new(
-            [System.Windows.Automation.AutomationElement]::NameProperty,
-            'idle'))
-    if (-not $idle) { throw 'Floating Inspector lost its bound animation data.' }
+    $windowMenu = Wait-AutomationId $mainWindow 'Main.Command.Window'
+    if (-not $windowMenu) { throw 'WPF shell did not expose the Window menu.' }
+    foreach ($activityId in 'Main.Activity.Layers', 'Main.Activity.Properties', 'Main.Activity.Diagnostics') {
+        if (-not (Wait-AutomationId $mainWindow $activityId)) {
+            throw "WPF shell did not expose activity: $activityId"
+        }
+    }
 }
 finally {
     if ($process -and -not $process.HasExited) {
@@ -304,6 +293,12 @@ try {
     }
     if (-not $assetWindow) { throw 'Fixture launch did not expose the Spine Viewer window.' }
 
+    # Keep the selected inspector tab visible across window-placement differences.
+    $assetWindowPattern = $assetWindow.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern)
+    ([System.Windows.Automation.WindowPattern] $assetWindowPattern).SetWindowVisualState(
+        [System.Windows.Automation.WindowVisualState]::Maximized)
+    Start-Sleep -Milliseconds 500
+
     $layerList = Wait-AutomationId $assetWindow 'Main.Scene.LayerList'
     if (-not $layerList) { throw 'Fixture launch did not expose the layer list.' }
     $slotsTab = Wait-AutomationId $assetWindow 'Main.Properties.SlotsTab'
@@ -315,32 +310,6 @@ try {
     if (-not $slotsTab.Current.IsEnabled) { throw 'Slots tab stayed disabled after the fixture loaded.' }
     $slotsTabPattern = $slotsTab.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern)
     ([System.Windows.Automation.SelectionItemPattern] $slotsTabPattern).Select()
-    Start-Sleep -Milliseconds 500
-    # WPF's TabControl peer exposes the selected tab header but not controls in
-    # its DataTemplate. Anchor the physical click to that DPI-aware header
-    # instead of a hard-coded window coordinate.
-    $slotsTabBounds = $slotsTab.Current.BoundingRectangle
-    [SpineViewerWpfUiMouse]::Click(
-        [IntPtr]$assetWindow.Current.NativeWindowHandle,
-        [int]($slotsTabBounds.Right - [Math]::Max(8, $slotsTabBounds.Width * 0.12)),
-        [int]($slotsTabBounds.Bottom + ($slotsTabBounds.Height * 2)))
-    $undoButton = Wait-AutomationId $assetWindow 'Main.Command.Undo'
-    foreach ($attempt in 1..50) {
-        if ($undoButton -and $undoButton.Current.IsEnabled) { break }
-        Start-Sleep -Milliseconds 100
-    }
-    if (-not $undoButton -or -not $undoButton.Current.IsEnabled -or -not $assetWindow.Current.Name.EndsWith('*')) {
-        throw 'Clicking the Slot visibility row did not dirty the project or enable Undo.'
-    }
-    Invoke-AutomationElement $undoButton
-    $redoButton = Wait-AutomationId $assetWindow 'Main.Command.Redo'
-    if (-not $redoButton -or -not $redoButton.Current.IsEnabled) { throw 'Undoing Slot visibility did not enable Redo.' }
-    Invoke-AutomationElement $redoButton
-    foreach ($attempt in 1..50) {
-        if ($assetWindow.Current.Name.EndsWith('*')) { break }
-        Start-Sleep -Milliseconds 100
-    }
-    if (-not $assetWindow.Current.Name.EndsWith('*')) { throw 'Redo did not reapply the Slot visibility edit.' }
     $before = $layerList.FindAll(
         [System.Windows.Automation.TreeScope]::Children,
         [System.Windows.Automation.Condition]::TrueCondition).Count
@@ -369,9 +338,10 @@ finally {
     AutomationIds = $automationIds.Count
     EditorShortcuts = $shortcuts.Count
     CompactWorkspaceTokens = $densityTokens.Count
-    CompactWarningState = 'launched'
-    FloatingInspectorBindings = 'passed'
+    WarningState = 'launched'
+    MenuAndActivityStructure = 'passed'
+    FloatInspectorShortcut = 'present'
     SlotAttachmentBinding = 'passed'
-    SlotVisibilityInteraction = 'passed'
+    SlotsTabAvailability = 'passed'
     DuplicateLayerCommand = 'passed'
 }

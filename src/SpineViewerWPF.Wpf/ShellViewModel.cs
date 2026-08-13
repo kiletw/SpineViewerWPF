@@ -85,6 +85,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private string previewPerformanceLabel = "Paused";
     private bool gpuPreviewAvailable;
     private string? gpuPreviewFailure;
+    private int screenshotInProgress;
     private int exportInProgress;
     private int exportCompletedFrames;
     private int exportTotalFrames;
@@ -169,15 +170,19 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         playbackTimer.Tick += AdvancePlayback;
         savedSnapshot = Capture();
 
-        OpenAssetCommand = new RelayCommand(async () => await OpenAssetAsync(), () => !IsLoading);
-        OpenProjectCommand = new RelayCommand(async () => await OpenProjectAsync(), () => !IsLoading);
+        OpenAssetCommand = new RelayCommand(
+            async () => await OpenAssetAsync(),
+            () => !IsLoading && Volatile.Read(ref screenshotInProgress) == 0);
+        OpenProjectCommand = new RelayCommand(
+            async () => await OpenProjectAsync(),
+            () => !IsLoading && Volatile.Read(ref screenshotInProgress) == 0);
         ReloadCommand = new RelayCommand(async () =>
         {
             if (assetService is null)
                 LastAction = "Fake asset reloaded";
             else
                 await OpenAssetAsync(skeletonPath);
-        }, () => HasAsset && !IsLoading);
+        }, () => HasAsset && !IsLoading && Volatile.Read(ref screenshotInProgress) == 0);
         ExportCommand = new RelayCommand(StartExport, () => CanExport);
         CancelExportCommand = new RelayCommand(CancelExport, () => IsExporting);
         AddLayerCommand = new RelayCommand(StartAddLayer, () => CanAddLayer);
@@ -192,7 +197,14 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         CopyRenderParametersCommand = new RelayCommand(() => CopyLayerParameters(LayerParameterScope.Render), () => HasSelectedSceneLayer);
         CopyAppearanceParametersCommand = new RelayCommand(() => CopyLayerParameters(LayerParameterScope.Appearance), () => HasSelectedSceneLayer);
         PasteLayerParametersCommand = new RelayCommand(PasteLayerParameters, () => HasSelectedSceneLayer && layerParameterClipboard is not null);
-        ScreenshotCommand = new RelayCommand(CaptureScreenshot, () => HasRenderedPreview && CanPlay);
+        ScreenshotCommand = new RelayCommand(
+            CaptureScreenshot,
+            () => HasRenderedPreview
+                && CanPlay
+                && !IsExporting
+                && Volatile.Read(ref screenshotInProgress) == 0
+                && Volatile.Read(ref exportInProgress) == 0
+                && Volatile.Read(ref sceneLayerOperationInProgress) == 0);
         TogglePlayCommand = new RelayCommand(() => IsPlaying = !IsPlaying, () => CanPlay);
         StopCommand = new RelayCommand(() =>
         {
@@ -554,11 +566,22 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public string PreviewPerformanceLabel => previewPerformanceLabel;
     public bool HasPrototypePreview => HasPreview && isPrototypePreview;
     public bool CanPlay => Definition.CanPlay && sceneLayers.Count > 0 && Duration > 0;
-    public bool CanExport => assetService is not null && CanPlay && !IsExporting && Volatile.Read(ref exportInProgress) == 0;
+    public bool CanExport => assetService is not null
+        && CanPlay
+        && !IsExporting
+        && Volatile.Read(ref screenshotInProgress) == 0
+        && Volatile.Read(ref exportInProgress) == 0;
     public bool CanAddLayer => assetService is not null && sceneLayers.Count < 8 && !IsLoading && Volatile.Read(ref sceneLayerOperationInProgress) == 0;
-    public bool CanRemoveLayer => selectedSceneLayer is not null && sceneLayers.Count > 1 && !IsLoading;
+    public bool CanRemoveLayer => selectedSceneLayer is not null
+        && sceneLayers.Count > 1
+        && !IsLoading
+        && Volatile.Read(ref screenshotInProgress) == 0;
     public bool CanDuplicateLayer => CanAddLayer && selectedSceneLayer is not null;
-    public bool CanReloadLayer => assetService is not null && selectedSceneLayer is not null && !IsLoading && Volatile.Read(ref sceneLayerOperationInProgress) == 0;
+    public bool CanReloadLayer => assetService is not null
+        && selectedSceneLayer is not null
+        && !IsLoading
+        && Volatile.Read(ref screenshotInProgress) == 0
+        && Volatile.Read(ref sceneLayerOperationInProgress) == 0;
     public double ExportProgress => exportTotalFrames == 0 ? 0 : (double)exportCompletedFrames / exportTotalFrames;
     public string ExportProgressLabel => exportTotalFrames == 0
         ? "Exporting…"
@@ -704,49 +727,126 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     private void CaptureScreenshot()
     {
-        var source = PreviewFrame;
-        var target = chooseScreenshotPath();
-        if (source is null || target is null) return;
-
+        if (!TryBeginScreenshot()) return;
         try
         {
-            if (UseGpuPreview && sceneLayers.FirstOrDefault() is { } layer)
+            var target = chooseScreenshotPath();
+            if (target is null)
             {
-                source = layer.RenderSession.RenderFrame(
-                    layer.Animation,
-                    Math.Min((float)Position, (float)layer.Duration),
-                    previewPixelWidth,
-                    previewPixelHeight,
-                    layer.Pma,
-                    string.IsNullOrWhiteSpace(layer.SelectedSkin) ? [] : [layer.SelectedSkin],
-                    playbackCancellation.Token,
-                    (float)layer.TrackAlpha,
-                    slots: layer.SlotDisplaySettings);
-                layer.PublishFrame(source);
+                EndScreenshot();
+                return;
             }
+
+            var snapshot = new ScreenshotSnapshot(
+                (float)Position,
+                previewPixelWidth,
+                previewPixelHeight,
+                PreviewChannel,
+                playbackCancellation.Token,
+                sceneLayers.Select(layer => new ScreenshotLayerSnapshot(
+                    layer.RenderSession,
+                    layer.ToDocument(),
+                    (float)layer.Duration)).ToArray());
+            _ = CaptureScreenshotAsync(target, snapshot);
+        }
+        catch
+        {
+            EndScreenshot();
+            throw;
+        }
+    }
+
+    private bool TryBeginScreenshot()
+    {
+        if (disposed
+            || IsExporting
+            || Volatile.Read(ref exportInProgress) != 0
+            || Volatile.Read(ref sceneLayerOperationInProgress) != 0
+            || Interlocked.Exchange(ref screenshotInProgress, 1) != 0) return false;
+        if (disposed
+            || IsExporting
+            || Volatile.Read(ref exportInProgress) != 0
+            || Volatile.Read(ref sceneLayerOperationInProgress) != 0)
+        {
+            EndScreenshot();
+            return false;
+        }
+        RefreshCommands();
+        return true;
+    }
+
+    private void EndScreenshot()
+    {
+        Interlocked.Exchange(ref screenshotInProgress, 0);
+        if (!disposed) RefreshCommands();
+    }
+
+    private async Task CaptureScreenshotAsync(string target, ScreenshotSnapshot snapshot)
+    {
+        try
+        {
             var output = Path.GetFullPath(target);
-            Directory.CreateDirectory(Path.GetDirectoryName(output) ?? ".");
-            PreviewFrameBitmap.SavePng(source, PreviewChannel, output);
+            await Task.Run(() =>
+            {
+                var rendered = snapshot.Layers
+                    .Where(layer => layer.Document.IsVisible && layer.Document.Opacity > 0)
+                    .Select(layer =>
+                    {
+                        snapshot.CancellationToken.ThrowIfCancellationRequested();
+                        var document = layer.Document;
+                        var frame = layer.RenderSession.RenderFrame(
+                            document.Animation,
+                            Math.Min(snapshot.TimeSeconds, layer.Duration),
+                            snapshot.Width,
+                            snapshot.Height,
+                            document.Pma ?? false,
+                            string.IsNullOrWhiteSpace(document.SelectedSkin) ? [] : [document.SelectedSkin],
+                            snapshot.CancellationToken,
+                            (float)(document.TrackAlpha ?? 1),
+                            slots: document.Slots);
+                        return new SceneFrameLayer(frame, document);
+                    }).ToArray();
+                var source = rendered.Length == 1 && IsIdentityPresentation(rendered[0].Layer)
+                    ? rendered[0].Frame
+                    : SceneFrameCompositor.Compose(rendered, snapshot.Width, snapshot.Height);
+                Directory.CreateDirectory(Path.GetDirectoryName(output) ?? ".");
+                PreviewFrameBitmap.SavePng(source, snapshot.Channel, output);
+            }, snapshot.CancellationToken);
             LastAction = $"Captured {Path.GetFileName(output)}";
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        catch (OperationCanceledException)
         {
-            stateDetailOverride = exception.Message;
-            Changed(nameof(StateDetail));
+        }
+        catch (Exception exception)
+        {
+            SetDiagnostics([
+                .. diagnostics.Where(item => item.Code != "CAPTURE_FAILED"),
+                new Diagnostic("error", "CAPTURE_FAILED", exception.Message, target)
+            ]);
             LastAction = "Screenshot failed";
+        }
+        finally
+        {
+            EndScreenshot();
         }
     }
 
     private void StartExport()
     {
-        if (disposed || Interlocked.Exchange(ref exportInProgress, 1) != 0) return;
+        if (disposed
+            || Volatile.Read(ref screenshotInProgress) != 0
+            || Interlocked.Exchange(ref exportInProgress, 1) != 0) return;
         var target = chooseExportPath();
         if (target is null)
         {
             Interlocked.Exchange(ref exportInProgress, 0);
             return;
         }
-        _ = ExportSequenceAsync(target);
+        var layers = sceneLayers.Select(layer => layer.ToDocument()).ToArray();
+        var sceneLayerSnapshot = layers.Length == 1 && IsIdentityPresentation(layers[0])
+            ? null
+            : layers;
+        _ = ExportSequenceAsync(target, sceneLayerSnapshot);
     }
 
     private void StartAddLayer()
@@ -805,7 +905,17 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private void StartReloadLayer()
     {
         var source = selectedSceneLayer;
-        if (source is null || disposed || Interlocked.Exchange(ref sceneLayerOperationInProgress, 1) != 0) return;
+        if (source is null
+            || disposed
+            || Volatile.Read(ref screenshotInProgress) != 0
+            || Interlocked.Exchange(ref sceneLayerOperationInProgress, 1) != 0) return;
+        if (Volatile.Read(ref screenshotInProgress) != 0)
+        {
+            Interlocked.Exchange(ref sceneLayerOperationInProgress, 0);
+            RefreshCommands();
+            return;
+        }
+        RefreshCommands();
         _ = ReloadLayerAsync(source);
     }
 
@@ -1007,7 +1117,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private void RemoveSelectedLayer()
     {
         var layer = selectedSceneLayer;
-        if (layer is null || sceneLayers.Count <= 1) return;
+        if (layer is null || sceneLayers.Count <= 1 || Volatile.Read(ref screenshotInProgress) != 0) return;
         var index = sceneLayers.IndexOf(layer);
         sceneLayers.RemoveAt(index);
         layer.Dispose();
@@ -1096,7 +1206,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     private void CancelExport() => exportCancellation?.Cancel();
 
-    private async Task ExportSequenceAsync(string target)
+    private async Task ExportSequenceAsync(string target, IReadOnlyList<SceneLayerDocument>? sceneLayerSnapshot)
     {
         var previousState = State;
         var wasPlaying = IsPlaying;
@@ -1115,7 +1225,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 skeletonPath,
                 atlasPath,
                 runtimeLine,
-                SelectedAnimation ?? throw new InvalidOperationException("Animation is required."),
+                SelectedSceneLayer?.Animation ?? SelectedAnimation ?? throw new InvalidOperationException("Animation is required."),
                 (float)Duration,
                 (float)ExportFramesPerSecond,
                 ExportSize,
@@ -1124,9 +1234,12 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 Path.GetFileName(output),
                 false,
                 primaryLayer?.Pma ?? false,
-                string.IsNullOrWhiteSpace(SelectedSkin) ? [] : [SelectedSkin],
+                string.IsNullOrWhiteSpace(primaryLayer?.SelectedSkin ?? SelectedSkin)
+                    ? []
+                    : [primaryLayer?.SelectedSkin ?? SelectedSkin],
                 (float)(primaryLayer?.TrackAlpha ?? 1),
-                primaryLayer?.SlotDisplaySettings);
+                primaryLayer?.SlotDisplaySettings,
+                sceneLayerSnapshot);
             var progress = new Progress<AnimationExportProgress>(value =>
             {
                 exportCompletedFrames = value.CompletedFrames;
@@ -1170,6 +1283,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     public async Task OpenAssetAsync(string? path = null, string? atlasPath = null)
     {
+        if (Volatile.Read(ref screenshotInProgress) != 0) return;
         if (assetService is null)
         {
             ApplyFakeAsset();
@@ -1232,6 +1346,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     public async Task OpenProjectAsync(string? path = null)
     {
+        if (Volatile.Read(ref screenshotInProgress) != 0) return;
         if (assetService is null)
         {
             LastAction = "Project open requires a Runtime adapter";
@@ -1849,6 +1964,16 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         TrackAlpha,
         BackgroundMode);
 
+    private static bool IsIdentityPresentation(SceneLayerDocument layer) =>
+        layer.IsVisible
+        && Math.Abs(layer.Opacity - 1) < 0.000001
+        && Math.Abs(layer.ModelX) < 0.000001
+        && Math.Abs(layer.ModelY) < 0.000001
+        && Math.Abs(layer.ModelScale - 1) < 0.000001
+        && Math.Abs(layer.ModelRotation) < 0.000001
+        && !layer.FlipX
+        && !layer.FlipY;
+
     private UndoEntry CaptureUndo() => new(
         Capture(),
         sceneLayers.Select(layer => layer.ToDocument()).ToArray(),
@@ -1873,6 +1998,19 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private sealed record StateDefinition(string Title, string Detail, bool HasAsset, bool HasPreview, bool CanPlay);
 
     private sealed record LayerParameterClipboard(LayerParameterScope Scope, SceneLayerDocument Document);
+
+    private sealed record ScreenshotSnapshot(
+        float TimeSeconds,
+        int Width,
+        int Height,
+        string Channel,
+        CancellationToken CancellationToken,
+        IReadOnlyList<ScreenshotLayerSnapshot> Layers);
+
+    private sealed record ScreenshotLayerSnapshot(
+        AssetRenderSession RenderSession,
+        SceneLayerDocument Document,
+        float Duration);
 
     private sealed record UndoEntry(EditorSnapshot Editor, IReadOnlyList<SceneLayerDocument> Layers, bool SceneDirty);
 

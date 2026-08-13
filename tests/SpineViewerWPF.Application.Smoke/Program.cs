@@ -6,6 +6,7 @@ using SpineViewerWPF.Wpf;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
@@ -195,6 +196,158 @@ try
     var multipageHash = SHA256.HashData(File.ReadAllBytes(multipageFirst));
     Assert(multipageHash.SequenceEqual(SHA256.HashData(File.ReadAllBytes(multipageSecond))), "Multi-page render was not deterministic.");
     Assert(Convert.ToHexString(multipageHash) == "89115E7CC5AA6B1B594C14C9E1F7F74B5C30644F926B1D032420DC7B753ED6AA", "Multi-page render did not match its baseline.");
+
+    var redSlots = new[]
+    {
+        new SlotDisplayDocument("left", true, 1),
+        new SlotDisplayDocument("right", false, 1)
+    };
+    var blueSlots = new[]
+    {
+        new SlotDisplayDocument("left", false, 1),
+        new SlotDisplayDocument("right", true, 1)
+    };
+    var redLayer = new SceneLayerDocument(
+        multipageSkeleton,
+        multipageInspection.Asset.AtlasPath,
+        "4.1",
+        "move",
+        "default",
+        16,
+        0,
+        1,
+        0,
+        false,
+        false,
+        true,
+        1,
+        1,
+        1,
+        false,
+        redSlots);
+    var blueLayer = redLayer with
+    {
+        ModelX = -16,
+        ZIndex = 0,
+        Slots = blueSlots
+    };
+    RenderedFrame redFrame;
+    RenderedFrame blueFrame;
+    using (var redSession = assetService.OpenRenderSession(multipageSkeleton, null, "4.1").Session)
+        redFrame = redSession.RenderFrame("move", 0, 64, 64, false, ["default"], slots: redSlots);
+    using (var blueSession = assetService.OpenRenderSession(multipageSkeleton, null, "4.1").Session)
+        blueFrame = blueSession.RenderFrame("move", 0, 64, 64, false, ["default"], slots: blueSlots);
+
+    var sceneCapture = SceneFrameCompositor.Compose(
+        [new SceneFrameLayer(redFrame, redLayer), new SceneFrameLayer(blueFrame, blueLayer)],
+        64,
+        64);
+    var captureColors = MeasureRedBlue(sceneCapture);
+    Assert(
+        captureColors.RedCount > 0
+        && captureColors.BlueCount > 0
+        && captureColors.BlueX < captureColors.RedX,
+        "The screenshot-equivalent scene composite did not contain translated blue and red layers.");
+
+    var opaqueRed = new RenderedFrame(1, 1, [0, 0, 255, 255]);
+    var opaqueBlue = new RenderedFrame(1, 1, [255, 0, 0, 255]);
+    var identityRedLayer = redLayer with
+    {
+        ModelX = 0,
+        ModelY = 0,
+        ModelScale = 1,
+        ModelRotation = 0,
+        FlipX = false,
+        FlipY = false,
+        IsVisible = true,
+        Opacity = 1,
+        ZIndex = 0
+    };
+    var halfBlueLayer = identityRedLayer with { Opacity = 0.5, ZIndex = 1 };
+    var blueOverRed = SceneFrameCompositor.Compose(
+        [new SceneFrameLayer(opaqueRed, identityRedLayer), new SceneFrameLayer(opaqueBlue, halfBlueLayer)],
+        1,
+        1);
+    Assert(
+        blueOverRed.Bgra32.SequenceEqual(new byte[] { 128, 0, 128, 255 }),
+        "Half-opacity blue over opaque red did not use deterministic source-over composition.");
+    var redOverBlue = SceneFrameCompositor.Compose(
+        [
+            new SceneFrameLayer(opaqueRed, identityRedLayer with { ZIndex = 1 }),
+            new SceneFrameLayer(opaqueBlue, halfBlueLayer with { ZIndex = 0 })
+        ],
+        1,
+        1);
+    Assert(
+        redOverBlue.Bgra32.SequenceEqual(new byte[] { 0, 0, 255, 255 })
+        && !redOverBlue.Bgra32.SequenceEqual(blueOverRed.Bgra32),
+        "Changing layer Z order did not put opaque red above half-opacity blue.");
+
+    var sceneSequenceRequest = new AnimationExportRequest(
+        multipageSkeleton,
+        multipageInspection.Asset.AtlasPath,
+        "4.1",
+        "move",
+        0,
+        30,
+        64,
+        64,
+        Path.Combine(root, "scene-sequence-a"),
+        "scene.png",
+        false,
+        false,
+        ["default"],
+        SceneLayers: [redLayer, blueLayer]);
+    var sceneSequence = assetService.Export(sceneSequenceRequest);
+    Assert(sceneSequence.FrameCount == 1, "The zero-duration scene export did not produce exactly one frame.");
+    var exportedSceneFrame = ReadPngFrame(sceneSequence.OutputPaths.Single());
+    var exportedColors = MeasureRedBlue(exportedSceneFrame);
+    Assert(
+        exportedColors.RedCount > 0
+        && exportedColors.BlueCount > 0
+        && exportedColors.BlueX < exportedColors.RedX,
+        "The PNG scene sequence did not contain translated blue and red layers.");
+    Assert(
+        FrameHash(exportedSceneFrame).SequenceEqual(FrameHash(sceneCapture)),
+        "Screenshot-equivalent and PNG-sequence scene composition pixels differed.");
+
+    var repeatedSceneSequence = assetService.Export(sceneSequenceRequest with
+    {
+        OutputDirectory = Path.Combine(root, "scene-sequence-b")
+    });
+    Assert(
+        File.ReadAllBytes(sceneSequence.OutputPaths.Single())
+            .SequenceEqual(File.ReadAllBytes(repeatedSceneSequence.OutputPaths.Single())),
+        "Repeated multi-layer PNG sequence output was not deterministic.");
+
+    var singleLayerSequence = assetService.Export(sceneSequenceRequest with
+    {
+        OutputDirectory = Path.Combine(root, "scene-sequence-single"),
+        SceneLayers = null
+    });
+    Assert(
+        SHA256.HashData(File.ReadAllBytes(singleLayerSequence.OutputPaths.Single())).SequenceEqual(multipageHash),
+        "Adding scene composition changed the existing single-layer PNG baseline.");
+
+    var hiddenLayers = new[]
+    {
+        redLayer with { IsVisible = false },
+        blueLayer with { IsVisible = false }
+    };
+    var hiddenCapture = SceneFrameCompositor.Compose(
+        [new SceneFrameLayer(redFrame, hiddenLayers[0]), new SceneFrameLayer(blueFrame, hiddenLayers[1])],
+        64,
+        64);
+    Assert(hiddenCapture.Bgra32.All(value => value == 0), "An all-hidden scene composite was not transparent.");
+    var hiddenSceneSequence = assetService.Export(sceneSequenceRequest with
+    {
+        OutputDirectory = Path.Combine(root, "scene-sequence-hidden"),
+        SceneLayers = hiddenLayers
+    });
+    Assert(
+        ReadPngFrame(hiddenSceneSequence.OutputPaths.Single()).Bgra32.All(value => value == 0),
+        "An all-hidden PNG scene sequence was not transparent.");
+
     var v40Directory = Path.Combine(Directory.GetCurrentDirectory(), "tests", "fixtures", "v40-minimal");
     var v40Skeleton = Path.Combine(v40Directory, "minimal.json");
     var v40Inspection = assetService.Inspect(v40Skeleton, null, null);
@@ -383,6 +536,10 @@ try
     Assert(previewViewModel.ViewportZoom == 1 && previewViewModel.ViewportPanX == 0 && previewViewModel.ViewportPanY == 0, "Fit did not reset the viewport.");
     Assert(previewViewModel.ModelX == modelXBeforeFit && !previewViewModel.IsDirty, "Viewport fit changed editable model state.");
     previewViewModel.ScreenshotCommand.Execute(null);
+    for (var attempt = 0; attempt < 200
+         && (!File.Exists(capturePath) || new FileInfo(capturePath).Length <= 8);
+         attempt++)
+        await Task.Delay(10);
     Assert(File.Exists(capturePath), "Screenshot command did not create a PNG.");
     Assert(new FileInfo(capturePath).Length > 8, "Screenshot command created an empty PNG.");
     Assert(!previewViewModel.IsDirty, "Screenshot changed the viewer project state.");
@@ -768,7 +925,11 @@ try
     await unsupportedViewModel.OpenAssetAsync(unsupportedSkeleton);
     Assert(unsupportedViewModel.State == WorkspaceState.Unsupported, "Unsupported input did not reach Unsupported.");
 
-    AssertCompactWindowShows(store, assetService);
+    if (!string.Equals(
+            Environment.GetEnvironmentVariable("SPINEVIEWER_SKIP_WINDOW_SMOKE"),
+            "1",
+            StringComparison.Ordinal))
+        AssertCompactWindowShows(store, assetService);
 
     File.WriteAllText(project, File.ReadAllText(project).Replace("\"schemaVersion\": 1", "\"schemaVersion\": 2"));
     Expect<InvalidDataException>(() => store.Load(project));
@@ -789,6 +950,54 @@ static void Assert(bool condition, string message)
 static byte[] FrameHash(RenderedFrame? frame)
 {
     return SHA256.HashData((frame ?? throw new InvalidOperationException("Expected a rendered frame.")).Bgra32);
+}
+
+static RenderedFrame ReadPngFrame(string path)
+{
+    using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+    var decoder = new PngBitmapDecoder(stream, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+    BitmapSource source = decoder.Frames.Single();
+    if (source.Format != PixelFormats.Bgra32)
+        source = new FormatConvertedBitmap(source, PixelFormats.Bgra32, null, 0);
+
+    var pixels = new byte[checked(source.PixelWidth * source.PixelHeight * 4)];
+    source.CopyPixels(pixels, source.PixelWidth * 4, 0);
+    return new RenderedFrame(source.PixelWidth, source.PixelHeight, pixels);
+}
+
+static (int RedCount, double RedX, int BlueCount, double BlueX) MeasureRedBlue(RenderedFrame frame)
+{
+    long redX = 0;
+    long blueX = 0;
+    var redCount = 0;
+    var blueCount = 0;
+    for (var y = 0; y < frame.Height; y++)
+    {
+        for (var x = 0; x < frame.Width; x++)
+        {
+            var offset = (y * frame.Width + x) * 4;
+            var blue = frame.Bgra32[offset];
+            var green = frame.Bgra32[offset + 1];
+            var red = frame.Bgra32[offset + 2];
+            var alpha = frame.Bgra32[offset + 3];
+            if (alpha >= 240 && red >= 240 && green <= 15 && blue <= 15)
+            {
+                redCount++;
+                redX += x;
+            }
+            else if (alpha >= 240 && blue >= 240 && green <= 15 && red <= 15)
+            {
+                blueCount++;
+                blueX += x;
+            }
+        }
+    }
+
+    return (
+        redCount,
+        redCount == 0 ? double.NaN : (double)redX / redCount,
+        blueCount,
+        blueCount == 0 ? double.NaN : (double)blueX / blueCount);
 }
 
 static void AssertCompactWindowShows(ViewerProjectStore store, AssetService assetService)

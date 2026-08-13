@@ -151,7 +151,8 @@ public sealed record AnimationExportRequest(
     bool Pma,
     IReadOnlyList<string> Skins,
     float TrackAlpha = 1,
-    IReadOnlyList<SlotDisplayDocument>? Slots = null);
+    IReadOnlyList<SlotDisplayDocument>? Slots = null,
+    IReadOnlyList<SceneLayerDocument>? SceneLayers = null);
 
 public sealed record AnimationExportResult(
     IReadOnlyList<string> OutputPaths,

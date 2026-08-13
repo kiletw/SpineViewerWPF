@@ -2,7 +2,7 @@
 
 ## Status
 
-Product direction accepted; TASK-029 validates a bounded WPF docking interaction, TASK-030 corrects its binding and production-chrome boundary, TASK-035 establishes the compact dark workspace baseline, TASK-037 adds the first built-in Light theme without a theme toolkit, TASK-043 makes scene-layer selection the single Properties editing context, and TASK-044 adds named attachment selection to the Slots workflow.
+Product direction accepted; TASK-029 validates a bounded WPF docking interaction, TASK-030 corrects its binding and production-chrome boundary, TASK-035 establishes the compact dark workspace baseline, TASK-037 adds the first built-in Light theme without a theme toolkit, TASK-043 makes scene-layer selection the single Properties editing context, TASK-044 adds named attachment selection to the Slots workflow, and TASK-048 separates desktop commands from panel navigation.
 
 ## Primary Goal
 
@@ -32,9 +32,11 @@ Open/drop asset
 
 ```text
 +------------------------------------------------------------------+
-| Open | Recent | Reload | Screenshot | Export | Window | Settings |
+| File | Edit | View | Playback | Layer | Export | Window | Help   |
++------------------------------------------------------------------+
+| Open | Save | Undo | Redo | Screenshot | Export                 |
 +------------------+-----------------------------+-----------------+
-| Layers           |                             | Animation       |
+| Activity/Layers  |                             | Animation       |
 | visibility       |          Viewport           | Transform       |
 | order/actions    |                             | Render/Look     |
 | asset identity   |                             | Slots/Viewport  |
@@ -45,7 +47,7 @@ Open/drop asset
 +------------------------------------------------------------------+
 ```
 
-Supporting panels may be moved into tab groups or separate owned windows. The command bar, central viewport, playback controls, and status remain available in the default layout.
+Supporting panels may be moved into tab groups or separate owned windows. The menu bar owns discoverable commands, the small toolbar keeps only frequent actions, and the left activity rail switches Layers, Properties, and Diagnostics. The central viewport, playback controls, and status remain available in the default layout.
 
 ## Visual Density Baseline
 
@@ -67,7 +69,7 @@ The operating-system title bar remains native. Replacing it requires a separate 
 - skin selection
 - play/pause/stop/loop/speed/seek
 - pan/zoom/fit/reset
-- screenshot
+- screenshot and PNG-sequence output that preserve visible scene-layer order, transforms, opacity, slot presentation, and transparent background
 - diagnostics summary
 - export dialog as a secondary workflow
 - dock, float, redock, hide/show, and reset-layout behavior for selected supporting panels

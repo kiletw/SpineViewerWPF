@@ -38,6 +38,10 @@ remains independent from deterministic export FPS and Viewer project state.
 
 Renders a deterministic frame from explicit dimensions, time, Track 0 Alpha, and PMA settings. `RenderScene` applies the same contract to a bounded list of independent scene layers, each with its own animation, skin, Track 0 Alpha, and PMA selection.
 
+### `ComposeSceneFrame`
+
+Composes already rendered Runtime-neutral BGRA layer frames into one transparent output frame. Visible layers use stable ascending Z order and straight-alpha source-over; layer translation, scale, rotation, flips, and opacity are applied around the canvas center. Translation values are 96-DPI output pixels. Runtime PMA, slot, attachment, and blend work is resolved before this presentation compositor and is not applied a second time.
+
 ### `RenderInteractiveFrame`
 
 Returns a Runtime-neutral bounded BGRA frame from a reusable render session. The CPU fallback may use bilinear texture sampling and bounds-aware viewport framing; it does not encode or write a PNG. WPF owns presentation-only RGBA/RGB/Alpha inspection.
@@ -48,7 +52,7 @@ Returns Runtime-neutral bounds, decoded RGBA textures, clipped vertices, UVs, tr
 
 ### `ExportAnimation`
 
-Produces a deterministic PNG sequence at an explicit bounded FPS with progress, cancellation, overwrite policy, Track 0 Alpha, PMA, slot visibility/opacity/attachment selection, and diagnostics. The frame loop reuses one loaded render session. Encoded GIF/video/PSD output remains deferred.
+Produces a deterministic PNG sequence at an explicit bounded FPS with progress, cancellation, overwrite policy, Track 0 Alpha, PMA, slot visibility/opacity/attachment selection, and diagnostics. A multi-layer request reuses one loaded render session per visible layer and writes one composed transparent frame per timeline sample. The default single visible identity layer retains the existing Runtime PNG path and byte baselines. Encoded GIF/video/PSD output remains deferred.
 
 ### `LoadViewerProject`, `SaveViewerProject`
 

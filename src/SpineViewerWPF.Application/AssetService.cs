@@ -272,6 +272,12 @@ public sealed class AssetService
             throw new ArgumentOutOfRangeException(nameof(request.FramesPerSecond), "Frames per second must be between 0 and 240.");
         if (request.Width is < 1 or > 16384 || request.Height is < 1 or > 16384)
             throw new ArgumentOutOfRangeException(nameof(request.Width), "Dimensions must be between 1 and 16384.");
+        if (request.SceneLayers is not null)
+        {
+            if (request.Width > 4096 || request.Height > 4096)
+                throw new ArgumentOutOfRangeException(nameof(request.Width), "Composite dimensions must be between 1 and 4096.");
+            ValidateSceneLayers(request.SceneLayers);
+        }
 
         var frameCountValue = Math.Floor(request.DurationSeconds * request.FramesPerSecond) + 1;
         if (!double.IsFinite(frameCountValue) || frameCountValue > 10000)
@@ -299,31 +305,36 @@ public sealed class AssetService
         progress?.Report(new AnimationExportProgress(0, frameCount));
         try
         {
-            var opened = OpenRenderSession(
-                request.SkeletonPath,
-                request.AtlasPath,
-                request.RuntimeOverride,
-                cancellationToken);
-            using var session = opened.Session;
-            for (var index = 0; index < frameCount; index++)
+            if (request.SceneLayers is null)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var time = Math.Min(request.DurationSeconds, index / request.FramesPerSecond);
-                session.Render(
-                    request.Animation,
-                    time,
-                    request.Width,
-                    request.Height,
-                    outputs[index],
-                    request.Overwrite,
-                    request.Pma,
-                    request.Skins ?? [],
-                    cancellationToken,
-                    request.TrackAlpha,
-                    request.Slots);
-                created.Add(outputs[index]);
-                progress?.Report(new AnimationExportProgress(index + 1, frameCount));
+                var opened = OpenRenderSession(
+                    request.SkeletonPath,
+                    request.AtlasPath,
+                    request.RuntimeOverride,
+                    cancellationToken);
+                using var session = opened.Session;
+                for (var index = 0; index < frameCount; index++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var time = Math.Min(request.DurationSeconds, index / request.FramesPerSecond);
+                    session.Render(
+                        request.Animation,
+                        time,
+                        request.Width,
+                        request.Height,
+                        outputs[index],
+                        request.Overwrite,
+                        request.Pma,
+                        request.Skins ?? [],
+                        cancellationToken,
+                        request.TrackAlpha,
+                        request.Slots);
+                    created.Add(outputs[index]);
+                    progress?.Report(new AnimationExportProgress(index + 1, frameCount));
+                }
             }
+            else
+                ExportSceneFrames(request, outputs, created, progress, cancellationToken);
         }
         catch
         {
@@ -333,6 +344,95 @@ public sealed class AssetService
         }
 
         return new AnimationExportResult(outputs, frameCount, request.DurationSeconds);
+    }
+
+    private void ExportSceneFrames(
+        AnimationExportRequest request,
+        IReadOnlyList<string> outputs,
+        ICollection<string> created,
+        IProgress<AnimationExportProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        var openedLayers = new List<(SceneLayerDocument Layer, AssetRenderSession Session, float Duration)>();
+        try
+        {
+            foreach (var item in request.SceneLayers!
+                         .Select((layer, index) => (Layer: layer, Index: index))
+                         .Where(item => item.Layer.IsVisible && item.Layer.Opacity > 0)
+                         .OrderBy(item => item.Layer.ZIndex)
+                         .ThenBy(item => item.Index))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var opened = OpenRenderSession(
+                    item.Layer.SkeletonPath,
+                    item.Layer.AtlasPath,
+                    item.Layer.RuntimeOverride,
+                    cancellationToken);
+                var animation = opened.Inspection.Animations.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Name, item.Layer.Animation, StringComparison.Ordinal));
+                if (animation is null)
+                {
+                    opened.Session.Dispose();
+                    throw new InvalidDataException($"Animation not found: {item.Layer.Animation}");
+                }
+                openedLayers.Add((item.Layer, opened.Session, animation.DurationSeconds));
+            }
+
+            for (var index = 0; index < outputs.Count; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var time = Math.Min(request.DurationSeconds, index / request.FramesPerSecond);
+                var frames = new SceneFrameLayer[openedLayers.Count];
+                for (var layerIndex = 0; layerIndex < openedLayers.Count; layerIndex++)
+                {
+                    var item = openedLayers[layerIndex];
+                    var frame = item.Session.RenderFrame(
+                        item.Layer.Animation,
+                        Math.Min(time, item.Duration),
+                        request.Width,
+                        request.Height,
+                        item.Layer.Pma ?? false,
+                        string.IsNullOrWhiteSpace(item.Layer.SelectedSkin) ? [] : [item.Layer.SelectedSkin],
+                        cancellationToken,
+                        (float)(item.Layer.TrackAlpha ?? 1),
+                        true,
+                        item.Layer.Slots);
+                    frames[layerIndex] = new SceneFrameLayer(frame, item.Layer);
+                }
+
+                var composite = SceneFrameCompositor.Compose(frames, request.Width, request.Height);
+                PngFrameWriter.Write(outputs[index], composite, request.Overwrite);
+                created.Add(outputs[index]);
+                progress?.Report(new AnimationExportProgress(index + 1, outputs.Count));
+            }
+        }
+        finally
+        {
+            foreach (var item in openedLayers) item.Session.Dispose();
+        }
+    }
+
+    private static void ValidateSceneLayers(IReadOnlyList<SceneLayerDocument> layers)
+    {
+        if (layers.Count > 8)
+            throw new ArgumentOutOfRangeException(nameof(layers), "A scene is limited to eight layers.");
+        foreach (var layer in layers)
+        {
+            if (layer is null) throw new ArgumentException("Scene layer is required.", nameof(layers));
+            if (string.IsNullOrWhiteSpace(layer.SkeletonPath))
+                throw new ArgumentException("Scene layer skeleton path is required.", nameof(layers));
+            if (string.IsNullOrWhiteSpace(layer.Animation))
+                throw new ArgumentException("Scene layer animation is required.", nameof(layers));
+            if (!double.IsFinite(layer.ModelX) || !double.IsFinite(layer.ModelY)
+                || !double.IsFinite(layer.ModelRotation)
+                || !double.IsFinite(layer.ModelScale) || layer.ModelScale <= 0)
+                throw new ArgumentOutOfRangeException(nameof(layers), "Layer transforms must be finite and scale must be positive.");
+            if (!double.IsFinite(layer.Opacity) || layer.Opacity is < 0 or > 1)
+                throw new ArgumentOutOfRangeException(nameof(layers), "Layer opacity must be between 0 and 1.");
+            if (layer.TrackAlpha is { } trackAlpha
+                && (!double.IsFinite(trackAlpha) || trackAlpha is < 0 or > 1))
+                throw new ArgumentOutOfRangeException(nameof(layers), "Layer track alpha must be between 0 and 1.");
+        }
     }
 
     private static void TryDelete(string path)

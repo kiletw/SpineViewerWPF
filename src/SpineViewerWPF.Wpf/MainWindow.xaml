@@ -17,6 +17,10 @@
         Drop="WindowDrop"
         AutomationProperties.AutomationId="Main.Window">
     <Window.AllowDrop>True</Window.AllowDrop>
+    <Window.CommandBindings>
+        <CommandBinding Command="{x:Static local:MainWindow.FloatInspectorCommand}"
+                        Executed="ExecuteFloatInspectorCommand" />
+    </Window.CommandBindings>
     <Window.InputBindings>
         <KeyBinding Key="O" Modifiers="Control" Command="{Binding OpenAssetCommand}" />
         <KeyBinding Key="O" Modifiers="Control+Shift" Command="{Binding OpenProjectCommand}" />
@@ -37,6 +41,7 @@
         <KeyBinding Key="F5" Modifiers="Shift" Command="{Binding ReloadLayerCommand}" />
         <KeyBinding Key="C" Modifiers="Control+Alt" Command="{Binding CopyAllLayerParametersCommand}" />
         <KeyBinding Key="V" Modifiers="Control+Alt" Command="{Binding PasteLayerParametersCommand}" />
+        <KeyBinding Key="I" Modifiers="Control+Shift" Command="{x:Static local:MainWindow.FloatInspectorCommand}" />
     </Window.InputBindings>
 
     <Window.Resources>
@@ -106,6 +111,18 @@
             <Setter Property="Foreground" Value="#07120F" />
             <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style x:Key="ActivityButton" TargetType="Button" BasedOn="{StaticResource ButtonBase}">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="MinHeight" Value="40" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,4" />
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="3,0,0,0" />
         </Style>
         <Style TargetType="TextBox">
             <Setter Property="Background" Value="{DynamicResource WindowBrush}" />
@@ -496,7 +513,104 @@
         <Style TargetType="MenuItem">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-            <Setter Property="Padding" Value="9,5" />
+            <Setter Property="Padding" Value="9,6" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Grid SnapsToDevicePixels="True">
+                            <Border x:Name="ItemBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="Transparent"
+                                    BorderThickness="1"
+                                    CornerRadius="3"
+                                    Padding="{TemplateBinding Padding}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="18" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="14" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="CheckMark"
+                                               Grid.Column="0"
+                                               Text="✓"
+                                               Visibility="Collapsed"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               VerticalAlignment="Center" />
+                                    <ContentPresenter Grid.Column="1"
+                                                      ContentSource="Header"
+                                                      RecognizesAccessKey="True"
+                                                      VerticalAlignment="Center" />
+                                    <TextBlock x:Name="GestureText"
+                                               Grid.Column="2"
+                                               Margin="22,0,0,0"
+                                               Text="{TemplateBinding InputGestureText}"
+                                               Foreground="{DynamicResource MutedBrush}"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock x:Name="SubmenuArrow"
+                                               Grid.Column="3"
+                                               Text="›"
+                                               Margin="7,0,0,0"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Right" />
+                                </Grid>
+                            </Border>
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                   PlacementTarget="{Binding ElementName=ItemBorder}"
+                                   PopupAnimation="Fade">
+                                <Border MinWidth="210"
+                                        Margin="0,2,0,0"
+                                        Padding="4"
+                                        Background="{DynamicResource PanelRaisedBrush}"
+                                        BorderBrush="{DynamicResource ControlBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4">
+                                    <ScrollViewer CanContentScroll="True">
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Role" Value="TopLevelHeader">
+                                <Setter Property="Padding" Value="9,3" />
+                                <Setter TargetName="PART_Popup" Property="Placement" Value="Bottom" />
+                                <Setter TargetName="CheckMark" Property="Width" Value="0" />
+                                <Setter TargetName="GestureText" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="SubmenuArrow" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                            <Trigger Property="Role" Value="TopLevelItem">
+                                <Setter Property="Padding" Value="9,3" />
+                                <Setter TargetName="CheckMark" Property="Width" Value="0" />
+                                <Setter TargetName="GestureText" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="SubmenuArrow" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                            <Trigger Property="Role" Value="SubmenuHeader">
+                                <Setter TargetName="PART_Popup" Property="Placement" Value="Right" />
+                            </Trigger>
+                            <Trigger Property="Role" Value="SubmenuItem">
+                                <Setter TargetName="SubmenuArrow" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource ControlHoverBrush}" />
+                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSubmenuOpen" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource ControlPressedBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ItemBorder" Property="Opacity" Value="0.42" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style TargetType="TabControl">
             <Setter Property="Background" Value="Transparent" />
@@ -571,18 +685,85 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="48" />
+            <RowDefinition Height="26" />
+            <RowDefinition Height="46" />
             <RowDefinition Height="*" />
             <RowDefinition Height="52" />
             <RowDefinition Height="26" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Background="{DynamicResource PanelRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+        <Menu Grid.Row="0"
+              Background="{DynamicResource PanelRaisedBrush}"
+              Foreground="{DynamicResource TextBrush}"
+              BorderBrush="{DynamicResource BorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="6,0"
+              AutomationProperties.AutomationId="Main.Menu">
+            <MenuItem Header="{DynamicResource Text.File}" AutomationProperties.AutomationId="Main.Menu.File">
+                <MenuItem Header="{DynamicResource Text.OpenAsset}" InputGestureText="Ctrl+O" Command="{Binding OpenAssetCommand}" AutomationProperties.AutomationId="Main.Menu.File.OpenAsset" />
+                <MenuItem Header="{DynamicResource Text.OpenProject}" InputGestureText="Ctrl+Shift+O" Command="{Binding OpenProjectCommand}" AutomationProperties.AutomationId="Main.Command.OpenProject" />
+                <Separator />
+                <MenuItem Header="{DynamicResource Text.Reload}" InputGestureText="F5" Command="{Binding ReloadCommand}" AutomationProperties.AutomationId="Main.Command.Reload" />
+                <Separator />
+                <MenuItem Header="{DynamicResource Text.Save}" InputGestureText="Ctrl+S" Command="{Binding SaveCommand}" AutomationProperties.AutomationId="Main.Menu.File.Save" />
+                <MenuItem Header="{DynamicResource Text.SaveAs}" InputGestureText="Ctrl+Shift+S" Command="{Binding SaveAsCommand}" AutomationProperties.AutomationId="Main.Command.SaveProjectAs" />
+            </MenuItem>
+            <MenuItem Header="{DynamicResource Text.Edit}" AutomationProperties.AutomationId="Main.Menu.Edit">
+                <MenuItem Header="{DynamicResource Text.Undo}" InputGestureText="Ctrl+Z" Command="{Binding UndoCommand}" AutomationProperties.AutomationId="Main.Menu.Edit.Undo" />
+                <MenuItem Header="{DynamicResource Text.Redo}" InputGestureText="Ctrl+Y" Command="{Binding RedoCommand}" AutomationProperties.AutomationId="Main.Menu.Edit.Redo" />
+                <Separator />
+                <MenuItem Header="{DynamicResource Text.CopyParameters}">
+                    <MenuItem Header="{DynamicResource Text.CopyAllParameters}" InputGestureText="Ctrl+Alt+C" Command="{Binding CopyAllLayerParametersCommand}" />
+                    <MenuItem Header="{DynamicResource Text.CopyTransformParameters}" Command="{Binding CopyTransformParametersCommand}" />
+                    <MenuItem Header="{DynamicResource Text.CopyRenderParameters}" Command="{Binding CopyRenderParametersCommand}" />
+                    <MenuItem Header="{DynamicResource Text.CopyAppearanceParameters}" Command="{Binding CopyAppearanceParametersCommand}" />
+                </MenuItem>
+                <MenuItem Header="{DynamicResource Text.PasteParameters}" InputGestureText="Ctrl+Alt+V" Command="{Binding PasteLayerParametersCommand}" />
+            </MenuItem>
+            <MenuItem Header="{DynamicResource Text.View}" AutomationProperties.AutomationId="Main.Menu.View">
+                <MenuItem Header="{DynamicResource Text.ToggleBrowse}" IsCheckable="True" IsChecked="{Binding IsBrowsePanelVisible, Mode=OneWay}" Click="ToggleBrowsePanel" />
+                <MenuItem Header="{DynamicResource Text.ToggleInspector}" IsCheckable="True" IsChecked="{Binding IsInspectorVisible, Mode=OneWay}" Click="ToggleInspectorPanel" AutomationProperties.AutomationId="Main.Command.ToggleInspector" />
+                <Separator />
+                <MenuItem Header="{DynamicResource Text.Fit}" InputGestureText="F" Command="{Binding FitCommand}" />
+                <MenuItem Header="{DynamicResource Text.Diagnostics}" InputGestureText="Ctrl+D" Command="{Binding DiagnosticsCommand}" />
+            </MenuItem>
+            <MenuItem Header="{DynamicResource Text.PlaybackMenu}" AutomationProperties.AutomationId="Main.Menu.Playback">
+                <MenuItem Header="{DynamicResource Text.PlayPause}" InputGestureText="Space" Command="{Binding TogglePlayCommand}" />
+                <MenuItem Header="{DynamicResource Text.Stop}" Command="{Binding StopCommand}" />
+                <Separator />
+                <MenuItem Header="{DynamicResource Text.Loop}" IsCheckable="True" IsChecked="{Binding Loop}" />
+            </MenuItem>
+            <MenuItem Header="{DynamicResource Text.Layer}" AutomationProperties.AutomationId="Main.Menu.Layer">
+                <MenuItem Header="{DynamicResource Text.AddLayer}" Command="{Binding AddLayerCommand}" />
+                <MenuItem Header="{DynamicResource Text.DuplicateLayer}" InputGestureText="Ctrl+Shift+D" Command="{Binding DuplicateLayerCommand}" />
+                <MenuItem Header="{DynamicResource Text.ReloadLayer}" InputGestureText="Shift+F5" Command="{Binding ReloadLayerCommand}" />
+                <MenuItem Header="{DynamicResource Text.RemoveLayer}" InputGestureText="Delete" Command="{Binding RemoveLayerCommand}" />
+                <Separator />
+                <MenuItem Header="{DynamicResource Text.LayerUp}" InputGestureText="Alt+Up" Command="{Binding MoveLayerUpCommand}" />
+                <MenuItem Header="{DynamicResource Text.LayerDown}" InputGestureText="Alt+Down" Command="{Binding MoveLayerDownCommand}" />
+                <MenuItem Header="{DynamicResource Text.AutoLayout}" Command="{Binding AutoLayoutCommand}" />
+            </MenuItem>
+            <MenuItem Header="{DynamicResource Text.ExportMenu}" AutomationProperties.AutomationId="Main.Menu.Export">
+                <MenuItem Header="{DynamicResource Text.Screenshot}" InputGestureText="Ctrl+Shift+C" Command="{Binding ScreenshotCommand}" />
+                <MenuItem Header="{DynamicResource Text.Export}" InputGestureText="Ctrl+E" Command="{Binding ExportCommand}" />
+            </MenuItem>
+            <MenuItem Header="{DynamicResource Text.Window}" AutomationProperties.AutomationId="Main.Command.Window">
+                <MenuItem Header="{DynamicResource Text.ToggleBrowse}" Click="ToggleBrowsePanel" AutomationProperties.AutomationId="Main.Window.ToggleBrowse" />
+                <MenuItem Header="{DynamicResource Text.ToggleInspector}" Click="ToggleInspectorPanel" AutomationProperties.AutomationId="Main.Window.ToggleInspector" />
+                <Separator />
+                <MenuItem Header="{DynamicResource Text.FloatBrowse}" Click="FloatBrowsePanel" AutomationProperties.AutomationId="Main.Window.FloatBrowse" />
+                <MenuItem Header="{DynamicResource Text.FloatInspector}" InputGestureText="Ctrl+Shift+I" Command="{x:Static local:MainWindow.FloatInspectorCommand}" AutomationProperties.AutomationId="Main.Window.FloatInspector" />
+                <MenuItem Header="{DynamicResource Text.RedockPanels}" Click="RedockPanels" AutomationProperties.AutomationId="Main.Window.RedockPanels" />
+                <MenuItem Header="{DynamicResource Text.ResetLayout}" Click="ResetWorkspaceLayout" AutomationProperties.AutomationId="Main.Window.ResetLayout" />
+            </MenuItem>
+            <MenuItem Header="{DynamicResource Text.Help}" AutomationProperties.AutomationId="Main.Menu.Help">
+                <MenuItem Header="{DynamicResource Text.Diagnostics}" InputGestureText="Ctrl+D" Command="{Binding DiagnosticsCommand}" />
+            </MenuItem>
+        </Menu>
+
+        <Border Grid.Row="1" Background="{DynamicResource PanelRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
             <Grid Margin="10,0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -591,71 +772,25 @@
                 <Button Grid.Column="0"
                         Style="{StaticResource ButtonBase}"
                         Content="☰"
-                        Margin="0,8,8,8"
+                        Margin="0,7,8,7"
                         Padding="9,4"
-                        ToolTip="Collapse browse rail"
+                        ToolTip="{DynamicResource Text.Layers}"
                         Command="{Binding ToggleRailCommand}"
                         AutomationProperties.AutomationId="Main.Command.ToggleBrowseRail" />
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Text="SPINE VIEWER" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
                     <TextBlock Text="Quick browse" FontSize="13" FontWeight="SemiBold" />
                 </StackPanel>
-                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button Style="{StaticResource AccentButton}"
-                            Content="Open asset"
+                            Content="{DynamicResource Text.OpenAsset}"
                             Command="{Binding OpenAssetCommand}"
                             AutomationProperties.AutomationId="Main.Command.OpenAsset" />
-                    <Button Style="{StaticResource ButtonBase}"
-                            Content="{DynamicResource Text.OpenProject}"
-                            Margin="5,0,0,0"
-                            Command="{Binding OpenProjectCommand}"
-                            AutomationProperties.AutomationId="Main.Command.OpenProject" />
-                    <Button Style="{StaticResource ButtonBase}"
-                            Content="Reload"
-                            Margin="5,0,0,0"
-                             Command="{Binding ReloadCommand}"
-                             AutomationProperties.AutomationId="Main.Command.Reload" />
                     <Button Style="{StaticResource ButtonBase}"
                             Content="{DynamicResource Text.Save}"
                             Margin="5,0,0,0"
                             Command="{Binding SaveCommand}"
                             AutomationProperties.AutomationId="Main.Command.SaveProject" />
-                    <Button Style="{StaticResource ButtonBase}"
-                            Content="{DynamicResource Text.SaveAs}"
-                            Margin="5,0,0,0"
-                            Command="{Binding SaveAsCommand}"
-                            AutomationProperties.AutomationId="Main.Command.SaveProjectAs" />
-                </StackPanel>
-                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button x:Name="WindowMenuButton"
-                            Style="{StaticResource ButtonBase}"
-                            Content="{DynamicResource Text.Window}"
-                            Click="OpenWindowMenu"
-                            AutomationProperties.AutomationId="Main.Command.Window">
-                        <Button.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="{DynamicResource Text.ToggleBrowse}"
-                                          Click="ToggleBrowsePanel"
-                                          AutomationProperties.AutomationId="Main.Window.ToggleBrowse" />
-                                <MenuItem Header="{DynamicResource Text.ToggleInspector}"
-                                          Click="ToggleInspectorPanel"
-                                          AutomationProperties.AutomationId="Main.Window.ToggleInspector" />
-                                <Separator />
-                                <MenuItem Header="{DynamicResource Text.FloatBrowse}"
-                                          Click="FloatBrowsePanel"
-                                          AutomationProperties.AutomationId="Main.Window.FloatBrowse" />
-                                <MenuItem Header="{DynamicResource Text.FloatInspector}"
-                                          Click="FloatInspectorPanel"
-                                          AutomationProperties.AutomationId="Main.Window.FloatInspector" />
-                                <MenuItem Header="{DynamicResource Text.RedockPanels}"
-                                          Click="RedockPanels"
-                                          AutomationProperties.AutomationId="Main.Window.RedockPanels" />
-                                <MenuItem Header="{DynamicResource Text.ResetLayout}"
-                                          Click="ResetWorkspaceLayout"
-                                          AutomationProperties.AutomationId="Main.Window.ResetLayout" />
-                            </ContextMenu>
-                        </Button.ContextMenu>
-                    </Button>
                     <Button Style="{StaticResource ButtonBase}"
                             Content="{DynamicResource Text.Undo}"
                             Margin="5,0,0,0"
@@ -666,11 +801,6 @@
                             Margin="5,0,0,0"
                             Command="{Binding RedoCommand}"
                             AutomationProperties.AutomationId="Main.Command.Redo" />
-                    <Button Style="{StaticResource ButtonBase}"
-                            Content="{DynamicResource Text.Inspector}"
-                            Margin="5,0,0,0"
-                            Click="ToggleInspectorPanel"
-                            AutomationProperties.AutomationId="Main.Command.ToggleInspector" />
                     <Button Style="{StaticResource ButtonBase}"
                             Content="{DynamicResource Text.Screenshot}"
                             Margin="5,0,0,0"
@@ -685,7 +815,7 @@
             </Grid>
         </Border>
 
-        <Grid x:Name="WorkspaceGrid" Grid.Row="1">
+        <Grid x:Name="WorkspaceGrid" Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
@@ -699,20 +829,128 @@
                     AutomationProperties.AutomationId="Main.Asset.BrowseRail">
                 <Border.Style>
                     <Style TargetType="Border">
-                        <Setter Property="Width" Value="250" />
+                        <Setter Property="Width" Value="270" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsBrowsePanelVisible}" Value="False">
                                 <Setter Property="Visibility" Value="Collapsed" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding IsRailExpanded}" Value="False">
-                                <Setter Property="Width" Value="54" />
+                                <Setter Property="Width" Value="48" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
 
                 <Grid>
-                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="48" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0"
+                            Background="{DynamicResource PanelRaisedBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="0,0,1,0">
+                        <StackPanel HorizontalAlignment="Center" Margin="0,8">
+                            <Button ToolTip="{DynamicResource Text.Layers}"
+                                    Command="{Binding ToggleRailCommand}"
+                                    AutomationProperties.Name="{DynamicResource Text.Layers}"
+                                    AutomationProperties.HelpText="{DynamicResource Text.Layers}"
+                                    AutomationProperties.AutomationId="Main.Activity.Layers">
+                                <Button.Content>
+                                    <Viewbox Width="20" Height="20">
+                                        <Path Width="20" Height="20"
+                                              Data="M3,3 H17 V8 H3 Z M3,12 H17 V17 H3 Z"
+                                              Fill="Transparent"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                              StrokeThickness="1.6"
+                                              StrokeLineJoin="Round" />
+                                    </Viewbox>
+                                </Button.Content>
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ActivityButton}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsRailExpanded}" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button ToolTip="{DynamicResource Text.Properties}"
+                                    Click="ToggleInspectorPanel"
+                                    AutomationProperties.Name="{DynamicResource Text.Properties}"
+                                    AutomationProperties.HelpText="{DynamicResource Text.Properties}"
+                                    AutomationProperties.AutomationId="Main.Activity.Properties">
+                                <Button.Content>
+                                    <Viewbox Width="20" Height="20">
+                                        <Canvas Width="20" Height="20">
+                                            <Path Data="M2,5 H18 M2,10 H18 M2,15 H18"
+                                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                  StrokeThickness="1.6"
+                                                  StrokeStartLineCap="Round"
+                                                  StrokeEndLineCap="Round" />
+                                            <Ellipse Canvas.Left="4" Canvas.Top="3" Width="4" Height="4"
+                                                     Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                            <Ellipse Canvas.Left="12" Canvas.Top="8" Width="4" Height="4"
+                                                     Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                            <Ellipse Canvas.Left="7" Canvas.Top="13" Width="4" Height="4"
+                                                     Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </Button.Content>
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ActivityButton}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsInspectorVisible}" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button ToolTip="{DynamicResource Text.Diagnostics}"
+                                    Command="{Binding DiagnosticsCommand}"
+                                    AutomationProperties.Name="{DynamicResource Text.Diagnostics}"
+                                    AutomationProperties.HelpText="{DynamicResource Text.Diagnostics}"
+                                    AutomationProperties.AutomationId="Main.Activity.Diagnostics">
+                                <Button.Content>
+                                    <Viewbox Width="20" Height="20">
+                                        <Grid Width="20" Height="20">
+                                            <Path Data="M10,2 L18,17 H2 Z"
+                                                  Fill="Transparent"
+                                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                  StrokeThickness="1.6"
+                                                  StrokeLineJoin="Round" />
+                                            <Path Data="M10,7 V12 M10,15 L10,15.1"
+                                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                  StrokeThickness="1.8"
+                                                  StrokeStartLineCap="Round"
+                                                  StrokeEndLineCap="Round" />
+                                        </Grid>
+                                    </Viewbox>
+                                </Button.Content>
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ActivityButton}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDiagnosticsVisible}" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <ScrollViewer Grid.Column="1"
+                                  VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="10">
                         <StackPanel.Style>
@@ -821,21 +1059,6 @@
                                 AutomationProperties.AutomationId="Main.Scene.AutoLayout" />
                     </StackPanel>
                     </ScrollViewer>
-
-                    <StackPanel HorizontalAlignment="Center" Margin="0,14">
-                        <StackPanel.Style>
-                            <Style TargetType="StackPanel">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsRailExpanded}" Value="False">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </StackPanel.Style>
-                        <TextBlock Text="A" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" ToolTip="Animations" />
-                        <TextBlock Text="4" Margin="0,12,0,0" Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Center" ToolTip="4 animations" />
-                    </StackPanel>
                 </Grid>
             </Border>
 
@@ -1315,7 +1538,7 @@
             </Border>
         </Grid>
 
-        <Border Grid.Row="2" Background="{DynamicResource PanelRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+        <Border Grid.Row="3" Background="{DynamicResource PanelRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
             <Grid Margin="10,6">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -1329,7 +1552,7 @@
                             Command="{Binding TogglePlayCommand}"
                             AutomationProperties.AutomationId="Main.Playback.Toggle" />
                     <Button Style="{StaticResource ButtonBase}"
-                            Content="Stop"
+                            Content="{DynamicResource Text.Stop}"
                             Margin="5,0,0,0"
                             Command="{Binding StopCommand}"
                             AutomationProperties.AutomationId="Main.Playback.Stop" />
@@ -1343,21 +1566,21 @@
                     <TextBlock Text="{Binding PlaybackTimeLabel}" Style="{StaticResource MutedText}" FontSize="12" HorizontalAlignment="Right" />
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <CheckBox Content="Loop"
+                    <CheckBox Content="{DynamicResource Text.Loop}"
                               IsChecked="{Binding Loop}"
                               VerticalAlignment="Center"
                               Margin="0,0,12,0"
                               IsEnabled="{Binding CanPlay}"
                               AutomationProperties.AutomationId="Main.Playback.Loop" />
                     <Button Style="{StaticResource ButtonBase}"
-                            Content="Fit"
+                            Content="{DynamicResource Text.Fit}"
                             Command="{Binding FitCommand}"
                             AutomationProperties.AutomationId="Main.Viewport.Fit" />
                 </StackPanel>
             </Grid>
         </Border>
 
-        <Border Grid.Row="3" Background="{DynamicResource StatusBrush}">
+        <Border Grid.Row="4" Background="{DynamicResource StatusBrush}">
             <Grid Margin="10,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
