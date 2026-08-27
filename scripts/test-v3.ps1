@@ -5,12 +5,15 @@ $project = Join-Path $repository 'src\SpineViewerWPF.Cli\SpineViewerWPF.Cli.cspr
 $fixture = Join-Path $repository 'tests\fixtures\v41-minimal'
 $v40Fixture = Join-Path $repository 'tests\fixtures\v40-minimal'
 $v42Fixture = Join-Path $repository 'tests\fixtures\v42-minimal'
+$v43Fixture = Join-Path $repository 'tests\fixtures\v43-minimal'
 $skeleton = Join-Path $fixture 'minimal.json'
 $atlas = Join-Path $fixture 'minimal.atlas'
 $v40Skeleton = Join-Path $v40Fixture 'minimal.json'
 $v40Atlas = Join-Path $v40Fixture 'minimal.atlas'
 $v42Skeleton = Join-Path $v42Fixture 'minimal.json'
 $v42Atlas = Join-Path $v42Fixture 'minimal.atlas'
+$v43Skeleton = Join-Path $v43Fixture 'minimal.json'
+$v43Atlas = Join-Path $v43Fixture 'minimal.atlas'
 $artifacts = Join-Path $repository 'artifacts\v3-smoke'
 $first = Join-Path $artifacts 'frame-a.png'
 $second = Join-Path $artifacts 'frame-b.png'
@@ -19,6 +22,8 @@ $v40First = Join-Path $artifacts 'v40-frame-a.png'
 $v40Second = Join-Path $artifacts 'v40-frame-b.png'
 $v42First = Join-Path $artifacts 'v42-frame-a.png'
 $v42Second = Join-Path $artifacts 'v42-frame-b.png'
+$v43First = Join-Path $artifacts 'v43-frame-a.png'
+$v43Second = Join-Path $artifacts 'v43-frame-b.png'
 
 $buildMutex = [Threading.Mutex]::new($false, 'SpineViewerWPF.Build')
 $buildHeld = $false
@@ -101,6 +106,22 @@ if ($v42Hash -ne '9F94B3309ABFC350372E67ED894971BF24A230C9087BF19C4AC628720579C7
     throw '4.2 rendered PNG does not match the recorded baseline.'
 }
 
+$v43InspectJson = & dotnet run --project $project -c Release --no-build -- inspect $v43Skeleton --atlas $v43Atlas --runtime 4.3 --format json
+if ($LASTEXITCODE -ne 0) { throw '4.3 inspect failed.' }
+$v43Inspect = $v43InspectJson | ConvertFrom-Json
+if (-not $v43Inspect.success -or $v43Inspect.runtime.selectedLine -ne '4.3' -or $v43Inspect.runtime.detectedExportVersion -ne '4.3.00') {
+    throw '4.3 Runtime selection contract failed.'
+}
+foreach ($output in @($v43First, $v43Second)) {
+    & dotnet run --project $project -c Release --no-build -- render $v43Skeleton --atlas $v43Atlas --runtime 4.3 --animation move --time 0.5 --width 64 --height 64 --output $output --overwrite | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "4.3 render failed: $output" }
+}
+$v43Hash = (Get-FileHash -LiteralPath $v43First -Algorithm SHA256).Hash
+if ($v43Hash -ne (Get-FileHash -LiteralPath $v43Second -Algorithm SHA256).Hash) { throw '4.3 rendered PNG is not deterministic.' }
+if ($v43Hash -ne '7178BBFA4315C36332AB5C4743A413FE6A7CD165D75C907BBC34D88DB846301E') {
+    throw '4.3 rendered PNG does not match the recorded baseline.'
+}
+
 $historical = @(
     @('v21_08-minimal', '2.1.08'), @('v21_25-minimal', '2.1.25'),
     @('v31_07-minimal', '3.1.07'), @('v32-minimal', '3.2.xx'),
@@ -135,5 +156,6 @@ foreach ($entry in $historical) {
     Pma = 'passed'
     Runtime40 = 'passed'
     Runtime42 = 'passed'
+    Runtime43 = 'passed'
     HistoricalRuntimes = $historical.Count
 }

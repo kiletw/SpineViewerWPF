@@ -8,7 +8,7 @@ The CLI validates that core capabilities are independent of WPF and provides a s
 
 `spineviewerwpf`
 
-TASK-001 implements `inspect` and `render` for Runtime 4.1; TASK-023 and TASK-024 extend both commands to all historical fixture-backed lines from 2.1.08 through 4.1.00, TASK-026 verifies the official 3.8.55 cache, and TASK-041 adds official 4.2 JSON/binary support. The other MVP commands remain planned.
+TASK-001 implements `inspect` and `render` for Runtime 4.1; TASK-023 and TASK-024 extend both commands to all historical fixture-backed lines from 2.1.08 through 4.1.00, TASK-026 verifies the official 3.8.55 cache, TASK-041 adds official 4.2 JSON/binary support, and TASK-051 adds official 4.3 JSON/binary support. The other MVP commands remain planned.
 
 ## MVP Commands
 
@@ -47,7 +47,6 @@ spineviewerwpf render <skeleton> --animation <name> --time <seconds> --output <p
 
 The current adapter catalog accepts `2.1.08`, `2.1.25`, `3.1.07`, `3.2.xx`,
 `3.4.02`, `3.5.51`, `3.6.32`, `3.6.39`, `3.6.53`, `3.7.94`, `3.8.95`,
-`4.0.31`, `4.0.64`, `4.1`, and `4.2`. `4.3` is reported as unsupported
-until its separately pinned Runtime adapter is added.
+`4.0.31`, `4.0.64`, `4.1`, `4.2`, and `4.3`.
 
 Schema changes follow product versioning. Additive fields are preferred; renamed or retyped fields require migration notes.

@@ -4,7 +4,9 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 
-#if SPINE_V42
+#if SPINE_V43
+namespace SpineRuntime.V43;
+#elif SPINE_V42
 namespace SpineRuntime.V42;
 #elif SPINE_V40
 namespace SpineRuntime.V40;

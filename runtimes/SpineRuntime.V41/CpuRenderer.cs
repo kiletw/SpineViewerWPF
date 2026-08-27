@@ -4,7 +4,10 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using SpineViewerWPF.Core;
-#if SPINE_V42
+#if SPINE_V43
+using Spine;
+namespace SpineRuntime.V43;
+#elif SPINE_V42
 using Spine;
 namespace SpineRuntime.V42;
 #elif SPINE_V40
@@ -193,9 +196,21 @@ internal static class CpuRenderer
 #if !SPINE_LEGACY_NO_CLIPPING
         var clipper = new SkeletonClipping();
 #endif
-        foreach (var slot in skeleton.DrawOrder)
+#if SPINE_V43
+        var drawOrder = skeleton.DrawOrder.AppliedPose;
+        var skeletonColor = skeleton.GetColor();
+#else
+        var drawOrder = skeleton.DrawOrder;
+#endif
+        foreach (var slot in drawOrder)
         {
-            if (slot.Attachment is null)
+#if SPINE_V43
+            var slotPose = slot.AppliedPose;
+            var attachment = slotPose.Attachment;
+#else
+            var attachment = slot.Attachment;
+#endif
+            if (attachment is null)
             {
 #if !SPINE_LEGACY_NO_CLIPPING
                 clipper.ClipEnd(slot);
@@ -203,19 +218,33 @@ internal static class CpuRenderer
                 continue;
             }
 #if !SPINE_LEGACY_NO_CLIPPING
-            if (slot.Attachment is ClippingAttachment clippingAttachment)
+            if (attachment is ClippingAttachment clippingAttachment)
             {
+#if SPINE_V43
+                clipper.ClipStart(skeleton, slot, clippingAttachment);
+#else
                 clipper.ClipStart(slot, clippingAttachment);
+#endif
                 continue;
             }
 #endif
             var blendMode = ToPreviewBlendMode(GetCompositeMode(slot));
-            switch (slot.Attachment)
+            switch (attachment)
             {
                 case RegionAttachment region:
                 {
                     var positions = new float[8];
-#if SPINE_LEGACY && SPINE_LEGACY_SHORT
+#if SPINE_V43
+                    var sequenceIndex = region.Sequence.ResolveIndex(slotPose);
+                    var uvs = region.Sequence.GetUVs(sequenceIndex);
+                    region.ComputeWorldVertices(
+                        slot,
+                        region.Sequence.GetOffsets(sequenceIndex),
+                        positions,
+                        0);
+                    var slotColor = slotPose.GetColor();
+                    var attachmentColor = region.GetColor();
+#elif SPINE_LEGACY && SPINE_LEGACY_SHORT
                     region.ComputeWorldVertices(slot.Bone, positions);
 #elif SPINE_V40 || SPINE_LEGACY
                     region.ComputeWorldVertices(slot.Bone, positions, 0);
@@ -227,11 +256,20 @@ internal static class CpuRenderer
 #else
                     AddPreviewAttachment(
 #endif
+#if SPINE_V43
+                        commands, positions, uvs, QuadTriangles,
+                        GetTexture(region.Sequence.GetRegion(sequenceIndex)),
+                        skeletonColor.r * slotColor.r * attachmentColor.r,
+                        skeletonColor.g * slotColor.g * attachmentColor.g,
+                        skeletonColor.b * slotColor.b * attachmentColor.b,
+                        skeletonColor.a * slotColor.a * attachmentColor.a,
+#else
                         commands, positions, region.UVs, QuadTriangles, GetTexture(region),
                         skeleton.R * slot.R * region.R,
                         skeleton.G * slot.G * region.G,
                         skeleton.B * slot.B * region.B,
                         skeleton.A * slot.A * region.A,
+#endif
                         blendMode, pma, slot.Data.Name);
                     break;
                 }
@@ -242,17 +280,34 @@ internal static class CpuRenderer
 #else
                     var positions = new float[mesh.WorldVerticesLength];
 #endif
+#if SPINE_V43
+                    var sequenceIndex = mesh.Sequence.ResolveIndex(slotPose);
+                    var uvs = mesh.Sequence.GetUVs(sequenceIndex);
+                    mesh.ComputeWorldVertices(skeleton, slot, positions);
+                    var slotColor = slotPose.GetColor();
+                    var attachmentColor = mesh.GetColor();
+#else
                     mesh.ComputeWorldVertices(slot, positions);
+#endif
 #if !SPINE_LEGACY_NO_CLIPPING
                     AddPreviewAttachment(clipper,
 #else
                     AddPreviewAttachment(
 #endif
+#if SPINE_V43
+                        commands, positions, uvs, mesh.Triangles,
+                        GetTexture(mesh.Sequence.GetRegion(sequenceIndex)),
+                        skeletonColor.r * slotColor.r * attachmentColor.r,
+                        skeletonColor.g * slotColor.g * attachmentColor.g,
+                        skeletonColor.b * slotColor.b * attachmentColor.b,
+                        skeletonColor.a * slotColor.a * attachmentColor.a,
+#else
                         commands, positions, mesh.UVs, mesh.Triangles, GetTexture(mesh),
                         skeleton.R * slot.R * mesh.R,
                         skeleton.G * slot.G * mesh.G,
                         skeleton.B * slot.B * mesh.B,
                         skeleton.A * slot.A * mesh.A,
+#endif
                         blendMode, pma, slot.Data.Name);
                     break;
                 }
@@ -299,9 +354,21 @@ internal static class CpuRenderer
 #if !SPINE_LEGACY_NO_CLIPPING
         var clipper = new SkeletonClipping();
 #endif
-        foreach (var slot in skeleton.DrawOrder)
+#if SPINE_V43
+        var drawOrder = skeleton.DrawOrder.AppliedPose;
+        var skeletonColor = skeleton.GetColor();
+#else
+        var drawOrder = skeleton.DrawOrder;
+#endif
+        foreach (var slot in drawOrder)
         {
-            if (slot.Attachment is null)
+#if SPINE_V43
+            var slotPose = slot.AppliedPose;
+            var attachment = slotPose.Attachment;
+#else
+            var attachment = slot.Attachment;
+#endif
+            if (attachment is null)
             {
 #if !SPINE_LEGACY_NO_CLIPPING
                 clipper.ClipEnd(slot);
@@ -309,20 +376,34 @@ internal static class CpuRenderer
                 continue;
             }
 #if !SPINE_LEGACY_NO_CLIPPING
-            if (slot.Attachment is ClippingAttachment clippingAttachment)
+            if (attachment is ClippingAttachment clippingAttachment)
             {
+#if SPINE_V43
+                clipper.ClipStart(skeleton, slot, clippingAttachment);
+#else
                 clipper.ClipStart(slot, clippingAttachment);
+#endif
                 continue;
             }
 #endif
             var compositeMode = GetCompositeMode(slot);
 
-            switch (slot.Attachment)
+            switch (attachment)
             {
                 case RegionAttachment region:
                 {
                     var positions = new float[8];
-#if SPINE_LEGACY && SPINE_LEGACY_SHORT
+#if SPINE_V43
+                    var sequenceIndex = region.Sequence.ResolveIndex(slotPose);
+                    var uvs = region.Sequence.GetUVs(sequenceIndex);
+                    region.ComputeWorldVertices(
+                        slot,
+                        region.Sequence.GetOffsets(sequenceIndex),
+                        positions,
+                        0);
+                    var slotColor = slotPose.GetColor();
+                    var attachmentColor = region.GetColor();
+#elif SPINE_LEGACY && SPINE_LEGACY_SHORT
                     region.ComputeWorldVertices(slot.Bone, positions);
 #elif SPINE_V40 || SPINE_LEGACY
                     region.ComputeWorldVertices(slot.Bone, positions, 0);
@@ -334,12 +415,21 @@ internal static class CpuRenderer
 #else
                     DrawAttachment(
 #endif
+#if SPINE_V43
+                        pixels, width, height, positions, uvs, QuadTriangles,
+                        GetTexture(region.Sequence.GetRegion(sequenceIndex)),
+                        skeletonColor.r * slotColor.r * attachmentColor.r,
+                        skeletonColor.g * slotColor.g * attachmentColor.g,
+                        skeletonColor.b * slotColor.b * attachmentColor.b,
+                        skeletonColor.a * slotColor.a * attachmentColor.a,
+#else
                         pixels, width, height, positions, region.UVs, QuadTriangles,
                         GetTexture(region),
                         skeleton.R * slot.R * region.R,
                         skeleton.G * slot.G * region.G,
                         skeleton.B * slot.B * region.B,
                         skeleton.A * slot.A * region.A,
+#endif
                         viewCenterX, viewCenterY, viewScale, compositeMode, pma, linearFiltering);
                     break;
                 }
@@ -350,18 +440,35 @@ internal static class CpuRenderer
 #else
                     var positions = new float[mesh.WorldVerticesLength];
 #endif
+#if SPINE_V43
+                    var sequenceIndex = mesh.Sequence.ResolveIndex(slotPose);
+                    var uvs = mesh.Sequence.GetUVs(sequenceIndex);
+                    mesh.ComputeWorldVertices(skeleton, slot, positions);
+                    var slotColor = slotPose.GetColor();
+                    var attachmentColor = mesh.GetColor();
+#else
                     mesh.ComputeWorldVertices(slot, positions);
+#endif
 #if !SPINE_LEGACY_NO_CLIPPING
                     DrawAttachment(clipper,
 #else
                     DrawAttachment(
 #endif
+#if SPINE_V43
+                        pixels, width, height, positions, uvs, mesh.Triangles,
+                        GetTexture(mesh.Sequence.GetRegion(sequenceIndex)),
+                        skeletonColor.r * slotColor.r * attachmentColor.r,
+                        skeletonColor.g * slotColor.g * attachmentColor.g,
+                        skeletonColor.b * slotColor.b * attachmentColor.b,
+                        skeletonColor.a * slotColor.a * attachmentColor.a,
+#else
                         pixels, width, height, positions, mesh.UVs, mesh.Triangles,
                         GetTexture(mesh),
                         skeleton.R * slot.R * mesh.R,
                         skeleton.G * slot.G * mesh.G,
                         skeleton.B * slot.B * mesh.B,
                         skeleton.A * slot.A * mesh.A,
+#endif
                         viewCenterX, viewCenterY, viewScale, compositeMode, pma, linearFiltering);
                     break;
                 }
@@ -392,6 +499,11 @@ internal static class CpuRenderer
 
     private static TextureData GetTexture(MeshAttachment attachment) =>
         attachment.RendererObject is AtlasRegion { page.rendererObject: TextureData texture }
+            ? texture
+            : throw new InvalidDataException("Attachment has no loaded atlas texture.");
+#elif SPINE_V43
+    private static TextureData GetTexture(TextureRegion region) =>
+        region is AtlasRegion { page.rendererObject: TextureData texture }
             ? texture
             : throw new InvalidDataException("Attachment has no loaded atlas texture.");
 #else
@@ -517,7 +629,7 @@ internal static class CpuRenderer
 #endif
         if (isClipping)
         {
-#if SPINE_V42
+#if SPINE_V42 || SPINE_V43
             clipper.ClipTriangles(positions, triangles, triangles.Length, uvs);
 #else
             clipper.ClipTriangles(positions, positions.Length, triangles, triangles.Length, uvs);
@@ -607,7 +719,7 @@ internal static class CpuRenderer
 #endif
         if (isClipping)
         {
-#if SPINE_V42
+#if SPINE_V42 || SPINE_V43
             clipper.ClipTriangles(positions, triangles, triangles.Length, uvs);
 #else
             clipper.ClipTriangles(positions, positions.Length, triangles, triangles.Length, uvs);

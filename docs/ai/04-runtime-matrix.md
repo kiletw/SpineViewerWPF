@@ -2,9 +2,9 @@
 
 ## Status
 
-Inventory verified from v2 commit `79c6135`. Project-authored JSON fixtures verify every connected line from 2.1.08 through 4.2. TASK-009 verifies official 4.1 JSON/binary, TASK-026 verifies official 3.8.55 JSON/binary/PMA, and TASK-041 pins official 4.2 commit `b81e5a58ed38704aee4f866f0e0ac672623ce914`, verifies its 4.2.22 JSON/binary example export, and exercises deterministic Physics replay. The shared Runtime-neutral CPU/GPU-scene bridges retain the clipping, blend, Track Alpha, slot, multi-page, and real-asset coverage recorded by TASK-027 through TASK-040. Official 4.2 PMA and multi-page export parity remain unverified.
+Inventory verified from v2 commit `79c6135`. Project-authored JSON fixtures verify every connected line from 2.1.08 through 4.3. TASK-009 verifies official 4.1 JSON/binary, TASK-026 verifies official 3.8.55 JSON/binary/PMA, TASK-041 pins official 4.2 commit `b81e5a58ed38704aee4f866f0e0ac672623ce914` and verifies its 4.2.22 JSON/binary export, and TASK-051 pins official 4.3 commit `de14116488688c27c01b6e2b61fe1544792af2dd` and verifies its 4.3.75-beta JSON/binary export. The shared Runtime-neutral CPU/GPU-scene bridges retain the clipping, blend, Track Alpha, slot, multi-page, Physics, and real-asset coverage recorded by TASK-027 through TASK-051. Official 4.2 and 4.3 PMA and multi-page export parity remain unverified.
 
-Each snapshot is isolated in a version-specific assembly under `runtimes/`. Historical sources retain their namespace/patch provenance uncertainty, but TASK-047 removes the unused XNA helpers and verifies that all 484 active historical `.cs` inputs are byte-identical after relocation. The 4.1 and 4.2 projects use clean official sources with license headers. The 4.2 `spine-csharp/src` tree was compared file-for-file with its pinned commit with zero mismatches.
+Each snapshot is isolated in a version-specific assembly under `runtimes/`. Historical sources retain their namespace/patch provenance uncertainty, but TASK-047 removes the unused XNA helpers and verifies that all 484 active historical `.cs` inputs are byte-identical after relocation. The 4.1, 4.2, and 4.3 projects use clean official sources with license notices. The 4.2 and 4.3 `spine-csharp/src` trees were compared with their pinned commits with no project-authored source patches; the 4.3 inventory contains all 139 upstream paths and no extras.
 
 | v2 selection | Vendored directory | Official tag candidate | JSON path | Binary path | PMA path | Multi-page | Fixture | v3 priority |
 |---|---|---|---:|---:|---:|---:|---|---|
@@ -23,7 +23,7 @@ Each snapshot is isolated in a version-specific assembly under `runtimes/`. Hist
 | 4.0.64 | `runtimes/SpineRuntime.V40/src` | `4.0.64` / `01524d4` | Yes | Yes | Present | TBD | Project-authored JSON fixture | Prototype complete (JSON) |
 | 4.1.00 | `runtimes/SpineRuntime.V41/src` | `4.1.00` / `ab28b77` | Yes | Yes | Present | Project-authored two-page smoke; official TBD | Synthetic and two-page fixtures plus official `spineboy` JSON/binary export smoke | Prototype complete |
 | 4.2 | `runtimes/SpineRuntime.V42/src` | `4.2` branch / `b81e5a5` | Yes | Yes | Present | TBD | Project Physics fixture plus official 4.2.22 JSON/binary cache | Prototype complete |
-| 4.3 | none | current upstream line | No | No | No | No | Missing | Future |
+| 4.3 | `runtimes/SpineRuntime.V43/src` | `4.3` branch / `de14116` (package `4.3.39`) | Yes | Yes | Present | TBD | Project Physics fixture plus official 4.3.75-beta JSON/binary cache | Official cache verified (JSON/Binary) |
 
 “Present” means the Player assigns the UI PMA/alpha flag to its Runtime renderer. It does not mean visual correctness is fixture-verified.
 
@@ -94,6 +94,16 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 - Physics sampling: assets without Physics remain O(1); Physics assets reset at time zero and replay at 60 Hz up to 600 steps. Times over 10 seconds use 600 evenly distributed steps to keep interactive work bounded.
 - Still unverified: official 4.2 PMA, clipping/blend feature-isolated parity, multi-page exports, long-timeline Physics fidelity beyond the bounded replay ceiling, and production formats outside the existing PNG/PPM boundary.
 
+## v3 4.3 Compatibility Slice
+
+- Official source: stable 4.3 branch snapshot `de14116488688c27c01b6e2b61fe1544792af2dd`; its `spine-csharp/src/package.json` reports package version `4.3.39`, while the pinned official Spineboy examples report export version `4.3.75-beta`.
+- Source integrity: all 139 upstream `spine-csharp/src` paths are present with no extras or project-authored code patches, and the official Runtime license is retained. Git text normalization may change checkout line endings for metadata files without changing their text.
+- Isolation: `SpineRuntime.V43` exposes only the existing Application adapter contracts; WPF and CLI register the adapter without receiving Runtime-specific types.
+- Official cache: `scripts/test-v43.ps1 -Offline` verifies the Spineboy JSON and binary exports, all 11 named animations, `default` skin, one atlas texture, explicit and automatic selection, incompatible 4.2 overrides, deterministic `walk` renders, and clipping through deterministic `portal` renders.
+- Project fixture: `tests/fixtures/v43-minimal` verifies 4.3 Physics, deterministic 64 by 64 CPU output, visible Runtime-neutral textured triangles, named attachment selection, slot visibility and opacity, Track 0 Alpha, and same-session A-B-A geometry equality.
+- Physics sampling: the adapter keeps the existing bounded deterministic contract: 60 Hz through 10 seconds and at most 600 evenly distributed updates for longer target times.
+- Still unverified: official 4.3 PMA, feature-isolated non-normal blend parity, multi-page exports, long-timeline Physics fidelity beyond the bounded replay ceiling, and production formats outside the existing PNG/PPM boundary.
+
 ## v3 4.0.64 Compatibility Slice
 
 - Official source candidate: legacy vendored snapshot `4.0.64`, commit candidate `01524d4`
@@ -112,9 +122,8 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 
 ## v3 Historical Compatibility Slice
 
-- Isolated adapters now cover every listed line from 2.1.08 through 4.2.
+- Isolated adapters now cover every listed line from 2.1.08 through 4.3.
 - Each historical line has a project-authored JSON/atlas/P3 fixture, explicit and automatic selection smoke coverage, and a deterministic 64 by 64 render hash.
 - TASK-032 compiles the Track 0 weight against every historical adapter; lines through 3.4 use the matching legacy `Mix` property and 3.5 onward use `Alpha`.
 - TASK-031 additionally desktop-verifies the user-supplied 3.6.53 binary export, five-page atlas, first-animation selection, 512 by 512 preview, and active playback controls.
-- Binary `.skel`, official editor-export parity, official PMA fixture parity, feature-isolated clipping/non-normal blend fixtures, multi-page atlases, and production texture formats remain unverified unless listed in the 4.2, 4.1, or 3.8 official sections. The 3.8 cache verifies the PMA path; TASK-027 provides the bounded deterministic clipping/blend bridge.
-- 4.3 remains unsupported because it has no connected pinned adapter or verified fixture.
+- Binary `.skel`, official editor-export parity, official PMA fixture parity, feature-isolated clipping/non-normal blend fixtures, multi-page atlases, and production texture formats remain unverified unless listed in the 4.3, 4.2, 4.1, or 3.8 official sections. The 3.8 cache verifies the PMA path; TASK-027 provides the bounded deterministic clipping/blend bridge.

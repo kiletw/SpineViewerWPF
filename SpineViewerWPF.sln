@@ -43,6 +43,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpineRuntime.V41", "runtime
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpineRuntime.V42", "runtimes\SpineRuntime.V42\SpineRuntime.V42.csproj", "{C875A998-1AE8-4FCA-B5E6-BFEBCB7B5A7D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpineRuntime.V43", "runtimes\SpineRuntime.V43\SpineRuntime.V43.csproj", "{B3A84024-43F0-4F2D-A507-07B92BB981D7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -293,6 +295,18 @@ Global
 		{C875A998-1AE8-4FCA-B5E6-BFEBCB7B5A7D}.Release|x64.Build.0 = Release|Any CPU
 		{C875A998-1AE8-4FCA-B5E6-BFEBCB7B5A7D}.Release|x86.ActiveCfg = Release|Any CPU
 		{C875A998-1AE8-4FCA-B5E6-BFEBCB7B5A7D}.Release|x86.Build.0 = Release|Any CPU
+		{B3A84024-43F0-4F2D-A507-07B92BB981D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3A84024-43F0-4F2D-A507-07B92BB981D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3A84024-43F0-4F2D-A507-07B92BB981D7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B3A84024-43F0-4F2D-A507-07B92BB981D7}.Debug|x64.Build.0 = Debug|Any CPU
+		{B3A84024-43F0-4F2D-A507-07B92BB981D7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B3A84024-43F0-4F2D-A507-07B92BB981D7}.Debug|x86.Build.0 = Debug|Any CPU
+		{B3A84024-43F0-4F2D-A507-07B92BB981D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3A84024-43F0-4F2D-A507-07B92BB981D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3A84024-43F0-4F2D-A507-07B92BB981D7}.Release|x64.ActiveCfg = Release|Any CPU
+		{B3A84024-43F0-4F2D-A507-07B92BB981D7}.Release|x64.Build.0 = Release|Any CPU
+		{B3A84024-43F0-4F2D-A507-07B92BB981D7}.Release|x86.ActiveCfg = Release|Any CPU
+		{B3A84024-43F0-4F2D-A507-07B92BB981D7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

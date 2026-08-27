@@ -130,7 +130,8 @@ try
         new SpineRuntime.V36_32.LegacyRuntimeAdapter(), new SpineRuntime.V36_39.LegacyRuntimeAdapter(),
         new SpineRuntime.V36_53.LegacyRuntimeAdapter(), new SpineRuntime.V37_94.LegacyRuntimeAdapter(),
         new SpineRuntime.V38_95.LegacyRuntimeAdapter(), new SpineRuntime.V40_31.LegacyRuntimeAdapter(),
-        new SpineV40Adapter(), new SpineV41Adapter(), new SpineRuntime.V42.Adapter()
+        new SpineV40Adapter(), new SpineV41Adapter(), new SpineRuntime.V42.Adapter(),
+        new SpineRuntime.V43.Adapter()
     });
     var discovered = assetService.Inspect(Path.Combine(fixtureDirectory, "minimal.json"), null, null);
     Assert(discovered.Asset.AtlasPath == Path.GetFullPath(Path.Combine(fixtureDirectory, "minimal.atlas")), "Same-stem atlas discovery failed.");
@@ -421,6 +422,82 @@ try
                 && pair.First.Indices.SequenceEqual(pair.Second.Indices)),
             "4.2 reused session leaked physics state between absolute frame requests.");
     }
+    var v43Directory = Path.Combine(Directory.GetCurrentDirectory(), "tests", "fixtures", "v43-minimal");
+    var v43Skeleton = Path.Combine(v43Directory, "minimal.json");
+    var v43AutoInspection = assetService.Inspect(v43Skeleton, null, null);
+    Assert(
+        v43AutoInspection.Runtime.SelectedLine == "4.3"
+        && v43AutoInspection.Runtime.DetectedExportVersion is { } v43Version
+        && v43Version.StartsWith("4.3", StringComparison.Ordinal),
+        "4.3 automatic Runtime selection failed.");
+    var v43ExplicitInspection = assetService.Inspect(v43Skeleton, null, "4.3");
+    Assert(v43ExplicitInspection.Runtime.SelectedLine == "4.3" && v43ExplicitInspection.Runtime.Overridden, "4.3 explicit Runtime selection failed.");
+    var v43Slot = v43ExplicitInspection.Slots?.Single(slot => slot.Name == "sprite");
+    Assert(
+        v43Slot is not null
+        && v43Slot.SetupAttachment == "square"
+        && v43Slot.Attachments.SequenceEqual(["square", "tall"]),
+        "4.3 slot attachment metadata was incomplete.");
+    Expect<NotSupportedException>(() => assetService.Inspect(v43Skeleton, null, "4.2"));
+    var v43First = Path.Combine(root, "v43-a.png");
+    var v43Second = Path.Combine(root, "v43-b.png");
+    foreach (var output in new[] { v43First, v43Second })
+        assetService.Render(v43Skeleton, null, "4.3", "move", 0.5f, 64, 64, output, true, false, ["default"]);
+    Assert(File.ReadAllBytes(v43First).SequenceEqual(File.ReadAllBytes(v43Second)), "4.3 render was not deterministic.");
+    Assert(
+        Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(v43First))) == "7178BBFA4315C36332AB5C4743A413FE6A7CD165D75C907BBC34D88DB846301E",
+        "4.3 minimal render did not match its baseline.");
+    using (var v43Session = assetService.OpenRenderSession(v43Skeleton, null, "4.3").Session)
+    {
+        var v43Scene = v43Session.RenderScene("move", 0.5f, false, ["default"]);
+        var v43AverageX = v43Scene.DrawCommands.SelectMany(command => command.Vertices).Average(vertex => vertex.X);
+        Assert(
+            v43Scene.BoundsWidth > 0
+            && v43Scene.BoundsHeight > 0
+            && v43Scene.DrawCommands.Any(command =>
+                command.Alpha > 0
+                && command.Vertices.Length >= 3
+                && command.Indices.Length >= 3
+                && command.Texture.Rgba32.Length == command.Texture.Width * command.Texture.Height * 4),
+            "4.3 preview scene did not contain visible textured triangle geometry.");
+        Assert(
+            Math.Abs(v43AverageX - 4) > 0.1,
+            $"4.3 preview scene did not apply fixed-step physics replay (average X: {v43AverageX}).");
+        var tallSetting = new SlotDisplayDocument("sprite", true, 1, "tall");
+        var v43TallScene = v43Session.RenderScene("move", 0.5f, false, ["default"], slots: [tallSetting]);
+        Assert(
+            Math.Abs(v43TallScene.BoundsWidth - v43Scene.BoundsWidth) > 0.1,
+            "4.3 attachment selection did not change Runtime-neutral preview geometry.");
+        var v43HalfOpacityScene = v43Session.RenderScene(
+            "move", 0.5f, false, ["default"],
+            slots: [new SlotDisplayDocument("sprite", true, 0.5)]);
+        Assert(
+            Math.Abs(v43HalfOpacityScene.DrawCommands.Single().Alpha - v43Scene.DrawCommands.Single().Alpha * 0.5f) < 0.001,
+            "4.3 Runtime-neutral preview scene did not apply slot opacity exactly once.");
+        var v43HiddenScene = v43Session.RenderScene(
+            "move", 0.5f, false, ["default"],
+            slots: [new SlotDisplayDocument("sprite", false, 1)]);
+        Assert(v43HiddenScene.DrawCommands.Count == 0, "4.3 slot visibility did not hide preview geometry.");
+        var v43DefaultFrame = v43Session.RenderFrame("move", 0.5f, 64, 64, false, ["default"]);
+        var v43TallFrame = v43Session.RenderFrame("move", 0.5f, 64, 64, false, ["default"], slots: [tallSetting]);
+        Assert(!FrameHash(v43DefaultFrame).SequenceEqual(FrameHash(v43TallFrame)), "4.3 attachment selection did not change CPU output.");
+        var v43ZeroTrackScene = v43Session.RenderScene("move", 0.5f, false, ["default"], trackAlpha: 0);
+        Assert(
+            !v43Scene.DrawCommands.Single().Vertices.SequenceEqual(v43ZeroTrackScene.DrawCommands.Single().Vertices),
+            "4.3 Track 0 Alpha did not change Runtime-neutral preview geometry.");
+        var v43InvalidFrame = v43Session.RenderFrame(
+            "move", 0.5f, 64, 64, false, ["default"],
+            slots: [new SlotDisplayDocument("sprite", true, 1, "missing")]);
+        Assert(FrameHash(v43DefaultFrame).SequenceEqual(FrameHash(v43InvalidFrame)), "4.3 unknown attachment did not fall back to the animated/setup pose.");
+        _ = v43Session.RenderScene("move", 0.1f, false, ["default"], slots: [tallSetting]);
+        var v43RepeatedScene = v43Session.RenderScene("move", 0.5f, false, ["default"]);
+        Assert(
+            v43Scene.DrawCommands.Count == v43RepeatedScene.DrawCommands.Count
+            && v43Scene.DrawCommands.Zip(v43RepeatedScene.DrawCommands).All(pair =>
+                pair.First.Vertices.SequenceEqual(pair.Second.Vertices)
+                && pair.First.Indices.SequenceEqual(pair.Second.Indices)),
+            "4.3 reused session leaked physics or slot state between absolute frame requests.");
+    }
     var historicalFixtures = new[]
     {
         (Directory: "v21_08-minimal", Runtime: "2.1.08"), (Directory: "v21_25-minimal", Runtime: "2.1.25"),
@@ -504,6 +581,8 @@ try
     Assert(previewViewModel.State == WorkspaceState.Ready, "PPM fixture did not reach Ready.");
     var retainedPreview = previewViewModel.PreviewFrame
         ?? throw new InvalidOperationException("Static preview was not rendered.");
+    var retainedLayer = previewViewModel.SelectedSceneLayer
+        ?? throw new InvalidOperationException("Static preview did not retain its scene layer.");
     Assert(
         retainedPreview.Width == 256
         && retainedPreview.Height == 256
@@ -543,8 +622,16 @@ try
     Assert(File.Exists(capturePath), "Screenshot command did not create a PNG.");
     Assert(new FileInfo(capturePath).Length > 8, "Screenshot command created an empty PNG.");
     Assert(!previewViewModel.IsDirty, "Screenshot changed the viewer project state.");
+    for (var attempt = 0; attempt < 200
+         && !previewViewModel.ScreenshotCommand.CanExecute(null);
+         attempt++)
+        await Task.Delay(10);
+    Assert(previewViewModel.ScreenshotCommand.CanExecute(null), "Screenshot command did not finish cleanly.");
     await previewViewModel.OpenAssetAsync(Path.Combine(root, "missing.json"));
-    Assert(ReferenceEquals(previewViewModel.PreviewFrame, retainedPreview), "Failed replacement discarded the prior preview.");
+    Assert(
+        ReferenceEquals(previewViewModel.SelectedSceneLayer, retainedLayer)
+        && previewViewModel.PreviewFrame is not null,
+        "Failed replacement discarded the prior preview.");
     Assert(previewViewModel.Diagnostics.Count == 1 && previewViewModel.DiagnosticsSummary.Contains("OPEN_FAILED", StringComparison.Ordinal), "Failed open did not produce an actionable diagnostic.");
     previewViewModel.Dispose();
 

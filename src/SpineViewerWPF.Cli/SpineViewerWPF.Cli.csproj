@@ -11,6 +11,7 @@
     <ProjectReference Include="../../runtimes/SpineRuntime.V40/SpineRuntime.V40.csproj" />
     <ProjectReference Include="../../runtimes/SpineRuntime.V41/SpineRuntime.V41.csproj" />
     <ProjectReference Include="../../runtimes/SpineRuntime.V42/SpineRuntime.V42.csproj" />
+    <ProjectReference Include="../../runtimes/SpineRuntime.V43/SpineRuntime.V43.csproj" />
     <ProjectReference Include="../../runtimes/SpineRuntime.V21_08/SpineRuntime.V21_08.csproj" />
     <ProjectReference Include="../../runtimes/SpineRuntime.V21_25/SpineRuntime.V21_25.csproj" />
     <ProjectReference Include="../../runtimes/SpineRuntime.V31_07/SpineRuntime.V31_07.csproj" />

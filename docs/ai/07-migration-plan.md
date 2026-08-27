@@ -39,7 +39,7 @@ Result: the isolated official 4.1 Runtime, project-owned contracts, CLI `inspect
 
 Add 4.0 and 3.8, then remaining lines based on fixture value and demand. Introduce Runtime registry and version detection only as needed by verified lines.
 
-Progress: TASK-023 adds 4.0.64. TASK-024 adds isolated adapters, fixtures, explicit/automatic selection, and deterministic JSON renders for every remaining historical line from 2.1.08 through 4.0.31. TASK-026 verifies the pinned official 3.8.55 JSON/binary/PMA example, TASK-027/TASK-028 add clipping/blend and multi-page coverage, and TASK-041 pins the official 4.2 source snapshot and verifies project-authored Physics plus official 4.2.22 JSON/binary exports. Remaining feature-isolated parity is explicit; 4.3 has no connected source snapshot.
+Progress: TASK-023 adds 4.0.64. TASK-024 adds isolated adapters, fixtures, explicit/automatic selection, and deterministic JSON renders for every remaining historical line from 2.1.08 through 4.0.31. TASK-026 verifies the pinned official 3.8.55 JSON/binary/PMA example, TASK-027/TASK-028 add clipping/blend and multi-page coverage, TASK-041 pins the official 4.2 source snapshot and verifies project-authored Physics plus official 4.2.22 JSON/binary exports, and TASK-051 pins the official 4.3 snapshot and verifies project-authored Physics plus official 4.3.75-beta JSON/binary exports. Remaining feature-isolated PMA and multi-page parity is explicit.
 
 ## Phase 3 — Quick-Browse WPF Replacement
 
