@@ -149,13 +149,17 @@ $densityTokens = @(
     '<Style TargetType="CheckBox">',
     '<Style TargetType="Slider">',
     '<Style TargetType="ScrollBar">',
-    '<RowDefinition Height="46" />',
-    '<RowDefinition Height="52" />',
+    '<RowDefinition Height="38" />',
+    '<RowDefinition Height="44" />',
+    '<RowDefinition Height="24" />',
     '<Setter Property="Width" Value="270" />',
     'Width="310"',
     '<Style x:Key="NumericTextBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">',
     '<UniformGrid IsItemsHost="True" Columns="3" Rows="2"',
     '<Style TargetType="TabControl">',
+    '<Style x:Key="ToolbarButton" TargetType="Button" BasedOn="{StaticResource ButtonBase}">',
+    'x:Name="BrowsePanelContent"',
+    'Click="ToggleLayersPanel"',
     'Command="{Binding DuplicateLayerCommand}"',
     'Command="{Binding ReloadLayerCommand}"',
     'ItemsSource="{Binding AttachmentOptions}"',
@@ -175,6 +179,10 @@ foreach ($densityToken in $densityTokens) {
 $code = Get-Content -LiteralPath $codeBehind -Raw
 if (-not $code.Contains('DataContext = owner.DataContext;')) {
     throw 'Floating panels do not inherit the shell view model.'
+}
+if (-not $code.Contains('DetachPanel(BrowsePanelContent);') -or
+    $code.Contains('DetachPanel(BrowsePanel);')) {
+    throw 'Floating Layers still removes the activity rail from the main workspace.'
 }
 if (-not $markup.Contains('Click="ToggleInspectorPanel"') -or
     $markup.Contains('Command="{Binding ToggleInspectorCommand}"')) {

@@ -45,21 +45,21 @@
     </Window.InputBindings>
 
     <Window.Resources>
-        <SolidColorBrush x:Key="WindowBrush" Color="#0D0F14" />
+        <SolidColorBrush x:Key="WindowBrush" Color="#101217" />
         <SolidColorBrush x:Key="TextBrush" Color="#E8ECF3" />
-        <SolidColorBrush x:Key="ControlBrush" Color="#202530" />
-        <SolidColorBrush x:Key="ControlHoverBrush" Color="#394758" />
-        <SolidColorBrush x:Key="ControlPressedBrush" Color="#4B5B70" />
-        <SolidColorBrush x:Key="ControlBorderBrush" Color="#536176" />
-        <SolidColorBrush x:Key="SelectionBrush" Color="#285C50" />
-        <SolidColorBrush x:Key="SelectionHoverBrush" Color="#347365" />
+        <SolidColorBrush x:Key="ControlBrush" Color="#232832" />
+        <SolidColorBrush x:Key="ControlHoverBrush" Color="#2D3541" />
+        <SolidColorBrush x:Key="ControlPressedBrush" Color="#374250" />
+        <SolidColorBrush x:Key="ControlBorderBrush" Color="#3B4654" />
+        <SolidColorBrush x:Key="SelectionBrush" Color="#25483F" />
+        <SolidColorBrush x:Key="SelectionHoverBrush" Color="#2E5A4F" />
         <SolidColorBrush x:Key="SelectionTextBrush" Color="#FFFFFF" />
         <SolidColorBrush x:Key="StatusBrush" Color="#101218" />
-        <SolidColorBrush x:Key="PanelBrush" Color="#151820" />
-        <SolidColorBrush x:Key="PanelRaisedBrush" Color="#1B1F29" />
-        <SolidColorBrush x:Key="BorderBrush" Color="#2A303C" />
+        <SolidColorBrush x:Key="PanelBrush" Color="#171A20" />
+        <SolidColorBrush x:Key="PanelRaisedBrush" Color="#1C2027" />
+        <SolidColorBrush x:Key="BorderBrush" Color="#2A313B" />
         <SolidColorBrush x:Key="MutedBrush" Color="#929BAD" />
-        <SolidColorBrush x:Key="AccentBrush" Color="#68E0C1" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#58C7AD" />
         <local:PreviewFrameConverter x:Key="PreviewFrameConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <local:BooleanScaleConverter x:Key="BooleanScaleConverter" />
@@ -112,12 +112,18 @@
             <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
+        <Style x:Key="ToolbarButton" TargetType="Button" BasedOn="{StaticResource ButtonBase}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Padding" Value="9,4" />
+            <Setter Property="MinHeight" Value="26" />
+        </Style>
         <Style x:Key="ActivityButton" TargetType="Button" BasedOn="{StaticResource ButtonBase}">
-            <Setter Property="Width" Value="40" />
-            <Setter Property="Height" Value="40" />
-            <Setter Property="MinHeight" Value="40" />
+            <Setter Property="Width" Value="42" />
+            <Setter Property="Height" Value="42" />
+            <Setter Property="MinHeight" Value="42" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="0,4" />
+            <Setter Property="Margin" Value="0,2" />
             <Setter Property="FontSize" Value="17" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Background" Value="Transparent" />
@@ -686,10 +692,10 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="26" />
-            <RowDefinition Height="46" />
+            <RowDefinition Height="38" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="52" />
-            <RowDefinition Height="26" />
+            <RowDefinition Height="44" />
+            <RowDefinition Height="24" />
         </Grid.RowDefinitions>
 
         <Menu Grid.Row="0"
@@ -762,53 +768,42 @@
         </Menu>
 
         <Border Grid.Row="1" Background="{DynamicResource PanelRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
-            <Grid Margin="10,0">
+            <Grid Margin="8,0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <Button Grid.Column="0"
-                        Style="{StaticResource ButtonBase}"
-                        Content="☰"
-                        Margin="0,7,8,7"
-                        Padding="9,4"
-                        ToolTip="{DynamicResource Text.Layers}"
-                        Command="{Binding ToggleRailCommand}"
-                        AutomationProperties.AutomationId="Main.Command.ToggleBrowseRail" />
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock Text="SPINE VIEWER" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
-                    <TextBlock Text="Quick browse" FontSize="13" FontWeight="SemiBold" />
-                </StackPanel>
-                <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Style="{StaticResource AccentButton}"
                             Content="{DynamicResource Text.OpenAsset}"
+                            Padding="10,4"
                             Command="{Binding OpenAssetCommand}"
                             AutomationProperties.AutomationId="Main.Command.OpenAsset" />
-                    <Button Style="{StaticResource ButtonBase}"
+                    <Button Style="{StaticResource ToolbarButton}"
                             Content="{DynamicResource Text.Save}"
-                            Margin="5,0,0,0"
+                            Margin="4,0,0,0"
                             Command="{Binding SaveCommand}"
                             AutomationProperties.AutomationId="Main.Command.SaveProject" />
-                    <Button Style="{StaticResource ButtonBase}"
+                    <Button Style="{StaticResource ToolbarButton}"
                             Content="{DynamicResource Text.Undo}"
-                            Margin="5,0,0,0"
+                            Margin="2,0,0,0"
                             Command="{Binding UndoCommand}"
                             AutomationProperties.AutomationId="Main.Command.Undo" />
-                    <Button Style="{StaticResource ButtonBase}"
+                    <Button Style="{StaticResource ToolbarButton}"
                             Content="{DynamicResource Text.Redo}"
-                            Margin="5,0,0,0"
+                            Margin="2,0,0,0"
                             Command="{Binding RedoCommand}"
                             AutomationProperties.AutomationId="Main.Command.Redo" />
-                    <Button Style="{StaticResource ButtonBase}"
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Style="{StaticResource ToolbarButton}"
                             Content="{DynamicResource Text.Screenshot}"
-                            Margin="5,0,0,0"
                             Command="{Binding ScreenshotCommand}"
                             AutomationProperties.AutomationId="Main.Command.Screenshot" />
-                    <Button Style="{StaticResource ButtonBase}"
+                    <Button Style="{StaticResource ToolbarButton}"
                             Content="{DynamicResource Text.Export}"
-                            Margin="5,0,0,0"
+                            Margin="2,0,0,0"
                             Command="{Binding ExportCommand}"
                             AutomationProperties.AutomationId="Main.Command.Export" />
                 </StackPanel>
@@ -832,7 +827,7 @@
                         <Setter Property="Width" Value="270" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsBrowsePanelVisible}" Value="False">
-                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Setter Property="Width" Value="48" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding IsRailExpanded}" Value="False">
                                 <Setter Property="Width" Value="48" />
@@ -841,7 +836,7 @@
                     </Style>
                 </Border.Style>
 
-                <Grid>
+                <Grid x:Name="BrowsePanelGrid">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="48" />
                         <ColumnDefinition Width="*" />
@@ -853,7 +848,7 @@
                             BorderThickness="0,0,1,0">
                         <StackPanel HorizontalAlignment="Center" Margin="0,8">
                             <Button ToolTip="{DynamicResource Text.Layers}"
-                                    Command="{Binding ToggleRailCommand}"
+                                    Click="ToggleLayersPanel"
                                     AutomationProperties.Name="{DynamicResource Text.Layers}"
                                     AutomationProperties.HelpText="{DynamicResource Text.Layers}"
                                     AutomationProperties.AutomationId="Main.Activity.Layers">
@@ -870,11 +865,15 @@
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource ActivityButton}">
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsRailExpanded}" Value="True">
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsBrowsePanelVisible}" Value="True" />
+                                                    <Condition Binding="{Binding IsRailExpanded}" Value="True" />
+                                                </MultiDataTrigger.Conditions>
                                                 <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
                                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
                                                 <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-                                            </DataTrigger>
+                                            </MultiDataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Button.Style>
@@ -949,22 +948,12 @@
                         </StackPanel>
                     </Border>
 
-                    <ScrollViewer Grid.Column="1"
+                    <ScrollViewer x:Name="BrowsePanelContent"
+                                  Grid.Column="1"
                                   VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="10">
-                        <StackPanel.Style>
-                            <Style TargetType="StackPanel">
-                                <Setter Property="Visibility" Value="Visible" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsRailExpanded}" Value="False">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </StackPanel.Style>
-                        <TextBlock Text="{DynamicResource Text.Layers}" FontSize="15" FontWeight="SemiBold" Margin="0,2,0,2" />
-                        <TextBlock Text="{DynamicResource Text.SceneLayers}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource MutedBrush}" Margin="0,0,0,8" />
+                        <TextBlock Text="{DynamicResource Text.Layers}" FontSize="15" FontWeight="SemiBold" Margin="0,2,0,10" />
                         <Expander Header="{DynamicResource Text.AssetInformation}" IsExpanded="False" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8">
                             <StackPanel Margin="4,8,0,0">
                                 <TextBlock Text="{Binding SkeletonFileName}" />
@@ -1016,7 +1005,7 @@
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <WrapPanel Margin="0,6,0,0">
                             <Button Style="{StaticResource ButtonBase}"
                                     Content="{DynamicResource Text.AddLayer}"
                                     Padding="8,4"
@@ -1034,8 +1023,8 @@
                                     Margin="6,0,0,0"
                                     Command="{Binding DuplicateLayerCommand}"
                                     AutomationProperties.AutomationId="Main.Scene.DuplicateLayer" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        </WrapPanel>
+                        <WrapPanel Margin="0,2,0,0">
                             <Button Style="{StaticResource ButtonBase}"
                                     Content="↑"
                                     Padding="10,3"
@@ -1049,7 +1038,7 @@
                                     ToolTip="{DynamicResource Text.LayerDown}"
                                     Command="{Binding MoveLayerDownCommand}"
                                     AutomationProperties.AutomationId="Main.Scene.LayerDown" />
-                        </StackPanel>
+                        </WrapPanel>
                         <Button Style="{StaticResource ButtonBase}"
                                 Content="{DynamicResource Text.AutoLayout}"
                                 HorizontalAlignment="Left"

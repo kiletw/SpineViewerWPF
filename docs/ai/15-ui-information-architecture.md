@@ -10,7 +10,7 @@ These stay in the main workspace:
 
 - conventional command menu
 - frequent-action toolbar
-- left panel activity rail
+- permanently reachable left panel activity rail
 - central viewport
 - playback bar
 - compact status bar
@@ -19,7 +19,7 @@ These stay in the main workspace:
 
 - File, Edit, View, Playback, Layer, Export, Window, and Help menus own discoverable commands and shortcuts.
 - The toolbar is limited to frequent Open, Save, Undo, Redo, Screenshot, and Export actions.
-- The activity rail switches or reveals Layers, Properties, and Diagnostics; it does not become a second command menu.
+- The activity rail switches or reveals Layers, Properties, and Diagnostics; it does not become a second command menu or leave the main window when Layers floats.
 - Window remains the recovery surface for hidden, floating, and redocked panels.
 
 ## Dockable Panels
@@ -61,6 +61,7 @@ TASK-029 proves dock, float, redock, hide/show, and reset-layout behavior for th
 ## Default Layout Rules
 
 - viewport remains visible and receives the largest area
+- the activity rail remains available when Layers is hidden or floating
 - animations remain one interaction away
 - supporting panels can share tab groups
 - closing a panel hides it rather than destroying product state

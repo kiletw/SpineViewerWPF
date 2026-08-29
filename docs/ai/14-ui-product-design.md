@@ -2,7 +2,7 @@
 
 ## Status
 
-Product direction accepted; TASK-029 validates a bounded WPF docking interaction, TASK-030 corrects its binding and production-chrome boundary, TASK-035 establishes the compact dark workspace baseline, TASK-037 adds the first built-in Light theme without a theme toolkit, TASK-043 makes scene-layer selection the single Properties editing context, TASK-044 adds named attachment selection to the Slots workflow, and TASK-048 separates desktop commands from panel navigation.
+Product direction accepted; TASK-029 validates a bounded WPF docking interaction, TASK-030 corrects its binding and production-chrome boundary, TASK-035 establishes the compact dark workspace baseline, TASK-037 adds the first built-in Light theme without a theme toolkit, TASK-043 makes scene-layer selection the single Properties editing context, TASK-044 adds named attachment selection to the Slots workflow, TASK-048 separates desktop commands from panel navigation, and TASK-052 refines the resulting workspace hierarchy.
 
 ## Primary Goal
 
@@ -60,6 +60,21 @@ TASK-035 keeps the existing information architecture while making the viewport v
 - scrollable supporting panels rather than shrinking or hiding editor controls
 
 The operating-system title bar remains native. Replacing it requires a separate window-chrome task because that change also owns resize, drag, accessibility, and system-button behavior.
+
+TASK-052 applies a preserve-and-refine pass informed by current Photoshop,
+Visual Studio, and Windows command-bar guidance:
+
+- the activity rail remains in the main workspace while Layers content hides or
+  floats, so panel recovery is not hidden with the panel
+- the toolbar contains only frequent commands and no duplicate product branding
+- toolbar, playback, and status chrome use less vertical space
+- ordinary toolbar actions use low-noise surfaces; the primary Open action and
+  selected panel states keep the single mint accent
+- Layers uses one panel title and wraps compact actions instead of clipping a
+  fixed horizontal row
+
+The implementation remains native WPF. It does not add Fluent, docking, or icon
+packages; the external products are interaction and hierarchy references only.
 
 ## Initial Product Scope
 

@@ -55,19 +55,19 @@ public partial class MainWindow : Window
     private void ApplyTheme(string mode)
     {
         var light = string.Equals(mode, "Light", StringComparison.OrdinalIgnoreCase);
-        SetBrush("WindowBrush", light ? "#F4F6F8" : "#0D0F14");
+        SetBrush("WindowBrush", light ? "#F5F6F8" : "#101217");
         SetBrush("TextBrush", light ? "#1F2937" : "#E8ECF3");
-        SetBrush("ControlBrush", light ? "#FFFFFF" : "#202530");
-        SetBrush("ControlHoverBrush", light ? "#E7EEF5" : "#394758");
-        SetBrush("ControlPressedBrush", light ? "#CBD8E6" : "#4B5B70");
-        SetBrush("ControlBorderBrush", light ? "#AAB7C6" : "#536176");
-        SetBrush("PanelBrush", light ? "#E8EDF3" : "#151820");
-        SetBrush("PanelRaisedBrush", light ? "#DCE4EC" : "#1B1F29");
-        SetBrush("BorderBrush", light ? "#AAB7C6" : "#2A303C");
-        SetBrush("MutedBrush", light ? "#526174" : "#929BAD");
-        SetBrush("AccentBrush", light ? "#087F70" : "#68E0C1");
-        SetBrush("SelectionBrush", light ? "#B9D8CF" : "#285C50");
-        SetBrush("SelectionHoverBrush", light ? "#CFE6DF" : "#347365");
+        SetBrush("ControlBrush", light ? "#FFFFFF" : "#232832");
+        SetBrush("ControlHoverBrush", light ? "#E9EDF2" : "#2D3541");
+        SetBrush("ControlPressedBrush", light ? "#DCE2E8" : "#374250");
+        SetBrush("ControlBorderBrush", light ? "#B6C0CB" : "#3B4654");
+        SetBrush("PanelBrush", light ? "#ECEFF3" : "#171A20");
+        SetBrush("PanelRaisedBrush", light ? "#E3E7EC" : "#1C2027");
+        SetBrush("BorderBrush", light ? "#C9D0D8" : "#2A313B");
+        SetBrush("MutedBrush", light ? "#596676" : "#929BAD");
+        SetBrush("AccentBrush", light ? "#197E6B" : "#58C7AD");
+        SetBrush("SelectionBrush", light ? "#D3E7E1" : "#25483F");
+        SetBrush("SelectionHoverBrush", light ? "#C4DED7" : "#2E5A4F");
         SetBrush("SelectionTextBrush", light ? "#12332D" : "#FFFFFF");
         SetBrush("StatusBrush", light ? "#E1E7ED" : "#101218");
         Background = TryFindResource("WindowBrush") as Brush;
@@ -148,8 +148,24 @@ public partial class MainWindow : Window
         if (browsePanelWindow is not null)
             DockBrowsePanel();
 
-        if (DataContext is ShellViewModel viewModel)
-            viewModel.ToggleBrowsePanelCommand.Execute(null);
+        if (DataContext is not ShellViewModel viewModel) return;
+        var show = !viewModel.IsBrowsePanelVisible || !viewModel.IsRailExpanded;
+        viewModel.IsBrowsePanelVisible = show;
+        viewModel.IsRailExpanded = show;
+    }
+
+    private void ToggleLayersPanel(object sender, RoutedEventArgs e)
+    {
+        if (browsePanelWindow is { } floating)
+        {
+            floating.Activate();
+            return;
+        }
+
+        if (DataContext is not ShellViewModel viewModel) return;
+        var show = !viewModel.IsBrowsePanelVisible || !viewModel.IsRailExpanded;
+        viewModel.IsBrowsePanelVisible = show;
+        viewModel.IsRailExpanded = show;
     }
 
     private void ToggleInspectorPanel(object sender, RoutedEventArgs e)
@@ -171,12 +187,12 @@ public partial class MainWindow : Window
 
         if (DataContext is ShellViewModel viewModel)
         {
-            viewModel.IsBrowsePanelVisible = true;
-            viewModel.IsRailExpanded = true;
+            viewModel.IsBrowsePanelVisible = false;
+            viewModel.IsRailExpanded = false;
         }
 
-        DetachPanel(BrowsePanel);
-        var window = CreatePanelWindow(GetResourceText("Text.FloatBrowse"), BrowsePanel, 320, 720);
+        DetachPanel(BrowsePanelContent);
+        var window = CreatePanelWindow(GetResourceText("Text.FloatBrowse"), BrowsePanelContent, 320, 720);
         browsePanelWindow = window;
         window.Closed += (_, _) =>
         {
@@ -237,13 +253,16 @@ public partial class MainWindow : Window
             window.Close();
         }
 
-        if (BrowsePanel.Parent is ContentControl content)
+        if (BrowsePanelContent.Parent is ContentControl content)
             content.Content = null;
-        if (!WorkspaceGrid.Children.Contains(BrowsePanel))
-            WorkspaceGrid.Children.Add(BrowsePanel);
-        Grid.SetColumn(BrowsePanel, 0);
+        if (!BrowsePanelGrid.Children.Contains(BrowsePanelContent))
+            BrowsePanelGrid.Children.Add(BrowsePanelContent);
+        Grid.SetColumn(BrowsePanelContent, 1);
         if (DataContext is ShellViewModel viewModel)
+        {
             viewModel.IsBrowsePanelVisible = true;
+            viewModel.IsRailExpanded = true;
+        }
     }
 
     private void DockInspectorPanel()
