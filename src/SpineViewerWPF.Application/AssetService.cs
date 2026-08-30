@@ -48,8 +48,11 @@ public sealed class AssetRenderSession : IDisposable
         if (!float.IsFinite(timeSeconds) || timeSeconds < 0) throw new ArgumentOutOfRangeException(nameof(timeSeconds));
         if (!float.IsFinite(trackAlpha) || trackAlpha is < 0 or > 1)
             throw new ArgumentOutOfRangeException(nameof(trackAlpha), "Track alpha must be between 0 and 1.");
-        if (width is < 1 or > 16384 || height is < 1 or > 16384)
-            throw new ArgumentOutOfRangeException(nameof(width), "Dimensions must be between 1 and 16384.");
+        if (width is < 1 or > 16384 || height is < 1 or > 16384
+            || (long)width * height > AssetService.MaxFramePixels)
+            throw new ArgumentOutOfRangeException(
+                nameof(width),
+                "Dimensions must be between 1 and 16384 and contain at most 16777216 pixels.");
 
         var output = Path.GetFullPath(outputPath);
         lock (gate)
@@ -131,6 +134,9 @@ public sealed class AssetRenderSession : IDisposable
 
 public sealed class AssetService
 {
+    internal const long MaxFramePixels = 4096L * 4096;
+    internal const long MaxCompositeBufferBytes = 256L * 1024 * 1024;
+
     private readonly IReadOnlyList<IRuntimeAdapter> runtimes;
 
     public AssetService(IRuntimeAdapter runtime)
@@ -196,8 +202,11 @@ public sealed class AssetService
     {
         if (requests is null) throw new ArgumentNullException(nameof(requests));
         if (requests.Count > 8) throw new ArgumentOutOfRangeException(nameof(requests), "A scene is limited to eight layers.");
-        if (width is < 1 or > 16384 || height is < 1 or > 16384)
-            throw new ArgumentOutOfRangeException(nameof(width), "Dimensions must be between 1 and 16384.");
+        if (width is < 1 or > 16384 || height is < 1 or > 16384
+            || (long)width * height > MaxFramePixels)
+            throw new ArgumentOutOfRangeException(
+                nameof(width),
+                "Dimensions must be between 1 and 16384 and contain at most 16777216 pixels.");
 
         var outputs = new string[requests.Count];
         for (var index = 0; index < requests.Count; index++)
@@ -270,13 +279,21 @@ public sealed class AssetService
             throw new ArgumentOutOfRangeException(nameof(request.DurationSeconds));
         if (!float.IsFinite(request.FramesPerSecond) || request.FramesPerSecond <= 0 || request.FramesPerSecond > 240)
             throw new ArgumentOutOfRangeException(nameof(request.FramesPerSecond), "Frames per second must be between 0 and 240.");
-        if (request.Width is < 1 or > 16384 || request.Height is < 1 or > 16384)
-            throw new ArgumentOutOfRangeException(nameof(request.Width), "Dimensions must be between 1 and 16384.");
+        if (request.Width is < 1 or > 16384 || request.Height is < 1 or > 16384
+            || (long)request.Width * request.Height > MaxFramePixels)
+            throw new ArgumentOutOfRangeException(
+                nameof(request.Width),
+                "Dimensions must be between 1 and 16384 and contain at most 16777216 pixels.");
         if (request.SceneLayers is not null)
         {
             if (request.Width > 4096 || request.Height > 4096)
                 throw new ArgumentOutOfRangeException(nameof(request.Width), "Composite dimensions must be between 1 and 4096.");
             ValidateSceneLayers(request.SceneLayers);
+            var retainedFrameCount = request.SceneLayers.Count(layer => layer.IsVisible && layer.Opacity > 0) + 1L;
+            if ((long)request.Width * request.Height * 4 * retainedFrameCount > MaxCompositeBufferBytes)
+                throw new ArgumentOutOfRangeException(
+                    nameof(request.SceneLayers),
+                    "Composite frame buffers must not exceed 256 MiB.");
         }
 
         var frameCountValue = Math.Floor(request.DurationSeconds * request.FramesPerSecond) + 1;

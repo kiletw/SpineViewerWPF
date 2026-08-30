@@ -31,6 +31,7 @@ Core and Application must not reference WPF, XNA, MonoGame, SFML, MCP, official 
 
 - All GPU and Runtime resources require clear ownership and disposal.
 - Loading, rendering, and export must not block the WPF UI thread.
+- File rendering is limited to 16,777,216 pixels per frame; retained multi-layer BGRA composition buffers are limited to an estimated 256 MiB before Runtime sessions or output paths are created.
 - Interactive preview and deterministic export use separate timing concerns.
 - Avoid per-frame allocation where measurable.
 

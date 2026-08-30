@@ -299,6 +299,15 @@ try
         false,
         ["default"],
         SceneLayers: [redLayer, blueLayer]);
+    var oversizedCompositeDirectory = Path.Combine(root, "scene-sequence-oversized");
+    Expect<ArgumentOutOfRangeException>(() => assetService.Export(sceneSequenceRequest with
+    {
+        Width = 4096,
+        Height = 4096,
+        OutputDirectory = oversizedCompositeDirectory,
+        SceneLayers = [redLayer, blueLayer, redLayer, blueLayer]
+    }));
+    Assert(!Directory.Exists(oversizedCompositeDirectory), "Oversized composite export created its output directory.");
     var sceneSequence = assetService.Export(sceneSequenceRequest);
     Assert(sceneSequence.FrameCount == 1, "The zero-duration scene export did not produce exactly one frame.");
     var exportedSceneFrame = ReadPngFrame(sceneSequence.OutputPaths.Single());
@@ -702,6 +711,8 @@ try
     {
         openedSession.Session.Render("move", 0.5f, 64, 64, sessionFirst, true, false, ["default"]);
         openedSession.Session.Render("move", 0.5f, 64, 64, sessionSecond, true, false, ["default"]);
+        Expect<ArgumentOutOfRangeException>(() => openedSession.Session.Render(
+            "move", 0.5f, 4097, 4096, Path.Combine(root, "oversized-session.png"), true, false, ["default"]));
     }
     Assert(
         File.ReadAllBytes(sessionFirst).SequenceEqual(File.ReadAllBytes(sessionSecond)),
@@ -721,6 +732,14 @@ try
         false,
         false,
         ["default"]);
+    var oversizedSequenceDirectory = Path.Combine(root, "sequence-oversized");
+    Expect<ArgumentOutOfRangeException>(() => pngService.Export(sequenceRequest with
+    {
+        Width = 4097,
+        Height = 4096,
+        OutputDirectory = oversizedSequenceDirectory
+    }));
+    Assert(!Directory.Exists(oversizedSequenceDirectory), "Oversized sequence export created its output directory.");
     var sequence = pngService.Export(sequenceRequest);
     Assert(sequence.FrameCount == 11 && sequence.OutputPaths.Count == 11, "PNG sequence frame count was not deterministic.");
     Assert(sequence.OutputPaths[0].EndsWith("move-0000.png", StringComparison.Ordinal), "PNG sequence naming was not stable.");
@@ -758,6 +777,10 @@ try
     Assert(
         SHA256.HashData(File.ReadAllBytes(sceneOutputs[0])).SequenceEqual(SHA256.HashData(File.ReadAllBytes(sceneOutputs[1]))),
         "Repeated scene layers did not use the deterministic renderer path.");
+    Expect<ArgumentOutOfRangeException>(() => pngService.RenderScene(
+        [new SceneLayerRenderRequest(pngSkeleton, pngAtlas, null, "move", 0.5f, Path.Combine(root, "oversized-scene.png"), true, false, ["default"])],
+        4097,
+        4096));
 
     var realProject = Path.Combine(root, "real.spineviewer.json");
     var exportPrefix = Path.Combine(root, "exported", "move.png");

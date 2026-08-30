@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted on 2026-07-26 after the TASK-001 prototype produced identical PNG bytes across repeated renders. Amended by TASK-008 to include bounded standard-library PNG texture decoding, by TASK-031 to reuse loaded Runtime resources during CPU playback/export, by TASK-032 to accept Runtime-neutral Track 0 Alpha and per-layer PMA, by TASK-033 to expose a bounded in-memory interactive frame path, by TASK-036 to retain that frame path as fallback/capture while normal RGBA playback moves to the GPU renderer selected by ADR-009, and by TASK-050 to compose those Runtime-neutral frames for multi-layer Screenshot and PNG-sequence output.
+Accepted on 2026-07-26 after the TASK-001 prototype produced identical PNG bytes across repeated renders. Amended by TASK-008 to include bounded standard-library PNG texture decoding, by TASK-031 to reuse loaded Runtime resources during CPU playback/export, by TASK-032 to accept Runtime-neutral Track 0 Alpha and per-layer PMA, by TASK-033 to expose a bounded in-memory interactive frame path, by TASK-036 to retain that frame path as fallback/capture while normal RGBA playback moves to the GPU renderer selected by ADR-009, by TASK-050 to compose those Runtime-neutral frames for multi-layer Screenshot and PNG-sequence output, and by TASK-055 to bound file-render and retained composite frame buffers before allocation.
 
 ## Context
 
@@ -17,6 +17,8 @@ The Application boundary may retain a disposable Runtime adapter session contain
 Treat interlaced or non-8-bit PNG, other production image formats, and full GPU-equation parity beyond the bounded PMA/clipping/blend bridge as explicitly unsupported. TASK-033 permits the same CPU rasterizer to return bounded BGRA pixels with presentation-only bilinear sampling and viewport framing. ADR-009 selects the separate production WPF interactive renderer.
 
 TASK-050 keeps the default single visible identity layer on the established Runtime PNG path. Multi-layer capture/export instead renders each visible layer to a Runtime-neutral BGRA frame and uses one Application-owned standard-library compositor and PNG writer. The compositor applies stable Z ordering, 96-DPI output-pixel transforms, layer opacity, and straight-alpha source-over onto a transparent canvas. Presentation backgrounds and viewport pan/zoom are not file-output inputs.
+
+TASK-055 limits a file-render frame to 16,777,216 pixels. Composite sequence export additionally estimates all visible layer BGRA frames plus the output BGRA frame and rejects retained buffers above 256 MiB before opening Runtime sessions or creating output paths. Sequence frames continue to be rendered and written one at a time.
 
 ## Prototype Evidence
 
