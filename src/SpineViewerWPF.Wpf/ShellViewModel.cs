@@ -886,7 +886,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             sceneLayers.Insert(sceneLayers.IndexOf(source) + 1, duplicate);
             RefreshLayerZIndices();
             SelectedSceneLayer = duplicate;
-            MarkSceneEdited();
+            MarkSceneEditWithoutUndo();
             QueuePreviewRender();
             LastAction = $"Duplicated layer {source.DisplayName}";
         }
@@ -1036,7 +1036,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             {
                 RefreshLayerZIndices();
                 ArrangeSceneLayers();
-                MarkSceneEdited();
+                MarkSceneEditWithoutUndo();
                 if (UseGpuPreview) QueuePreviewRender();
                 else QueueSlotMetadata();
             }
@@ -1060,7 +1060,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         if (sceneLayers.Count < 2) return;
         ArrangeSceneLayers();
-        MarkSceneEdited();
+        MarkSceneEditWithoutUndo();
         LastAction = "Scene layers arranged";
     }
 
@@ -1126,7 +1126,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         Changed(nameof(PreviewFrame));
         Changed(nameof(HasRenderedPreview));
         Changed(nameof(PreviewResolutionLabel));
-        MarkSceneEdited();
+        MarkSceneEditWithoutUndo();
         LastAction = $"Removed layer {layer.DisplayName}";
     }
 
@@ -1136,7 +1136,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         var index = sceneLayers.IndexOf(selectedSceneLayer);
         sceneLayers.Move(index, index + delta);
         RefreshLayerZIndices();
-        MarkSceneEdited();
+        MarkSceneEditWithoutUndo();
     }
 
     private bool CanMoveSelectedLayer(int delta)
@@ -1162,6 +1162,13 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         Changed(nameof(DocumentTitle));
         Changed(nameof(WindowTitle));
         RefreshCommands();
+    }
+
+    private void MarkSceneEditWithoutUndo()
+    {
+        undo.Clear();
+        redo.Clear();
+        MarkSceneEdited();
     }
 
     private void SceneLayerChanged()
@@ -1869,25 +1876,25 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         try
         {
-            SyncPrimaryLayerPlayback();
-            SyncPrimaryLayerTransform();
+            var layers = sceneLayers.Select(layer => layer.ToDocument()).ToArray();
+            var primary = layers.FirstOrDefault();
             projectPath = projectStore.Save(path, new ViewerProjectDocument(
                 ViewerProjectStore.CurrentSchemaVersion,
-                skeletonPath,
-                atlasPath,
-                SelectedAnimation,
-                SelectedSkin,
-                ModelX,
-                ModelY,
-                ModelScale,
-                ModelRotation,
-                FlipX,
-                FlipY,
+                primary?.SkeletonPath ?? skeletonPath,
+                primary?.AtlasPath ?? atlasPath,
+                primary?.Animation ?? SelectedAnimation,
+                primary?.SelectedSkin ?? SelectedSkin,
+                primary?.ModelX ?? ModelX,
+                primary?.ModelY ?? ModelY,
+                primary?.ModelScale ?? ModelScale,
+                primary?.ModelRotation ?? ModelRotation,
+                primary?.FlipX ?? FlipX,
+                primary?.FlipY ?? FlipY,
                 Loop,
                 PlaybackSpeed,
-                sceneLayers.FirstOrDefault()?.TrackAlpha ?? TrackAlpha,
+                primary?.TrackAlpha ?? TrackAlpha,
                 BackgroundMode,
-                sceneLayers.Count == 0 ? null : sceneLayers.Select(layer => layer.ToDocument()).ToArray()));
+                layers.Length == 0 ? null : layers));
             savedSnapshot = Capture();
             sceneDirty = false;
             LastAction = $"Saved {Path.GetFileName(projectPath)}";

@@ -892,16 +892,23 @@ try
         await Task.Delay(10);
     Assert(!realViewModel.IsExporting && File.Exists(Path.Combine(root, "exported", "move-0000.png")), "WPF Export command did not finish a PNG sequence.");
     Assert(realViewModel.LastAction == "Exported 11 frames", "WPF Export command did not use the custom FPS.");
+    realViewModel.BackgroundMode = "Transparent";
+    Assert(realViewModel.UndoCommand.CanExecute(null), "Property edit did not create Undo history before layer import.");
     nextAssetPaths = [pngSkeleton, Path.Combine(fixtureDirectory, "minimal.json")];
     realViewModel.AddLayerCommand.Execute(null);
     for (var attempt = 0; attempt < 200 && realViewModel.SceneLayers.Count < 3; attempt++)
         await Task.Delay(10);
     Assert(realViewModel.SceneLayers.Count == 3, "Batch layer import did not create both additional scene layers.");
     Assert(realViewModel.SceneLayers.All(layer => layer.PreviewFrame is not null), "Scene layer previews were not rendered.");
-    Assert(realViewModel.IsDirty, "Adding a scene layer did not mark the project dirty.");
+    Assert(
+        realViewModel.IsDirty && !realViewModel.UndoCommand.CanExecute(null),
+        "Adding a scene layer did not stay dirty while invalidating incompatible Undo history.");
     Assert(realViewModel.SceneLayers.All(layer => layer.Animations.Contains("move") && layer.Skins.Contains("default")), "Scene layers did not retain independent animation and skin metadata.");
+    realViewModel.BackgroundMode = "Solid";
+    Assert(realViewModel.UndoCommand.CanExecute(null), "Property edit did not create Undo history before auto layout.");
     realViewModel.AutoLayoutCommand.Execute(null);
     Assert(realViewModel.SceneLayers.Select(layer => (Math.Round(layer.ModelX), Math.Round(layer.ModelY))).Distinct().Count() == 3, "Auto layout did not separate scene layers.");
+    Assert(!realViewModel.UndoCommand.CanExecute(null), "Auto layout retained incompatible Undo history.");
     realViewModel.SelectedSceneLayer!.Opacity = 0.5;
     var layerAlphaBefore = FrameHash(realViewModel.SelectedSceneLayer.PreviewFrame);
     realViewModel.SelectedSceneLayer.TrackAlpha = 0.35;
@@ -928,11 +935,17 @@ try
         && realViewModel.SceneLayers[1].TrackAlpha == 0.35
         && realViewModel.SceneLayers[1].Pma,
         "Scene layer reorder did not preserve alpha state.");
+    Assert(!realViewModel.UndoCommand.CanExecute(null), "Scene layer reorder retained incompatible Undo history.");
     realViewModel.ModelX = 12;
+    realViewModel.SceneLayers[0].ModelX = 37;
     realViewModel.SaveCommand.Execute(null);
     var realDocument = store.Load(realProject);
+    Assert(realViewModel.SceneLayers[0].ModelX == 37, "Save mutated the primary layer transform.");
     Assert(realDocument.SkeletonPath == Path.GetFullPath(pngSkeleton), "Real skeleton path was not saved.");
     Assert(realDocument.SceneLayers?.Count == 3, "Saved Viewer project did not preserve scene layers.");
+    Assert(
+        realDocument.ModelX == 37 && realDocument.SceneLayers?[0].ModelX == 37,
+        "Saved Viewer project did not derive legacy transform fields from the current primary layer.");
     Assert(realDocument.SceneLayers?[1].Opacity == 0.5, "Saved Viewer project did not preserve per-layer opacity.");
     Assert(
         realDocument.SceneLayers?[1].TrackAlpha == 0.35 && realDocument.SceneLayers[1].Pma == true,
@@ -955,14 +968,14 @@ try
     Assert(reopenedViewModel.ProjectPath == Path.GetFullPath(realProject), "Reopened project path was not restored.");
     Assert(reopenedViewModel.SceneLayers.Count == 3, "Reopened Viewer project did not restore scene layers.");
     Assert(
-        reopenedViewModel.ModelX == 12
+        reopenedViewModel.ModelX == 37
         && reopenedViewModel.SceneLayers[1].Opacity == 0.5
         && reopenedViewModel.SceneLayers[1].TrackAlpha == 0.35
         && reopenedViewModel.SceneLayers[1].Pma,
         "Reopened Viewer project did not restore alpha edits.");
     Assert(reopenedViewModel.SceneLayers.All(layer => layer.PreviewFrame is not null), "Reopened scene previews were not rendered.");
     await reopenedViewModel.OpenProjectAsync(Path.Combine(root, "missing.spineviewer.json"));
-    Assert(reopenedViewModel.State == WorkspaceState.Ready && reopenedViewModel.SceneLayers.Count == 3 && reopenedViewModel.ModelX == 12,
+    Assert(reopenedViewModel.State == WorkspaceState.Ready && reopenedViewModel.SceneLayers.Count == 3 && reopenedViewModel.ModelX == 37,
         "Failed project open did not preserve the current session.");
 
     realViewModel.ModelY = 4;

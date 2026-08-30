@@ -89,6 +89,8 @@ ViewModels may expose primitives, presentation DTOs, commands, and observable co
 - Undo and Redo operate on project settings, not viewport playback time.
 - Save and Save As target only `*.spineviewer.json`.
 - Successful save clears dirty state; a failed or canceled save preserves it.
+- Save serializes current scene-layer documents without changing live layer state. Schema-version-1 top-level compatibility fields mirror the current primary layer.
+- Add, duplicate, remove, reorder, and auto-layout currently invalidate Undo/Redo history because structural snapshots are not implemented. The project remains dirty until saved or replaced.
 - Closing a dirty project offers Save, Discard, and Cancel.
 - Spine JSON, binary, atlas, and texture sources remain read-only.
 - Per-layer Track 0 Alpha and PMA round-trip in the Viewer sidecar; older schema-version-1 documents use the top-level Track Alpha as the first-layer fallback.
