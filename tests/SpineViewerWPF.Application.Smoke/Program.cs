@@ -659,6 +659,19 @@ try
     File.WriteAllBytes(pngTexture, validPng);
 
     var pngService = assetService;
+    var delayedService = new AssetService(
+        new DelayedRuntimeAdapter(new SpineV41Adapter(), pngSkeleton, TimeSpan.FromMilliseconds(300)));
+    using (var loadRaceViewModel = new ShellViewModel(WorkspaceState.Empty, true, store, assetService: delayedService))
+    {
+        var slowLoad = loadRaceViewModel.OpenAssetAsync(pngSkeleton);
+        await Task.Delay(25);
+        var latestLoad = loadRaceViewModel.OpenAssetAsync(Path.Combine(fixtureDirectory, "minimal.json"));
+        await Task.WhenAll(slowLoad, latestLoad);
+        Assert(
+            loadRaceViewModel.State == WorkspaceState.Ready
+            && loadRaceViewModel.SkeletonFileName == "minimal.json",
+            "A slower earlier asset load replaced the latest user selection.");
+    }
     var pngInspect = pngService.Inspect(pngSkeleton, null, null);
     Assert(pngInspect.Asset.Textures.SequenceEqual([Path.GetFullPath(pngTexture)]), "PNG texture path was not inspected.");
     var declaredSizeDirectory = Path.Combine(root, "declared-atlas-size");
@@ -1198,6 +1211,40 @@ static T Expect<T>(Action action) where T : Exception
     }
 
     throw new InvalidOperationException($"Expected {typeof(T).Name}.");
+}
+
+sealed class DelayedRuntimeAdapter : IRuntimeAdapter
+{
+    private readonly IRuntimeAdapter inner;
+    private readonly string delayedSkeletonPath;
+    private readonly TimeSpan delay;
+
+    public DelayedRuntimeAdapter(IRuntimeAdapter inner, string delayedSkeletonPath, TimeSpan delay)
+    {
+        this.inner = inner;
+        this.delayedSkeletonPath = Path.GetFullPath(delayedSkeletonPath);
+        this.delay = delay;
+    }
+
+    public string RuntimeLine => inner.RuntimeLine;
+
+    public InspectResult Inspect(string skeletonPath, string atlasPath, bool overridden, CancellationToken cancellationToken)
+    {
+        DelayIfNeeded(skeletonPath);
+        return inner.Inspect(skeletonPath, atlasPath, overridden, cancellationToken);
+    }
+
+    public IRuntimeRenderSession OpenSession(string skeletonPath, string atlasPath, CancellationToken cancellationToken)
+    {
+        DelayIfNeeded(skeletonPath);
+        return inner.OpenSession(skeletonPath, atlasPath, cancellationToken);
+    }
+
+    private void DelayIfNeeded(string skeletonPath)
+    {
+        if (!string.Equals(Path.GetFullPath(skeletonPath), delayedSkeletonPath, StringComparison.OrdinalIgnoreCase)) return;
+        if (delay > TimeSpan.Zero) Thread.Sleep(delay);
+    }
 }
 
 sealed class UnsupportedRuntimeAdapter : IRuntimeAdapter

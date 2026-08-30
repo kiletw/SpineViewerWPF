@@ -23,6 +23,8 @@ Empty/Ready
 ```
 
 Preserve the previous Ready asset until replacement succeeds where practical.
+When accepted load requests overlap, only the latest request may update the
+workspace, diagnostics, or state. Older successful results are disposed.
 
 TASK-005 keeps the previous document metadata when a replacement fails. During inspection the UI enters Loading, and then maps unsupported input to Unsupported and other expected open failures to Failed.
 

@@ -90,6 +90,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private int exportCompletedFrames;
     private int exportTotalFrames;
     private int sceneLayerOperationInProgress;
+    private int loadGeneration;
     private CancellationTokenSource? exportCancellation;
     private bool disposed;
     private bool sceneDirty;
@@ -1299,6 +1300,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
         path ??= chooseAssetPath();
         if (path is null || IsDirty && !confirmDiscardChanges()) return;
+        var loadId = Interlocked.Increment(ref loadGeneration);
 
         State = WorkspaceState.Loading;
         stateTitleOverride = $"Opening {Path.GetFileName(path)}";
@@ -1319,14 +1321,21 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 }
                 catch (Exception exception) when (atlasOverride is null && IsAtlasSelectionError(exception))
                 {
+                    if (disposed || loadId != Volatile.Read(ref loadGeneration)) return;
                     atlasOverride = chooseAtlasPath();
                     if (string.IsNullOrWhiteSpace(atlasOverride)) throw;
                 }
+            }
+            if (disposed || loadId != Volatile.Read(ref loadGeneration))
+            {
+                opened.Session?.Dispose();
+                return;
             }
             ApplyAsset(opened.Result, opened.Session, opened.Frame, opened.RenderError);
         }
         catch (NotSupportedException exception)
         {
+            if (disposed || loadId != Volatile.Read(ref loadGeneration)) return;
             SetDiagnostics([new Diagnostic("error", "UNSUPPORTED_ASSET", exception.Message, path)]);
             State = WorkspaceState.Unsupported;
             stateDetailOverride = exception.Message;
@@ -1335,6 +1344,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
+            if (disposed || loadId != Volatile.Read(ref loadGeneration)) return;
             SetDiagnostics([new Diagnostic("error", "OPEN_FAILED", exception.Message, path)]);
             State = WorkspaceState.Failed;
             stateDetailOverride = exception.Message;
@@ -1362,6 +1372,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
         path ??= chooseProjectPathToOpen();
         if (path is null || IsDirty && !confirmDiscardChanges()) return;
+        var loadId = Interlocked.Increment(ref loadGeneration);
 
         var previousState = State;
         State = WorkspaceState.Loading;
@@ -1373,10 +1384,16 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         try
         {
             var loaded = await Task.Run(() => LoadProject(path));
+            if (disposed || loadId != Volatile.Read(ref loadGeneration))
+            {
+                foreach (var item in loaded.Layers) item.Layer.Dispose();
+                return;
+            }
             ApplyProject(path, loaded.Project, loaded.Layers);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
+            if (disposed || loadId != Volatile.Read(ref loadGeneration)) return;
             SetDiagnostics([new Diagnostic("error", "PROJECT_OPEN_FAILED", exception.Message, path)]);
             State = previousState;
             stateDetailOverride = exception.Message;
@@ -1847,6 +1864,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         if (disposed) return;
         disposed = true;
+        Interlocked.Increment(ref loadGeneration);
         playbackTimer.Stop();
         exportCancellation?.Cancel();
         playbackCancellation.Cancel();
