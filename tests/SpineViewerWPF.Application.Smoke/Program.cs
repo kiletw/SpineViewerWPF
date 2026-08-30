@@ -892,6 +892,31 @@ try
         "Playback performance metrics were not published.");
     realViewModel.IsPlaying = false;
     Assert(realViewModel.PreviewPerformanceLabel == "Paused", "Playback performance metrics did not reset when paused.");
+    var previousPreviewFps = realViewModel.PreviewFramesPerSecond;
+    realViewModel.Position = 0;
+    realViewModel.Loop = false;
+    realViewModel.PreviewFramesPerSecond = 1;
+    realViewModel.IsPlaying = true;
+    var lowFpsDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(2.5);
+    var lowFpsFrame = new DispatcherFrame();
+    var lowFpsStop = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(10) };
+    lowFpsStop.Tick += (_, _) =>
+    {
+        if (realViewModel.Position >= 0.75 || DateTime.UtcNow >= lowFpsDeadline)
+        {
+            lowFpsStop.Stop();
+            lowFpsFrame.Continue = false;
+        }
+    };
+    lowFpsStop.Start();
+    Dispatcher.PushFrame(lowFpsFrame);
+    Assert(
+        realViewModel.Position >= 0.75,
+        "A scheduled 1 FPS tick was throttled below real playback cadence.");
+    realViewModel.IsPlaying = false;
+    realViewModel.Loop = true;
+    realViewModel.PreviewFramesPerSecond = previousPreviewFps;
+    realViewModel.Position = 0;
     realViewModel.SetGpuPreviewAvailable(true);
     for (var attempt = 0; attempt < 100 && !realViewModel.HasGpuPreview; attempt++)
         await Task.Delay(10);

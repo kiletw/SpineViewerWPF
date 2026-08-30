@@ -56,6 +56,8 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
 - Preview FPS defaults to 30, accepts 1 through 240, and controls the common GPU
   and CPU playback cadence. It remains independent from Export FPS and does not
   dirty the Viewer project or enter Undo/Redo history.
+  At low rates, the elapsed-time safety clamp permits at least one scheduled
+  frame interval while still bounding delayed UI ticks.
 - Dropping a skeleton opens it directly; a missing or ambiguous atlas offers a
   manual atlas picker before the load is failed.
 - Selected-layer slot visibility, opacity, and named attachment selection are

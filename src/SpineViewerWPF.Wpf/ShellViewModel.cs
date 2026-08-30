@@ -1642,7 +1642,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         }
 
         var now = DateTime.UtcNow;
-        var elapsed = Math.Clamp((now - lastPlaybackTick).TotalSeconds, 0, 0.25);
+        var maximumElapsed = Math.Max(0.25, 1.5 / previewFramesPerSecond);
+        var elapsed = Math.Clamp((now - lastPlaybackTick).TotalSeconds, 0, maximumElapsed);
         lastPlaybackTick = now;
         var next = Position + elapsed * Math.Max(0.01, PlaybackSpeed);
         if (next >= duration)
