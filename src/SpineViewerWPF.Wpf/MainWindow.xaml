@@ -60,6 +60,7 @@
         <SolidColorBrush x:Key="BorderBrush" Color="#2A313B" />
         <SolidColorBrush x:Key="MutedBrush" Color="#929BAD" />
         <SolidColorBrush x:Key="AccentBrush" Color="#58C7AD" />
+        <SolidColorBrush x:Key="AccentForegroundBrush" Color="#07120F" />
         <local:PreviewFrameConverter x:Key="PreviewFrameConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <local:BooleanScaleConverter x:Key="BooleanScaleConverter" />
@@ -94,12 +95,14 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlHoverBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlPressedBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Border" Property="Opacity" Value="0.4" />
+                                <Setter TargetName="Border" Property="Opacity" Value="0.55" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -108,7 +111,7 @@
         </Style>
         <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource ButtonBase}">
             <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
-            <Setter Property="Foreground" Value="#07120F" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentForegroundBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
@@ -216,13 +219,13 @@
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ComboChrome" Property="BorderBrush" Value="#596476" />
+                                <Setter TargetName="ComboChrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                             </Trigger>
                             <Trigger Property="IsKeyboardFocusWithin" Value="True">
                                 <Setter TargetName="ComboChrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.42" />
+                                <Setter Property="Opacity" Value="0.55" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -259,7 +262,7 @@
             </Setter>
         </Style>
         <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="#DDE3EC" />
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
@@ -273,8 +276,8 @@
                             <Border x:Name="Box"
                                     Width="14"
                                     Height="14"
-                                    Background="#10131A"
-                                    BorderBrush="#566071"
+                                    Background="{DynamicResource WindowBrush}"
+                                    BorderBrush="{DynamicResource ControlBorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="2"
                                     VerticalAlignment="Center" />
@@ -293,15 +296,15 @@
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Box" Property="Background" Value="#203E37" />
+                                <Setter TargetName="Box" Property="Background" Value="{DynamicResource SelectionBrush}" />
                                 <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                                 <Setter TargetName="CheckGlyph" Property="Visibility" Value="Visible" />
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Box" Property="BorderBrush" Value="#8AF0D5" />
+                                <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.4" />
+                                <Setter Property="Opacity" Value="0.55" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -339,7 +342,7 @@
                                          Height="14"
                                          Margin="2"
                                          HorizontalAlignment="Left"
-                                         Fill="{DynamicResource MutedTextBrush}" />
+                                         Fill="{DynamicResource MutedBrush}" />
                             </Border>
                         </Grid>
                         <ControlTemplate.Triggers>
@@ -347,13 +350,13 @@
                                 <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentBrush}" />
                                 <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                                 <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right" />
-                                <Setter TargetName="Thumb" Property="Fill" Value="#FFFFFF" />
+                                <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource AccentForegroundBrush}" />
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Track" Property="BorderBrush" Value="#8AF0D5" />
+                                <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.42" />
+                                <Setter Property="Opacity" Value="0.55" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

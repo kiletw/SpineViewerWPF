@@ -4,6 +4,12 @@
 
 Product direction accepted; TASK-029 validates a bounded WPF docking interaction, TASK-030 corrects its binding and production-chrome boundary, TASK-035 establishes the compact dark workspace baseline, TASK-037 adds the first built-in Light theme without a theme toolkit, TASK-043 makes scene-layer selection the single Properties editing context, TASK-044 adds named attachment selection to the Slots workflow, TASK-048 separates desktop commands from panel navigation, and TASK-052 refines the resulting workspace hierarchy.
 
+TASK-053 treats foreground and background as one interactive-state contract.
+Primary buttons use a theme-specific foreground on the accent surface, then
+switch to the normal text brush when their hover or pressed surface changes.
+Checks, switches, and disabled states reuse the same semantic Dark/Light
+resources instead of fixed dark-theme colors.
+
 ## Primary Goal
 
 Minimize the time and decisions between opening a Spine asset and seeing a useful live viewport, while allowing advanced tools to form a Photoshop-style workspace.

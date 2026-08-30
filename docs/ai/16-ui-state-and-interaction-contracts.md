@@ -65,6 +65,8 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
   preview rerendering, and participates in Undo/Redo. The empty attachment
   choice follows animation/setup behavior.
 - Theme selection is a presentation preference with Dark and Light modes.
+- Hover, pressed, selected, checked, and disabled states must update foreground
+  and background together through theme resources so labels remain readable.
 - Fit changes view only.
 - Reset semantics must be explicit: viewport reset and model reset are distinct commands if both exist.
 - Space: play/pause when focus context permits.

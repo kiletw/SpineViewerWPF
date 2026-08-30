@@ -66,6 +66,7 @@ public partial class MainWindow : Window
         SetBrush("BorderBrush", light ? "#C9D0D8" : "#2A313B");
         SetBrush("MutedBrush", light ? "#596676" : "#929BAD");
         SetBrush("AccentBrush", light ? "#197E6B" : "#58C7AD");
+        SetBrush("AccentForegroundBrush", light ? "#FFFFFF" : "#07120F");
         SetBrush("SelectionBrush", light ? "#D3E7E1" : "#25483F");
         SetBrush("SelectionHoverBrush", light ? "#C4DED7" : "#2E5A4F");
         SetBrush("SelectionTextBrush", light ? "#12332D" : "#FFFFFF");

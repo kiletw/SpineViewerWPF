@@ -177,6 +177,25 @@ foreach ($densityToken in $densityTokens) {
 }
 
 $code = Get-Content -LiteralPath $codeBehind -Raw
+$contrastTokens = @(
+    '<SolidColorBrush x:Key="AccentForegroundBrush" Color="#07120F" />',
+    '<Setter Property="Foreground" Value="{DynamicResource AccentForegroundBrush}" />',
+    '<Setter Property="Foreground" Value="{DynamicResource TextBrush}" />',
+    'Background="{DynamicResource WindowBrush}"',
+    'Fill="{DynamicResource MutedBrush}"',
+    '<Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource AccentForegroundBrush}" />',
+    'SetBrush("AccentForegroundBrush", light ? "#FFFFFF" : "#07120F");'
+)
+foreach ($contrastToken in $contrastTokens) {
+    if (-not ($markup.Contains($contrastToken) -or $code.Contains($contrastToken))) {
+        throw "Missing interactive contrast token: $contrastToken"
+    }
+}
+if ($markup.Contains('DynamicResource MutedTextBrush') -or
+    $markup.Contains('<Setter Property="Foreground" Value="#07120F" />')) {
+    throw 'A theme-specific interactive foreground remains in shared control styles.'
+}
+
 if (-not $code.Contains('DataContext = owner.DataContext;')) {
     throw 'Floating panels do not inherit the shell view model.'
 }
