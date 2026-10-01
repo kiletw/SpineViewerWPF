@@ -120,10 +120,14 @@ confirm the path is remembered.
 
 ### Known Gaps
 
-- `libwebp_anim` reports progress only when it finishes, so WebP shows
-  "Encoding 0/N" until the end. MP4 reports during encoding.
+- `libwebp_anim` reported progress only when it finished, so WebP showed
+  "Encoding 0/N" until the end. TBD: whether MP4 reports intermediate encoding
+  progress was not observed.
 - GIF frame delays use 1/100 s units, so FPS above 50 or non-divisors of 100 are
   rounded by FFmpeg.
 - CPU PNG rendering dominates large exports (about 0.5 frames per second for
   191 frames at 2x scale in the manual run); this is the existing export path.
 - APNG and MP4 were exercised by the smoke tests, not through the save dialog.
+- Browse, Use PATH, and the remembered path were verified through the view model
+  and settings file in smoke tests; choosing a path in the real dialog and
+  restarting the app was not done manually.
