@@ -1,6 +1,6 @@
 # TASK-060: Viewport interaction and chrome quick wins
 
-Status: Implemented; automated validation passed on 2026-10-02; manual walkthrough pending.
+Status: Implemented; automated validation passed on 2026-10-02; manual walkthrough found Space/F shortcut gaps (see Manual Walkthrough).
 
 ## Objective
 
@@ -116,7 +116,28 @@ Automated checks passed on the combined TASK-058 through TASK-063 working tree:
 - `scripts/test-ui-shell.ps1`: passed (85 AutomationIds, 8 editor shortcuts,
   25 compact workspace tokens, Slots, slot attachment binding, duplicate layer).
 - `git diff --check`: passed.
-- TBD: the manual walkthrough below has not been performed.
+- Manual walkthrough (2026-10-02) recorded below.
+
+### Manual Walkthrough (2026-10-02)
+
+Environment: Windows 11, single monitor at the system DPI in use (DPI variants and Windows 10 not tested), official spineboy 4.1 `spineboy-pro.json`, GPU backend.
+
+- Passed: wheel zoom keeps the point under the cursor (status 133%); a plain
+  click does not move the view; left-drag and middle-drag pan; double-click
+  fits (status 100%); typing in Filter animations does not fit or toggle
+  playback; Delete in the Speed field keeps the layer; Delete in the Layers
+  list removes the selected layer; Dark and Light native title bars and the
+  floating Browse panel follow the theme.
+- Failed: Space/F are not reliable outside text entry.
+  - With the Microsoft Bopomofo IME in Chinese mode, letters and Space reach
+    `WindowKeyDown` as `Key.ImeProcessed`, so F and Space never fire.
+  - With focus on a Layers list item, the ListBox consumes Space; F works only
+    with the IME in English mode.
+  - After clicking a toolbar button, Space activates that focused button.
+  - Clicking the Layer tab moves keyboard focus into Position X, so the next
+    keys are typed into that field.
+- Not run: 150% DPI, Windows 10, empty-state Open asset, diagnostics button,
+  export cancel.
 
 ### Known Gaps
 

@@ -1,6 +1,6 @@
 # TASK-062: Properties consolidation and Layers footer
 
-Status: Implemented; automated validation passed on 2026-10-02; manual walkthrough pending.
+Status: Implemented; automated validation passed on 2026-10-02; manual walkthrough found a Slots row layout defect (see Manual Walkthrough).
 
 ## Objective
 
@@ -92,7 +92,27 @@ Automated checks passed on the combined TASK-058 through TASK-063 working tree:
 - `scripts/test-ui-shell.ps1`: passed (85 AutomationIds, 8 editor shortcuts,
   25 compact workspace tokens, Slots, slot attachment binding, duplicate layer).
 - `git diff --check`: passed.
-- TBD: the manual walkthrough below has not been performed.
+- Manual walkthrough (2026-10-02) recorded below.
+
+### Manual Walkthrough (2026-10-02)
+
+Environment: Windows 11, single monitor at the system DPI in use (DPI variants and Windows 10 not tested), official spineboy 4.1 `spineboy-pro.json`, GPU backend.
+
+- Passed: three single-row tabs with underline selection; Layer tab
+  sections; viewport overlay Background drop-down applies and View >
+  Background shows the same check; wheel over the overlay and its drop-down
+  does not zoom; View > Theme switches Dark/Light; footer icons show tooltips
+  and Move/Remove disable with one layer; floating Browse panel keeps the
+  footer.
+- Failed: Slots rows clip the opacity column. The Slots `ListBox` keeps
+  horizontal scrolling enabled, so the `*` name column sizes to the longest
+  name and the 46 px opacity column falls outside the panel with no visible
+  scroll bar; focusing an attachment combo box scrolls the list sideways and
+  clips the switches.
+- Observed: in Light theme, menu drop-downs show a dark strip along the right
+  edge.
+- Not run: skin switching (spineboy has only `default`), Dark/Light comparison
+  of every tab.
 
 ### Follow-up Fix (2026-09-28)
 

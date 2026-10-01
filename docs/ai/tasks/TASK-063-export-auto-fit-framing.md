@@ -1,6 +1,6 @@
 # TASK-063: Export auto-fit framing
 
-Status: Implemented; automated validation passed on 2026-10-02; manual export check pending.
+Status: Implemented; automated validation and the `run` auto-fit export check passed on 2026-10-02; remaining manual variants pending.
 
 ## Objective
 
@@ -99,7 +99,14 @@ Scale 0.5 and 2, a two-layer scene with offsets/rotation, and Fixed size 512.
 - `scripts/test-official-v41.ps1 -Offline`: passed.
 - `scripts/test-ui-shell.ps1`: passed.
 - `git diff --check`: passed.
-- TBD: the manual export check above has not been performed.
+- Manual export (2026-10-02, spineboy `run`, Auto fit, scale 1, margin 16,
+  30 FPS): 21 frames, all 665 x 714; the smallest transparent margin across
+  frames is 17 px and the content union is centered (left/right 20 px), so
+  no frame is clipped or rescaled. The UI reported `665 x 714`. Passed.
+- Not run: `jump`, Scale 0.5 and 2, multi-layer offsets/rotation, Fixed size 512.
+- Observed (pre-existing since `f05f3b9`): Screenshot and Export stay
+  disabled after an export completes, because `ExportSequenceAsync` calls
+  `RefreshCommands()` before resetting `exportInProgress`.
 
 ## Known Gaps
 

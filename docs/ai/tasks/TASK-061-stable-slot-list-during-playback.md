@@ -1,6 +1,6 @@
 # TASK-061: Stable Slots list during playback
 
-Status: Implemented; automated validation passed on 2026-10-02; manual playback check pending.
+Status: Completed on 2026-10-02 (automated validation and manual playback check passed).
 
 ## Problem
 
@@ -57,9 +57,12 @@ Automated checks passed on the combined TASK-058 through TASK-063 working tree:
 - `scripts/test-ui-shell.ps1`: passed (85 AutomationIds, 8 editor shortcuts,
   25 compact workspace tokens, Slots, slot attachment binding, duplicate layer).
 - `git diff --check`: passed.
-- TBD: the manual playback check above has not been performed.
+- Manual check (2026-10-02, spineboy `run`, GPU): rows stayed stable while
+  playing; `head` and `gun` switches applied on the first click and disappeared
+  from the viewport; scroll position held; an attachment change applied while
+  playing; Undo restored all three edits. Passed.
 
 ## Known Gaps
 
 - No automated test exercises slot toggles during live playback; the manual
-  check above is still required to confirm the flicker fix.
+  check above is the only evidence for the flicker fix.
