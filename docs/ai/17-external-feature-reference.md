@@ -31,3 +31,25 @@ The documented competitor layout uses fixed left-side model/browser/canvas areas
 ## Adoption Rule
 
 This inventory is not a roadmap. Each adopted capability requires a bounded task, an Application-level contract where use-case logic is involved, and validation against this project's supported Runtime matrix.
+
+## Adoption Roadmap (2026-09-27 review)
+
+Reviewed against `artifacts/competitor-spineviewer` (v0.16.28). Ordered by value
+to the quick-browse and export workflow; each item still needs its own task.
+
+| Priority | Capability | Status / notes |
+|---|---|---|
+| 1 | Export framing: auto-fit to content bounds, margin, scale, fixed size | TASK-063 |
+| 2 | Playback transport: frame step, fast step, restart, full screen, reset view | planned |
+| 3 | Focus/center the selected layer (double-click in Layers) | planned |
+| 4 | Slot batch actions: show/hide all, clear attachment choices, scoped copy | planned |
+| 5 | GIF / WebP / APNG / MP4 export through an external FFmpeg | planned; FFmpeg is an optional user-installed tool |
+| 6 | Folder browser with thumbnails, filtering, and batch import | planned |
+| later | Debug geometry (bounds, bones first), multi-track animation, skin combinations | needs Runtime-neutral contracts across all adapters |
+| later | Direct viewport selection and layer dragging | needs a tool mode; left-drag currently pans |
+| later | Non-PNG textures, nearest filtering, PSD layers, UI language switching, file association | separate compatibility/product tasks |
+| no | Desktop wallpaper, tray residency, auto-start, WorkerW debugging, hit-slot logging | outside the viewer product scope |
+
+Existing differentiators to preserve: Runtime 2.1-4.3 coverage, RGBA/RGB/Alpha
+inspection, Undo/Redo, non-destructive sidecar projects, visible GPU/CPU
+fallback, and per-slot named attachment selection.

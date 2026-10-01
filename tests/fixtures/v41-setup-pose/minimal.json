@@ -1,0 +1,52 @@
+{
+  "skeleton": {
+    "hash": "spineviewerwpf-v41-setup-pose",
+    "spine": "4.1.00",
+    "x": -8,
+    "y": -8,
+    "width": 16,
+    "height": 16
+  },
+  "bones": [
+    {
+      "name": "root"
+    },
+    {
+      "name": "sprite",
+      "parent": "root"
+    }
+  ],
+  "slots": [
+    {
+      "name": "sprite",
+      "bone": "sprite",
+      "attachment": "square"
+    }
+  ],
+  "skins": [
+    {
+      "name": "default",
+      "attachments": {
+        "sprite": {
+          "square": {
+            "width": 16,
+            "height": 16
+          }
+        }
+      }
+    },
+    {
+      "name": "faded",
+      "attachments": {
+        "sprite": {
+          "square": {
+            "width": 16,
+            "height": 16,
+            "color": "ffffff60"
+          }
+        }
+      }
+    }
+  ],
+  "animations": {}
+}

@@ -4,6 +4,8 @@
              xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
+        <sys:String x:Key="Text.TimingPlayback">Timing &amp; Playback</sys:String>
+        <sys:String x:Key="Text.NoAnimations">No animations — setup pose</sys:String>
         <sys:String x:Key="Text.File">_File</sys:String>
         <sys:String x:Key="Text.Edit">_Edit</sys:String>
         <sys:String x:Key="Text.View">_View</sys:String>
@@ -64,7 +66,7 @@
         <sys:String x:Key="Text.FilterAnimations">Filter animations</sys:String>
         <sys:String x:Key="Text.FilterSlots">Filter slots</sys:String>
         <sys:String x:Key="Text.Attachment">Attachment</sys:String>
-        <sys:String x:Key="Text.AnimationAttachment">Animation / setup</sys:String>
+        <sys:String x:Key="Text.AnimationAttachment">Auto</sys:String>
         <sys:String x:Key="Text.Visible">Visible</sys:String>
         <sys:String x:Key="Text.Runtime">Runtime</sys:String>
         <sys:String x:Key="Text.OpenAssetTitle">Open Spine skeleton</sys:String>
@@ -93,6 +95,26 @@
         <sys:String x:Key="Text.Theme">Theme</sys:String>
         <sys:String x:Key="Text.Project">Project</sys:String>
         <sys:String x:Key="Text.ProjectPath">Project path</sys:String>
+        <sys:String x:Key="Text.LayerTab">Layer</sys:String>
+        <sys:String x:Key="Text.Position">Position</sys:String>
+        <sys:String x:Key="Text.RenderSection">RENDER</sys:String>
+        <sys:String x:Key="Text.AttachmentHint">Attachment. Auto follows the animation and setup pose.</sys:String>
+        <sys:String x:Key="Text.SlotOpacity">Slot opacity (0-1)</sys:String>
+        <sys:String x:Key="Text.ViewOptions">View options</sys:String>
+        <sys:String x:Key="Text.BackgroundCheckerboard">Checkerboard</sys:String>
+        <sys:String x:Key="Text.BackgroundDark">Dark</sys:String>
+        <sys:String x:Key="Text.BackgroundLight">Light</sys:String>
+        <sys:String x:Key="Text.ThemeDark">Dark</sys:String>
+        <sys:String x:Key="Text.ThemeLight">Light</sys:String>
+        <sys:String x:Key="Text.ExportSettings">Export</sys:String>
+        <sys:String x:Key="Text.ExportSize">Size</sys:String>
+        <sys:String x:Key="Text.ExportSizeHint">Auto fit sizes the PNG sequence to the animated content across all frames; Fixed size uses the width and height below.</sys:String>
+        <sys:String x:Key="Text.ExportScale">Scale</sys:String>
+        <sys:String x:Key="Text.ExportScaleHint">Output pixels per skeleton unit. 1 keeps the authored size; 2 doubles the resolution.</sys:String>
+        <sys:String x:Key="Text.ExportMargin">Margin (px)</sys:String>
+        <sys:String x:Key="Text.ExportWidth">Width (px)</sys:String>
+        <sys:String x:Key="Text.ExportHeight">Height (px)</sys:String>
+        <sys:String x:Key="Text.ZoomHint">Viewport zoom. Wheel zooms at the cursor; drag or middle-drag pans; double-click or F fits.</sys:String>
         <sys:String x:Key="Text.PerformanceHint">Published animation updates, average preview work time, and coalesced updates during the last sample window.</sys:String>
         <sys:String x:Key="Text.Window">_Window</sys:String>
         <sys:String x:Key="Text.ToggleBrowse">Show/Hide Browse panel</sys:String>

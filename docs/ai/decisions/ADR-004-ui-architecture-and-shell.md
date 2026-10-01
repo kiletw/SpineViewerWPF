@@ -26,4 +26,7 @@ The primary user need is quick viewing, not a persistent export studio. v2 also 
 - Advanced and export workflows remain available without dominating the main UI.
 - Presentation DTO/state mapping is required.
 - The fake-state shell proves workflow and presentation only; live Runtime/renderer integration remains separate.
-- Per-asset persistence needs a project-owned storage policy when the real session use case is implemented.
+- TASK-059 implements memory within one Shell/workspace lifetime using the
+  existing full skeleton path identity. Direct open/reload restores valid values;
+  missing values fall back to first available animation/skin or setup pose.
+  Sidecar state takes precedence. Cross-launch disk persistence remains deferred.

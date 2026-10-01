@@ -27,6 +27,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private const int ExportSize = 512;
     private const int MaxPreviewWidth = 1536;
     private const int MaxPreviewHeight = 1024;
+    private const double MinViewportZoom = 0.1;
+    private const double MaxViewportZoom = 8;
+    private const double MaxViewportPan = 20000;
     private static readonly string[] DefaultAnimations = ["idle", "walk", "attack", "victory"];
     private static readonly string[] DefaultSkins = ["default", "armor", "shadow"];
     private static readonly IReadOnlyDictionary<WorkspaceState, StateDefinition> Definitions =
@@ -91,6 +94,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private int exportTotalFrames;
     private int sceneLayerOperationInProgress;
     private int loadGeneration;
+    private readonly Dictionary<string, (string Animation, string Skin)> assetSelections = new(StringComparer.OrdinalIgnoreCase);
     private CancellationTokenSource? exportCancellation;
     private bool disposed;
     private bool sceneDirty;
@@ -112,6 +116,12 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private double playbackSpeed = 1;
     private double previewFramesPerSecond = 30;
     private double exportFramesPerSecond = 30;
+    private string exportSizeMode = "Auto fit";
+    private int exportWidth = ExportSize;
+    private int exportHeight = ExportSize;
+    private double exportScale = 1;
+    private int exportMargin = 16;
+    private string lastExportSize = "";
     private double trackAlpha = 1;
     private string backgroundMode = "Checkerboard";
     private string themeMode = "Dark";
@@ -201,7 +211,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         ScreenshotCommand = new RelayCommand(
             CaptureScreenshot,
             () => HasRenderedPreview
-                && CanPlay
+                && Definition.CanPlay
                 && !IsExporting
                 && Volatile.Read(ref screenshotInProgress) == 0
                 && Volatile.Read(ref exportInProgress) == 0
@@ -242,12 +252,14 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             Changed();
             Changed(nameof(HasSelectedSceneLayer));
             Changed(nameof(FilteredAnimations));
+            Changed(nameof(HasNoAnimations));
             Changed(nameof(Duration));
             Changed(nameof(PlaybackTimeLabel));
             RefreshCommands();
         }
     }
     public bool HasSelectedSceneLayer => selectedSceneLayer is not null;
+    public bool HasNoAnimations => HasSelectedSceneLayer && selectedSceneLayer!.Animations.Count == 0;
     public IReadOnlyList<string> BackgroundModes { get; } = ["Checkerboard", "Dark", "Light"];
     public IReadOnlyList<string> ThemeModes { get; } = ["Dark", "Light"];
     public IReadOnlyList<string> PreviewChannels { get; } = ["RGBA", "RGB", "Alpha"];
@@ -291,7 +303,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             state = value;
             stateTitleOverride = null;
             stateDetailOverride = null;
-            isPlaying = value is WorkspaceState.Ready or WorkspaceState.ReadyWithWarnings;
+            isPlaying = (value is WorkspaceState.Ready or WorkspaceState.ReadyWithWarnings) && Duration > 0;
             isDiagnosticsVisible = false;
             lastPlaybackTick = DateTime.UtcNow;
             position = 0;
@@ -488,6 +500,95 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    // TASK-063: export framing is a session preference like Export FPS; it does
+    // not dirty the Viewer project or enter Undo/Redo history.
+    public IReadOnlyList<string> ExportSizeModes { get; } = ["Auto fit", "Fixed size"];
+
+    public string ExportSizeMode
+    {
+        get => exportSizeMode;
+        set
+        {
+            var next = ExportSizeModes.Contains(value, StringComparer.Ordinal) ? value : "Auto fit";
+            if (exportSizeMode == next) return;
+            exportSizeMode = next;
+            Changed();
+            Changed(nameof(IsExportAutoFit));
+            Changed(nameof(IsExportFixedSize));
+            Changed(nameof(ExportSizeSummary));
+        }
+    }
+
+    public bool IsExportAutoFit => exportSizeMode == "Auto fit";
+    public bool IsExportFixedSize => !IsExportAutoFit;
+
+    public int ExportWidth
+    {
+        get => exportWidth;
+        set
+        {
+            var next = Math.Clamp(value, 1, 4096);
+            if (exportWidth == next) return;
+            exportWidth = next;
+            Changed();
+            Changed(nameof(ExportSizeSummary));
+        }
+    }
+
+    public int ExportHeight
+    {
+        get => exportHeight;
+        set
+        {
+            var next = Math.Clamp(value, 1, 4096);
+            if (exportHeight == next) return;
+            exportHeight = next;
+            Changed();
+            Changed(nameof(ExportSizeSummary));
+        }
+    }
+
+    public double ExportScale
+    {
+        get => exportScale;
+        set
+        {
+            var next = Math.Clamp(double.IsFinite(value) ? value : 1, 0.01, 16);
+            if (Math.Abs(exportScale - next) < 0.0001) return;
+            exportScale = next;
+            Changed();
+            Changed(nameof(ExportSizeSummary));
+        }
+    }
+
+    public int ExportMargin
+    {
+        get => exportMargin;
+        set
+        {
+            var next = Math.Clamp(value, 0, 1024);
+            if (exportMargin == next) return;
+            exportMargin = next;
+            Changed();
+            Changed(nameof(ExportSizeSummary));
+        }
+    }
+
+    public string LastExportSize
+    {
+        get => lastExportSize;
+        private set
+        {
+            if (lastExportSize == value) return;
+            lastExportSize = value;
+            Changed();
+        }
+    }
+
+    public string ExportSizeSummary => IsExportAutoFit
+        ? $"Auto fit · {exportScale:0.##}× · {exportMargin}px margin"
+        : $"{exportWidth} × {exportHeight}";
+
     public double PreviewFramesPerSecond
     {
         get => previewFramesPerSecond;
@@ -568,7 +669,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public bool HasPrototypePreview => HasPreview && isPrototypePreview;
     public bool CanPlay => Definition.CanPlay && sceneLayers.Count > 0 && Duration > 0;
     public bool CanExport => assetService is not null
-        && CanPlay
+        && HasRenderedPreview && Definition.CanPlay
         && !IsExporting
         && Volatile.Read(ref screenshotInProgress) == 0
         && Volatile.Read(ref exportInProgress) == 0;
@@ -620,6 +721,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public double PreviewX => ModelX * ViewportZoom + ViewportPanX;
     public double PreviewY => ModelY * ViewportZoom + ViewportPanY;
     public double ViewportZoom => viewportZoom;
+    public string ViewportZoomLabel => $"{Math.Round(viewportZoom * 100):0}%";
     public double ViewportPanX => viewportPanX;
     public double ViewportPanY => viewportPanY;
     public double PreviewScaleX => ModelScale * ViewportZoom * (FlipX ? -1 : 1);
@@ -669,21 +771,36 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public void ZoomViewport(double factor)
     {
         if (!double.IsFinite(factor) || factor <= 0) return;
-        var next = Math.Clamp(viewportZoom * factor, 0.25, 4);
+        var next = Math.Clamp(viewportZoom * factor, MinViewportZoom, MaxViewportZoom);
         if (Math.Abs(viewportZoom - next) < 0.001) return;
         viewportZoom = next;
-        Changed(string.Empty);
+        NotifyViewportChanged();
+    }
+
+    // TASK-060: zoom around a point given in device-independent pixels relative
+    // to the viewport center, so the content under the cursor stays in place.
+    public void ZoomViewportAt(double factor, double anchorX, double anchorY)
+    {
+        if (!double.IsFinite(factor) || factor <= 0
+            || !double.IsFinite(anchorX) || !double.IsFinite(anchorY)) return;
+        var next = Math.Clamp(viewportZoom * factor, MinViewportZoom, MaxViewportZoom);
+        if (Math.Abs(viewportZoom - next) < 0.001) return;
+        var applied = next / viewportZoom;
+        viewportZoom = next;
+        viewportPanX = Math.Clamp(anchorX - (anchorX - viewportPanX) * applied, -MaxViewportPan, MaxViewportPan);
+        viewportPanY = Math.Clamp(anchorY - (anchorY - viewportPanY) * applied, -MaxViewportPan, MaxViewportPan);
+        NotifyViewportChanged();
     }
 
     public void PanViewport(double deltaX, double deltaY)
     {
         if (!double.IsFinite(deltaX) || !double.IsFinite(deltaY)) return;
-        var nextX = Math.Clamp(viewportPanX + deltaX, -5000, 5000);
-        var nextY = Math.Clamp(viewportPanY + deltaY, -5000, 5000);
+        var nextX = Math.Clamp(viewportPanX + deltaX, -MaxViewportPan, MaxViewportPan);
+        var nextY = Math.Clamp(viewportPanY + deltaY, -MaxViewportPan, MaxViewportPan);
         var changed = Math.Abs(viewportPanX - nextX) >= 0.001 || Math.Abs(viewportPanY - nextY) >= 0.001;
         viewportPanX = nextX;
         viewportPanY = nextY;
-        if (changed) Changed(string.Empty);
+        if (changed) NotifyViewportChanged();
     }
 
     private void FitViewport()
@@ -691,8 +808,22 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         var changed = Math.Abs(viewportZoom - 1) >= 0.001 || Math.Abs(viewportPanX) >= 0.001 || Math.Abs(viewportPanY) >= 0.001;
         viewportZoom = 1;
         viewportPanX = viewportPanY = 0;
-        if (changed) Changed(string.Empty);
+        if (changed) NotifyViewportChanged();
         LastAction = "Viewport fitted";
+    }
+
+    // Raise only viewport-derived properties instead of refreshing every binding
+    // on each wheel or drag step.
+    private void NotifyViewportChanged()
+    {
+        Changed(nameof(ViewportZoom));
+        Changed(nameof(ViewportZoomLabel));
+        Changed(nameof(ViewportPanX));
+        Changed(nameof(ViewportPanY));
+        Changed(nameof(PreviewX));
+        Changed(nameof(PreviewY));
+        Changed(nameof(PreviewScaleX));
+        Changed(nameof(PreviewScaleY));
     }
 
     private void ToggleDiagnostics()
@@ -961,14 +1092,14 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         {
             var opened = assetService!.OpenRenderSession(document.SkeletonPath, document.AtlasPath, document.RuntimeOverride);
             session = opened.Session;
-            var animation = opened.Inspection.Animations.Any(item => item.Name == document.Animation)
+            var animation = document.Animation == "" || opened.Inspection.Animations.Any(item => item.Name == document.Animation)
                 ? document.Animation
                 : opened.Inspection.Animations.FirstOrDefault()?.Name
-                    ?? throw new InvalidDataException("The current renderer requires an animation.");
+                    ?? "";
             var skin = opened.Inspection.Skins.Contains(document.SelectedSkin, StringComparer.Ordinal)
                 ? document.SelectedSkin
                 : opened.Inspection.Skins.FirstOrDefault() ?? "default";
-            var duration = opened.Inspection.Animations.First(item => item.Name == animation).DurationSeconds;
+            var duration = opened.Inspection.Animations.FirstOrDefault(item => item.Name == animation)?.DurationSeconds ?? 0;
             var normalized = document with { Animation = animation, SelectedSkin = skin, ZIndex = zIndex };
             var frame = session.RenderFrame(
                 animation,
@@ -1022,7 +1153,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             {
                 try
                 {
-                    var layer = await Task.Run(() => InspectAndRenderLayer(path));
+                    RememberCurrentSelections();
+                    assetSelections.TryGetValue(Path.GetFullPath(path), out var remembered);
+                    var layer = await Task.Run(() => InspectAndRenderLayer(path, remembered));
                     sceneLayers.Add(layer);
                     SelectedSceneLayer = layer;
                     added++;
@@ -1080,7 +1213,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    private SceneLayerViewModel InspectAndRenderLayer(string path)
+    private SceneLayerViewModel InspectAndRenderLayer(string path, (string? Animation, string? Skin) remembered)
     {
         AssetRenderSession? session = null;
         try
@@ -1088,19 +1221,19 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             var opened = assetService!.OpenRenderSession(path, null, null);
             session = opened.Session;
             var result = opened.Inspection;
-            var animation = result.Animations.FirstOrDefault()
-                ?? throw new InvalidDataException("The current renderer requires an animation.");
-            var skin = result.Skins.FirstOrDefault() ?? "default";
+            var selection = ResolveSelection(result, remembered);
+            var animation = result.Animations.FirstOrDefault(item => item.Name == selection.Animation);
+            var skin = selection.Skin;
             var frame = session.RenderFrame(
-                animation.Name,
-                animation.DurationSeconds / 2,
+                selection.Animation,
+                (animation?.DurationSeconds ?? 0) / 2,
                 previewPixelWidth,
                 previewPixelHeight,
                 false,
                 [skin]);
             return new SceneLayerViewModel(
                 result,
-                animation.Name,
+                selection.Animation,
                 skin,
                 frame,
                 session,
@@ -1174,6 +1307,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     private void SceneLayerChanged()
     {
+        RememberCurrentSelections();
         MarkSceneEdited();
         Changed(nameof(Duration));
         Changed(nameof(PlaybackTimeLabel));
@@ -1190,13 +1324,31 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     private void SyncPrimaryLayerPlayback()
     {
-        if (sceneLayers.FirstOrDefault() is { } layer && SelectedAnimation is { } animation)
-            layer.SetPlayback(animation, SelectedSkin);
+        if (sceneLayers.FirstOrDefault() is { } layer)
+            layer.SetPlayback(SelectedAnimation ?? "", SelectedSkin);
+        RememberCurrentSelections();
     }
 
     private void SyncPrimaryLayerTransform()
     {
         sceneLayers.FirstOrDefault()?.SetTransform(ModelX, ModelY, ModelScale, ModelRotation, FlipX, FlipY);
+    }
+
+    private static (string Animation, string Skin) ResolveSelection(
+        InspectResult result, (string? Animation, string? Skin) remembered) => (
+        result.Animations.Any(item => item.Name == remembered.Animation)
+            ? remembered.Animation! : result.Animations.FirstOrDefault()?.Name ?? "",
+        result.Skins.Contains(remembered.Skin, StringComparer.Ordinal)
+            ? remembered.Skin! : result.Skins.FirstOrDefault() ?? "default");
+
+    private void RememberCurrentSelections()
+    {
+        // Only live, successfully applied layers participate. Selected layer wins
+        // when the same canonical asset path occurs more than once.
+        foreach (var layer in sceneLayers)
+            assetSelections[layer.SkeletonPath] = (layer.Animation, layer.SelectedSkin);
+        if (selectedSceneLayer is { } selected && sceneLayers.Contains(selected))
+            assetSelections[selected.SkeletonPath] = (selected.Animation, selected.SelectedSkin);
     }
 
     private void ClearSceneLayers()
@@ -1233,11 +1385,11 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 skeletonPath,
                 atlasPath,
                 runtimeLine,
-                SelectedSceneLayer?.Animation ?? SelectedAnimation ?? throw new InvalidOperationException("Animation is required."),
+                SelectedSceneLayer?.Animation ?? SelectedAnimation ?? "",
                 (float)Duration,
                 (float)ExportFramesPerSecond,
-                ExportSize,
-                ExportSize,
+                IsExportAutoFit ? ExportSize : ExportWidth,
+                IsExportAutoFit ? ExportSize : ExportHeight,
                 Path.GetDirectoryName(output) ?? ".",
                 Path.GetFileName(output),
                 false,
@@ -1247,7 +1399,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                     : [primaryLayer?.SelectedSkin ?? SelectedSkin],
                 (float)(primaryLayer?.TrackAlpha ?? 1),
                 primaryLayer?.SlotDisplaySettings,
-                sceneLayerSnapshot);
+                sceneLayerSnapshot,
+                IsExportAutoFit ? new ExportFraming((float)ExportScale, ExportMargin) : null);
             var progress = new Progress<AnimationExportProgress>(value =>
             {
                 exportCompletedFrames = value.CompletedFrames;
@@ -1259,6 +1412,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 () => assetService!.Export(request, cancellation.Token, progress),
                 cancellation.Token);
             LastAction = $"Exported {result.FrameCount} frames";
+            if (result.Width > 0 && result.Height > 0)
+                LastExportSize = $"{result.Width} × {result.Height}";
         }
         catch (OperationCanceledException)
         {
@@ -1300,6 +1455,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
         path ??= chooseAssetPath();
         if (path is null || IsDirty && !confirmDiscardChanges()) return;
+        RememberCurrentSelections();
         var loadId = Interlocked.Increment(ref loadGeneration);
 
         State = WorkspaceState.Loading;
@@ -1310,13 +1466,14 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
         try
         {
+            assetSelections.TryGetValue(Path.GetFullPath(path), out var remembered);
             string? atlasOverride = atlasPath;
-            (InspectResult Result, AssetRenderSession? Session, RenderedFrame? Frame, string? RenderError) opened;
+            (InspectResult Result, AssetRenderSession? Session, RenderedFrame? Frame, string? RenderError, string Animation, string Skin) opened;
             while (true)
             {
                 try
                 {
-                    opened = await Task.Run(() => InspectAndRender(path, atlasOverride));
+                    opened = await Task.Run(() => InspectAndRender(path, atlasOverride, remembered));
                     break;
                 }
                 catch (Exception exception) when (atlasOverride is null && IsAtlasSelectionError(exception))
@@ -1331,7 +1488,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 opened.Session?.Dispose();
                 return;
             }
-            ApplyAsset(opened.Result, opened.Session, opened.Frame, opened.RenderError);
+            ApplyAsset(opened.Result, opened.Session, opened.Frame, opened.RenderError, opened.Animation, opened.Skin);
+            RememberCurrentSelections();
         }
         catch (NotSupportedException exception)
         {
@@ -1372,6 +1530,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
         path ??= chooseProjectPathToOpen();
         if (path is null || IsDirty && !confirmDiscardChanges()) return;
+        RememberCurrentSelections();
         var loadId = Interlocked.Increment(ref loadGeneration);
 
         var previousState = State;
@@ -1390,6 +1549,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 return;
             }
             ApplyProject(path, loaded.Project, loaded.Layers);
+            RememberCurrentSelections();
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -1411,7 +1571,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 project.SkeletonPath,
                 project.AtlasPath,
                 null,
-                project.SelectedAnimation ?? "idle",
+                project.SelectedAnimation ?? "",
                 project.SelectedSkin,
                 project.ModelX,
                 project.ModelY,
@@ -1437,14 +1597,14 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                         document.AtlasPath,
                         document.RuntimeOverride);
                     session = opened.Session;
-                    var animation = opened.Inspection.Animations.Any(item => item.Name == document.Animation)
+                    var animation = document.Animation == "" || opened.Inspection.Animations.Any(item => item.Name == document.Animation)
                         ? document.Animation
                         : opened.Inspection.Animations.FirstOrDefault()?.Name
-                            ?? throw new InvalidDataException("The current renderer requires an animation.");
+                            ?? "";
                     var skin = opened.Inspection.Skins.Contains(document.SelectedSkin, StringComparer.Ordinal)
                         ? document.SelectedSkin
                         : opened.Inspection.Skins.FirstOrDefault() ?? "default";
-                    var duration = opened.Inspection.Animations.First(item => item.Name == animation).DurationSeconds;
+                    var duration = opened.Inspection.Animations.FirstOrDefault(item => item.Name == animation)?.DurationSeconds ?? 0;
                     var layerTrackAlpha = document.TrackAlpha ?? (documentIndex == 0 ? project.TrackAlpha : 1);
                     var layerPma = document.Pma ?? false;
                     var frame = session.RenderFrame(
@@ -1562,14 +1722,14 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         RefreshCommands();
     }
 
-    private (InspectResult Result, AssetRenderSession? Session, RenderedFrame? Frame, string? RenderError) InspectAndRender(
+    private (InspectResult Result, AssetRenderSession? Session, RenderedFrame? Frame, string? RenderError, string Animation, string Skin) InspectAndRender(
         string path,
-        string? atlasPathOverride = null)
+        string? atlasPathOverride,
+        (string? Animation, string? Skin) remembered)
     {
         var result = assetService!.Inspect(path, atlasPathOverride, null);
-        var animation = result.Animations.FirstOrDefault();
-        if (animation is null)
-            return (result, null, null, "The current renderer requires an animation.");
+        var selection = ResolveSelection(result, remembered);
+        var duration = result.Animations.FirstOrDefault(item => item.Name == selection.Animation)?.DurationSeconds ?? 0;
 
         AssetRenderSession? session = null;
         try
@@ -1579,22 +1739,22 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 result.Asset.AtlasPath,
                 result.Runtime.SelectedLine).Session;
             var frame = session.RenderFrame(
-                animation.Name,
-                animation.DurationSeconds / 2,
+                selection.Animation,
+                duration / 2,
                 previewPixelWidth,
                 previewPixelHeight,
                 false,
-                result.Skins.Take(1).ToArray());
-            return (result, session, frame, null);
+                result.Skins.Count == 0 ? [] : [selection.Skin]);
+            return (result, session, frame, null, selection.Animation, selection.Skin);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             session?.Dispose();
-            return (result, null, null, exception.Message);
+            return (result, null, null, exception.Message, selection.Animation, selection.Skin);
         }
     }
 
-    private void ApplyAsset(InspectResult result, AssetRenderSession? session, RenderedFrame? frame, string? renderError)
+    private void ApplyAsset(InspectResult result, AssetRenderSession? session, RenderedFrame? frame, string? renderError, string animation, string skin)
     {
         ClearSceneLayers();
         isPrototypePreview = false;
@@ -1607,13 +1767,13 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         SetDiagnostics(renderError is null
             ? result.Diagnostics
             : [.. result.Diagnostics, new Diagnostic("error", "RENDER_FAILED", renderError, result.Asset.SkeletonPath)]);
-        selectedAnimation = animations.FirstOrDefault();
-        selectedSkin = skinNames[0];
-        if (renderError is null && session is not null && frame is not null && selectedAnimation is not null)
+        selectedAnimation = animation.Length == 0 ? null : animation;
+        selectedSkin = skin;
+        if (renderError is null && session is not null && frame is not null)
         {
             var layer = new SceneLayerViewModel(
                 result,
-                selectedAnimation,
+                selectedAnimation ?? "",
                 selectedSkin,
                 frame,
                 session,
@@ -1687,7 +1847,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     private void QueuePreviewRender()
     {
-        if (disposed || assetService is null || !HasRenderedPreview || !CanPlay) return;
+        if (disposed || assetService is null || !HasRenderedPreview || !Definition.CanPlay) return;
         if (Interlocked.Exchange(ref previewRenderInProgress, 1) != 0)
         {
             if (IsPlaying) Interlocked.Increment(ref previewMetricCoalescedFrames);

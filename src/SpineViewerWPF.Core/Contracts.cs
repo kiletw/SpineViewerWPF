@@ -26,6 +26,8 @@ public sealed record InspectResult(
     IReadOnlyList<Diagnostic> Diagnostics,
     IReadOnlyList<SlotDescriptor>? Slots = null);
 
+// Render and scene-layer Animation values use an empty string for setup pose.
+// Named animations must exist; null is reserved for the Shell/project selection.
 public sealed record RenderRequest(
     string SkeletonPath,
     string AtlasPath,
@@ -40,6 +42,11 @@ public sealed record RenderRequest(
     float TrackAlpha = 1,
     IReadOnlyList<SlotDisplayDocument>? Slots = null);
 
+// Fixed framing for one rendered frame: the skeleton-space point drawn at the
+// frame center and the output pixels per skeleton unit. Null keeps the renderer's
+// automatic bounds fit.
+public sealed record RenderCamera(float CenterX, float CenterY, float Scale);
+
 public sealed record FrameRenderRequest(
     string Animation,
     float TimeSeconds,
@@ -49,7 +56,8 @@ public sealed record FrameRenderRequest(
     IReadOnlyList<string> Skins,
     float TrackAlpha = 1,
     bool LinearFiltering = true,
-    IReadOnlyList<SlotDisplayDocument>? Slots = null);
+    IReadOnlyList<SlotDisplayDocument>? Slots = null,
+    RenderCamera? Camera = null);
 
 public sealed record RenderedFrame(int Width, int Height, byte[] Bgra32);
 
@@ -152,12 +160,20 @@ public sealed record AnimationExportRequest(
     IReadOnlyList<string> Skins,
     float TrackAlpha = 1,
     IReadOnlyList<SlotDisplayDocument>? Slots = null,
-    IReadOnlyList<SceneLayerDocument>? SceneLayers = null);
+    IReadOnlyList<SceneLayerDocument>? SceneLayers = null,
+    ExportFraming? Framing = null);
+
+// Auto-fit export framing: the output size follows the union of the visible
+// content bounds across every exported frame, rendered at Scale output pixels per
+// skeleton unit, plus Margin transparent pixels on each side.
+public sealed record ExportFraming(float Scale = 1, int Margin = 0);
 
 public sealed record AnimationExportResult(
     IReadOnlyList<string> OutputPaths,
     int FrameCount,
-    float DurationSeconds);
+    float DurationSeconds,
+    int Width = 0,
+    int Height = 0);
 
 public readonly record struct AnimationExportProgress(int CompletedFrames, int TotalFrames);
 

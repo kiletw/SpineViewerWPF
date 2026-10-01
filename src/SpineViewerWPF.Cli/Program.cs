@@ -82,7 +82,7 @@ static class Cli
             skeleton,
             options.Get("atlas"),
             options.Get("runtime"),
-            options.Require("animation"),
+            options.Get("animation") ?? (inspection.Animations.Count == 0 ? "" : options.Require("animation")),
             ParseFloat(options.Require("time"), "time"),
             ParseInt(options.Get("width") ?? "512", "width"),
             ParseInt(options.Get("height") ?? "512", "height"),

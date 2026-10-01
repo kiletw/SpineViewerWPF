@@ -163,9 +163,15 @@ internal static class CpuRenderer
         PngWriter.Write(outputPath, width, height, pixels, overwrite);
     }
 
-    public static RenderedFrame RenderFrame(Skeleton skeleton, int width, int height, bool pma, bool linearFiltering)
+    public static RenderedFrame RenderFrame(
+        Skeleton skeleton,
+        int width,
+        int height,
+        bool pma,
+        bool linearFiltering,
+        RenderCamera camera = null)
     {
-        var pixels = RasterizeScene(skeleton, width, height, pma, linearFiltering, true);
+        var pixels = RasterizeScene(skeleton, width, height, pma, linearFiltering, true, camera);
         var bgra = new byte[pixels.Length * 4];
         for (var index = 0; index < pixels.Length; index++)
         {
@@ -326,7 +332,8 @@ internal static class CpuRenderer
         int height,
         bool pma,
         bool linearFiltering,
-        bool fitViewport)
+        bool fitViewport,
+        RenderCamera camera = null)
     {
         var pixels = new Pixel[width * height];
         var boundsBuffer = Array.Empty<float>();
@@ -351,6 +358,15 @@ internal static class CpuRenderer
         if (!float.IsFinite(viewScale) || viewScale <= 0) viewScale = 1;
         var viewCenterX = shouldFit ? boundsX + boundsWidth / 2 : 0;
         var viewCenterY = shouldFit ? boundsY + boundsHeight / 2 : 0;
+        // TASK-063: a fixed export camera replaces the per-frame fit so exported
+        // frames share one framing and do not rescale or recenter over time.
+        if (camera != null && float.IsFinite(camera.CenterX) && float.IsFinite(camera.CenterY)
+            && float.IsFinite(camera.Scale) && camera.Scale > 0)
+        {
+            viewScale = camera.Scale;
+            viewCenterX = camera.CenterX;
+            viewCenterY = camera.CenterY;
+        }
 #if !SPINE_LEGACY_NO_CLIPPING
         var clipper = new SkeletonClipping();
 #endif

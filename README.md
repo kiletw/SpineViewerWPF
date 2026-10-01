@@ -7,7 +7,7 @@ multiple historical Runtime versions.
 
 ## Features
 
-- Detects and loads Spine exports from `2.1.08` through `4.2` using isolated
+- Detects and loads Spine exports from `2.1.08` through `4.3` using isolated
   Runtime adapters.
 - Uses an OpenTK GPU viewport for normal RGBA playback and falls back to the
   CPU renderer when GPU initialization or rendering is unavailable.
@@ -17,6 +17,10 @@ multiple historical Runtime versions.
   dependencies, and allows manual atlas recovery.
 - Provides animation/skin selection, playback and preview FPS controls,
   pan/zoom/fit, multiple scene layers, Dark/Light themes, and renderer metrics.
+- Shows setup pose for assets without animations; skins, layers, sidecar save,
+  screenshots, and one-frame static export remain available.
+- Remembers animation/skin per canonical asset path within the current workspace
+  session; explicit sidecar selections take precedence.
 - Stores non-destructive layer, transform, slot visibility/opacity, and named
   attachment settings in versioned `*.spineviewer.json` sidecars.
 
@@ -24,7 +28,7 @@ Supported Runtime selections:
 
 ```text
 2.1.08  2.1.25  3.1.07  3.2.xx  3.4.02  3.5.51  3.6.32
-3.6.39  3.6.53  3.7.94  3.8.95  4.0.31  4.0.64  4.1  4.2
+3.6.39  3.6.53  3.7.94  3.8.95  4.0.31  4.0.64  4.1  4.2  4.3
 ```
 
 ## Requirements
@@ -59,7 +63,9 @@ dotnet run --project src/SpineViewerWPF.Cli/SpineViewerWPF.Cli.csproj -c Release
 ```
 
 The `--runtime` option is available when an explicit Runtime override is
-needed. Omitting it uses embedded export-version detection.
+needed. Omitting it uses embedded export-version detection. For assets with no
+animations, omit `--animation` on `render` to output setup pose (`--time` remains
+required); animated assets still require a named animation.
 
 ## Validation
 
@@ -67,22 +73,27 @@ needed. Omitting it uses embedded export-version detection.
 dotnet run --project tests/SpineViewerWPF.Application.Smoke/SpineViewerWPF.Application.Smoke.csproj -c Release --no-restore
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-v3.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-v42.ps1 -Offline
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-v43.ps1 -Offline
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-ui-shell.ps1
 ```
 
-The offline 3.8, 4.1, and 4.2 compatibility scripts use official example
+The offline 3.8, 4.1, 4.2, and 4.3 compatibility scripts use official example
 assets from gitignored caches. Run the corresponding script without `-Offline`
 once to populate a missing cache.
 
 ## Current boundaries
 
-- Runtime 4.3 is not supported yet.
+- Runtime 4.3 is connected and has pinned official JSON/binary fixture coverage.
+  This is not a full compatibility claim: official 4.2/4.3 PMA, multi-page atlas,
+  feature-isolated blend parity, and long-timeline Physics fidelity remain limited
+  or unverified. See the [compatibility matrix](docs/ai/04-runtime-matrix.md).
 - Spine JSON, binary, atlas, and texture source files are read-only. Save/Save
   As writes a Viewer sidecar, not a modified Spine source file.
 - Export currently produces screenshots and deterministic PNG sequences; GIF,
   video, and PSD export are not implemented.
-- Multiple layers are available in the viewport, but deterministic sequence
-  export currently targets the primary layer.
+- Screenshot and PNG sequence export include ordered visible scene layers, their
+  transforms, opacity, and slot settings. Viewport backgrounds are not baked in;
+  all-hidden scenes export transparent frames.
 - Multi-track animation mixing, attachment authoring, unrestricted Adobe-style
   drag docking, runtime language switching, and MCP tools remain deferred.
 

@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 $repository = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $repository 'src\SpineViewerWPF.Wpf\SpineViewerWPF.Wpf.csproj'
@@ -110,11 +110,11 @@ $automationIds = @(
     'Main.Scene.PasteParameters',
     'Main.Properties.Tabs',
     'Main.Properties.AnimationTab',
-    'Main.Properties.TransformTab',
-    'Main.Properties.RenderTab',
-    'Main.Properties.AppearanceTab',
+    'Main.Properties.LayerTab',
     'Main.Properties.SlotsTab',
-    'Main.Properties.ViewportTab',
+    'Main.Viewport.Options',
+    'Main.Status.Zoom',
+    'Main.Scene.ReloadLayer',
     'Main.Viewport.SceneLayers'
 )
 $markup = Get-Content -LiteralPath $xaml -Raw
@@ -155,8 +155,9 @@ $densityTokens = @(
     '<Setter Property="Width" Value="270" />',
     'Width="310"',
     '<Style x:Key="NumericTextBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">',
-    '<UniformGrid IsItemsHost="True" Columns="3" Rows="2"',
+    '<UniformGrid IsItemsHost="True" Columns="3" Rows="1"',
     '<Style TargetType="TabControl">',
+    'x:Name="PART_SelectedContentHost" ContentSource="SelectedContent"',
     '<Style x:Key="ToolbarButton" TargetType="Button" BasedOn="{StaticResource ButtonBase}">',
     'x:Name="BrowsePanelContent"',
     'Click="ToggleLayersPanel"',
@@ -360,7 +361,79 @@ finally {
     }
 }
 
+# TASK-059: verify actual setup-pose UI enablement and the visible GPU result.
+$setupProcess = $null
+$setupBackend = $null
+try {
+    $setupFixture = Join-Path $repository 'tests\fixtures\v41-setup-pose\minimal.json'
+    $setupProcess = Start-Process -FilePath $executable -ArgumentList "--asset=$setupFixture" -PassThru
+    $setupWindow = $null
+    foreach ($attempt in 1..100) {
+        Start-Sleep -Milliseconds 100
+        $windows = [System.Windows.Automation.AutomationElement]::RootElement.FindAll(
+            [System.Windows.Automation.TreeScope]::Children,
+            [System.Windows.Automation.Condition]::TrueCondition)
+        $setupWindow = $windows | Where-Object {
+            $_.Current.ProcessId -eq $setupProcess.Id -and $_.Current.Name -like 'Spine Viewer*'
+        } | Select-Object -First 1
+        if ($setupWindow) {
+            $capture = Find-AutomationId $setupWindow 'Main.Command.Screenshot'
+            if ($capture -and $capture.Current.IsEnabled) { break }
+        }
+    }
+    if (-not $setupWindow -or -not $capture -or -not $capture.Current.IsEnabled) {
+        throw 'Setup pose did not reach a usable rendered workspace.'
+    }
+    $windowPattern = $setupWindow.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern)
+    ([System.Windows.Automation.WindowPattern] $windowPattern).SetWindowVisualState(
+        [System.Windows.Automation.WindowVisualState]::Maximized)
+    # Let maximize settle before reading layout-dependent state (same as the fixture block).
+    Start-Sleep -Milliseconds 500
+    # Main.Activity.Properties toggles the Inspector, so invoke it only when the
+    # Properties tabs are absent. IsOffscreen can be transiently true during the
+    # maximize transition; toggling then would hide a visible Inspector.
+    if (-not (Wait-AutomationId $setupWindow 'Main.Properties.Tabs')) {
+        Invoke-AutomationElement (Wait-AutomationId $setupWindow 'Main.Activity.Properties')
+        Start-Sleep -Milliseconds 200
+    }
+    $animationTab = Wait-AutomationId $setupWindow 'Main.Properties.AnimationTab'
+    if (-not $animationTab) { throw 'Setup pose did not expose the Animation properties tab.' }
+    $selection = $animationTab.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern)
+    ([System.Windows.Automation.SelectionItemPattern] $selection).Select()
+    $emptyLabel = Wait-AutomationId $setupWindow 'Main.Asset.NoAnimations'
+    foreach ($attempt in 1..25) {
+        if ($emptyLabel -and -not $emptyLabel.Current.IsOffscreen) { break }
+        Start-Sleep -Milliseconds 100
+        $emptyLabel = Find-AutomationId $setupWindow 'Main.Asset.NoAnimations'
+    }
+    if (-not $emptyLabel -or $emptyLabel.Current.Name -ne 'No animations — setup pose' -or $emptyLabel.Current.IsOffscreen) {
+        $tabsPresent = [bool](Find-AutomationId $setupWindow 'Main.Properties.Tabs')
+        $animationListPresent = [bool](Find-AutomationId $setupWindow 'Main.Asset.AnimationList')
+        $tabSelected = ([System.Windows.Automation.SelectionItemPattern] $selection).Current.IsSelected
+        throw "Setup-pose animation state was not visible/localized: name=$($emptyLabel.Current.Name), offscreen=$($emptyLabel.Current.IsOffscreen), propertiesTabs=$tabsPresent, animationTabSelected=$tabSelected, animationListPresent=$animationListPresent."
+    }
+    $play = Wait-AutomationId $setupWindow 'Main.Playback.Toggle'
+    $export = Wait-AutomationId $setupWindow 'Main.Command.Export'
+    if ($play.Current.IsEnabled -or -not $export.Current.IsEnabled) {
+        throw 'Setup-pose playback/export enablement is incorrect.'
+    }
+    foreach ($attempt in 1..50) {
+        $backend = Wait-AutomationId $setupWindow 'Main.Status.Renderer'
+        $setupBackend = $backend.Current.Name
+        if ($setupBackend -eq 'GPU') { break }
+        Start-Sleep -Milliseconds 100
+    }
+}
+finally {
+    if ($setupProcess -and -not $setupProcess.HasExited) {
+        $setupProcess.CloseMainWindow() | Out-Null
+        if (-not $setupProcess.WaitForExit(3000)) { Stop-Process -Id $setupProcess.Id -Force }
+    }
+}
+
 [pscustomobject]@{
+    SetupPoseUi = 'passed'
+    SetupPoseBackend = $setupBackend
     Build = 'passed'
     AutomationIds = $automationIds.Count
     EditorShortcuts = $shortcuts.Count

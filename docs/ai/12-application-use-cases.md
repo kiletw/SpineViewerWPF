@@ -52,7 +52,7 @@ Returns Runtime-neutral bounds, decoded RGBA textures, clipped vertices, UVs, tr
 
 ### `ExportAnimation`
 
-Produces a deterministic PNG sequence at an explicit bounded FPS with progress, cancellation, overwrite policy, Track 0 Alpha, PMA, slot visibility/opacity/attachment selection, and diagnostics. A multi-layer request reuses one loaded render session per visible layer and writes one composed transparent frame per timeline sample. The default single visible identity layer retains the existing Runtime PNG path and byte baselines. Encoded GIF/video/PSD output remains deferred.
+Produces a deterministic PNG sequence at an explicit bounded FPS with progress, cancellation, overwrite policy, Track 0 Alpha, PMA, slot visibility/opacity/attachment selection, and diagnostics. A multi-layer request reuses one loaded render session per visible layer and writes one composed transparent frame per timeline sample. The default single visible identity layer retains the existing Runtime PNG path and byte baselines. An optional `ExportFraming` (TASK-063) switches to auto-fit: a bounds pass unions each visible layer's pose bounds over every exported frame time, then every frame renders with one fixed `RenderCamera` per layer on a canvas sized to that union at `Scale` pixels per skeleton unit plus `Margin` pixels per side (bounded to 4096 pixels per side and the composite buffer budget, reducing scale when needed); the result reports the chosen width and height. Encoded GIF/video/PSD output remains deferred.
 
 ### `LoadViewerProject`, `SaveViewerProject`
 

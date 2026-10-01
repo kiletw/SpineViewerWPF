@@ -33,13 +33,17 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
 ## Quick-Browse Defaults
 
 - Fit viewport after successful load.
-- Select remembered animation when valid, otherwise first animation.
+- Select remembered animation when valid, otherwise first animation (or setup
+  pose when none exist). TASK-059 keeps animation/skin memory per full asset path
+  within one workspace instance; explicit sidecar selections take precedence.
 - Binding refresh cannot clear a valid selected animation or dirty a newly opened document.
-- No animations: display setup pose.
+- No animations: display setup pose and a resource-backed empty-animation label.
+  Playback is disabled; skin selection, layers, screenshot, sidecar and static
+  one-frame export remain available (TASK-059).
 - Auto-play the selected animation after successful load, as accepted by ADR-004.
 - Skin and advanced settings remain collapsed by default; selected-layer opacity, Track 0 Alpha, and PMA remain visible because they directly affect rendering.
 - RGBA/RGB/Alpha changes viewport presentation and screenshot capture only; it does not modify source alpha or project state.
-- Screenshot captures the current visible scene-layer composition at the viewport pixel dimensions, then applies RGBA/RGB/Alpha inspection to the final frame. PNG sequence export captures the same ordered layer presentation at Export Size as raw RGBA and is not changed by the inspection channel.
+- Screenshot captures the current visible scene-layer composition at the viewport pixel dimensions, then applies RGBA/RGB/Alpha inspection to the final frame. PNG sequence export captures the same ordered layer presentation as raw RGBA and is not changed by the inspection channel. Export size defaults to Auto fit (content bounds across all frames, Scale 1, 16 px margin, fixed framing without per-frame rescaling); Fixed size uses Export width and height. Export FPS and size settings are session preferences that neither dirty the project nor enter Undo/Redo (TASK-063).
 - Checkerboard, Dark, and Light viewport backgrounds are presentation-only and are not baked into Screenshot or PNG sequence output; all-hidden scenes therefore produce a transparent frame.
 - Warnings do not interrupt the viewport unless blocking.
 
@@ -48,8 +52,12 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
 - File, Edit, View, Playback, Layer, Export, Window, and Help provide the stable desktop command taxonomy.
 - The activity rail is reserved for panel navigation. Menu items and toolbar buttons reuse the same commands, enablement, and shortcuts rather than duplicating use-case logic.
 - Window menu operations continue to use the dock-aware show, hide, float, redock, and reset handlers. Float Inspector also has the `Ctrl+Shift+I` shortcut.
-- Mouse wheel: viewport zoom.
-- Drag: viewport pan.
+- Mouse wheel: viewport zoom anchored at the cursor, bounded to 10%-800%, no
+  modifier required (TASK-060). The status bar shows the current zoom.
+- Left-drag beyond a small threshold or middle-drag: viewport pan, no modifier
+  required. Presses that start on buttons, text boxes, thumbs, or scroll bars
+  inside the viewport keep their own behavior.
+- Double-click on the viewport: Fit.
 - Model transform requires explicit controls or a visible mode.
 - Layer opacity fades the complete WPF scene layer; Track 0 Alpha changes Runtime animation mixing; PMA changes texture compositing. These controls are not interchangeable.
 - Display channel selects RGBA, opaque RGB, or opaque grayscale Alpha inspection from the current in-memory frame.
@@ -73,7 +81,10 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
   and background together through theme resources so labels remain readable.
 - Fit changes view only.
 - Reset semantics must be explicit: viewport reset and model reset are distinct commands if both exist.
-- Space: play/pause when focus context permits.
+- Space: play/pause and F: Fit only without modifiers and when focus is not in
+  a text box, password box, or editable combo box (TASK-060).
+- Delete removes the selected layer only while focus is in the Layers list; the
+  Layer and context menus keep their Remove commands.
 - Search/filter does not alter playback until a selection is made.
 - Selecting a scene layer changes the Properties editing context and the timeline duration reference; it does not reorder the scene.
 - Duplicate opens an independent render session and preserves the source layer's editable settings without changing source files.

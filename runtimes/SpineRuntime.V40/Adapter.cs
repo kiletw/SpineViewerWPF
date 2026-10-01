@@ -80,7 +80,7 @@ public sealed class SpineV40Adapter : IRuntimeAdapter
         {
             cancellationToken.ThrowIfCancellationRequested();
             var skeleton = Pose(request);
-            return CpuRenderer.RenderFrame(skeleton, request.Width, request.Height, request.Pma, request.LinearFiltering);
+            return CpuRenderer.RenderFrame(skeleton, request.Width, request.Height, request.Pma, request.LinearFiltering, request.Camera);
         }
 
         public PreviewSceneFrame RenderScene(PreviewSceneRequest request, CancellationToken cancellationToken)
@@ -94,8 +94,9 @@ public sealed class SpineV40Adapter : IRuntimeAdapter
         private Spine.Skeleton Pose(FrameRenderRequest request)
         {
             var loaded = asset ?? throw new ObjectDisposedException(nameof(RenderSession));
-            var animation = loaded.Data.FindAnimation(request.Animation)
-                ?? throw new InvalidDataException($"Animation not found: {request.Animation}");
+            var animation = request.Animation == "" ? null
+                : loaded.Data.FindAnimation(request.Animation)
+                    ?? throw new InvalidDataException($"Animation not found: {request.Animation}");
             if (request.Skins.Count > 1)
                 throw new NotSupportedException("This vertical slice supports at most one skin.");
 
@@ -107,10 +108,13 @@ public sealed class SpineV40Adapter : IRuntimeAdapter
                 skeleton.SetSlotsToSetupPose();
             }
 
-            var state = new Spine.AnimationState(stateData);
-            state.SetAnimation(0, animation, false).Alpha = request.TrackAlpha;
-            state.Update(request.TimeSeconds);
-            state.Apply(skeleton);
+            if (animation is not null)
+            {
+                var state = new Spine.AnimationState(stateData);
+                state.SetAnimation(0, animation, false).Alpha = request.TrackAlpha;
+                state.Update(request.TimeSeconds);
+                state.Apply(skeleton);
+            }
             ApplySlotDisplaySettings(skeleton, request.Slots);
             skeleton.UpdateWorldTransform();
             return skeleton;

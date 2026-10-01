@@ -149,7 +149,32 @@ foreach ($entry in $historical) {
     }
 }
 
+# No animation argument is needed only when inspection finds no animations.
+$setupSkeleton = Join-Path $repository 'tests\fixtures\v41-setup-pose\minimal.json'
+$setupInspection = & dotnet run --project $project -c Release --no-build -- inspect $setupSkeleton --format json | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0 -or -not $setupInspection.success -or $setupInspection.animations.Count -ne 0) {
+    throw 'Setup-pose inspect failed.'
+}
+$setupOutputs = @((Join-Path $artifacts 'setup-default.png'), (Join-Path $artifacts 'setup-faded.png'))
+foreach ($index in 0..1) {
+    $skin = @('default', 'faded')[$index]
+    & dotnet run --project $project -c Release --no-build -- render $setupSkeleton --time 0 --skin $skin --width 64 --height 64 --output $setupOutputs[$index] --overwrite | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Setup-pose CLI render failed.' }
+}
+if ((Get-FileHash $setupOutputs[0]).Hash -eq (Get-FileHash $setupOutputs[1]).Hash) {
+    throw 'Setup-pose CLI skin selection did not affect output.'
+}
+$previousErrorPolicy = $ErrorActionPreference
+try {
+    $ErrorActionPreference = 'Continue'
+    & dotnet run --project $project -c Release --no-build -- render $skeleton --time 0 --output (Join-Path $artifacts 'missing-animation.png') --overwrite 2>$null | Out-Null
+    $missingAnimationExit = $LASTEXITCODE
+}
+finally { $ErrorActionPreference = $previousErrorPolicy }
+if ($missingAnimationExit -ne 2) { throw 'Animated CLI render no longer requires an animation.' }
+
 [pscustomobject]@{
+    SetupPose = 'passed'
     Inspect = 'passed'
     Render = 'passed'
     Sha256 = $firstHash

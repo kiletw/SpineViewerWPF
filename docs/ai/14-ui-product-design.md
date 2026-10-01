@@ -1,4 +1,4 @@
-# Dockable Quick-Browse UI Product Direction
+﻿# Dockable Quick-Browse UI Product Direction
 
 ## Status
 
@@ -65,7 +65,7 @@ TASK-035 keeps the existing information architecture while making the viewport v
 - small corner radii for controls and viewport framing
 - scrollable supporting panels rather than shrinking or hiding editor controls
 
-The operating-system title bar remains native. Replacing it requires a separate window-chrome task because that change also owns resize, drag, accessibility, and system-button behavior.
+The operating-system title bar remains native. Replacing it requires a separate window-chrome task because that change also owns resize, drag, accessibility, and system-button behavior. TASK-060 only themes the native caption through DWM (immersive dark mode, plus caption and text colors on Windows 11) for the main and floating windows.
 
 TASK-052 applies a preserve-and-refine pass informed by current Photoshop,
 Visual Studio, and Windows command-bar guidance:
@@ -99,7 +99,7 @@ packages; the external products are interaction and hierarchy references only.
 - selected-layer slot visibility, opacity, and named attachment controls
 - layer duplicate, reload, reorder, and scoped parameter copy/paste actions
 - precise finite transform fields without the earlier slider range ceilings
-- selected-layer Animation, Transform, Render, Appearance, Slots, and Viewport property categories
+- selected-layer Animation, Layer (Transform + Render), and Slots property tabs; view settings in a viewport overlay and the View menu (TASK-062)
 - explicit GPU/CPU backend status and recoverable atlas selection
 - independently configurable 1-240 Preview FPS with a 30 FPS default
 - low-rate published FPS, preview work time, and coalesced-update status

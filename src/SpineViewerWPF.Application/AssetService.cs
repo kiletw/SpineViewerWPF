@@ -44,7 +44,8 @@ public sealed class AssetRenderSession : IDisposable
         float trackAlpha = 1,
         IReadOnlyList<SlotDisplayDocument>? slots = null)
     {
-        if (string.IsNullOrWhiteSpace(animation)) throw new ArgumentException("Animation is required.");
+        if (animation is null || animation.Length > 0 && string.IsNullOrWhiteSpace(animation))
+            throw new ArgumentException("Animation must be a name or an empty setup-pose selection.");
         if (!float.IsFinite(timeSeconds) || timeSeconds < 0) throw new ArgumentOutOfRangeException(nameof(timeSeconds));
         if (!float.IsFinite(trackAlpha) || trackAlpha is < 0 or > 1)
             throw new ArgumentOutOfRangeException(nameof(trackAlpha), "Track alpha must be between 0 and 1.");
@@ -78,12 +79,17 @@ public sealed class AssetRenderSession : IDisposable
         CancellationToken cancellationToken = default,
         float trackAlpha = 1,
         bool linearFiltering = true,
-        IReadOnlyList<SlotDisplayDocument>? slots = null)
+        IReadOnlyList<SlotDisplayDocument>? slots = null,
+        RenderCamera? camera = null)
     {
-        if (string.IsNullOrWhiteSpace(animation)) throw new ArgumentException("Animation is required.");
+        if (animation is null || animation.Length > 0 && string.IsNullOrWhiteSpace(animation))
+            throw new ArgumentException("Animation must be a name or an empty setup-pose selection.");
         if (!float.IsFinite(timeSeconds) || timeSeconds < 0) throw new ArgumentOutOfRangeException(nameof(timeSeconds));
         if (!float.IsFinite(trackAlpha) || trackAlpha is < 0 or > 1)
             throw new ArgumentOutOfRangeException(nameof(trackAlpha), "Track alpha must be between 0 and 1.");
+        if (camera is not null && (!float.IsFinite(camera.CenterX) || !float.IsFinite(camera.CenterY)
+            || !float.IsFinite(camera.Scale) || camera.Scale <= 0))
+            throw new ArgumentOutOfRangeException(nameof(camera), "Camera center must be finite and scale must be positive.");
         if (width is < 1 or > 4096 || height is < 1 or > 4096)
             throw new ArgumentOutOfRangeException(nameof(width), "Interactive frame dimensions must be between 1 and 4096.");
 
@@ -92,7 +98,7 @@ public sealed class AssetRenderSession : IDisposable
             ObjectDisposedException.ThrowIf(disposed, this);
             cancellationToken.ThrowIfCancellationRequested();
             return session.RenderFrame(
-                new FrameRenderRequest(animation, timeSeconds, width, height, pma, skins, trackAlpha, linearFiltering, slots),
+                new FrameRenderRequest(animation, timeSeconds, width, height, pma, skins, trackAlpha, linearFiltering, slots, camera),
                 cancellationToken);
         }
     }
@@ -106,7 +112,8 @@ public sealed class AssetRenderSession : IDisposable
         float trackAlpha = 1,
         IReadOnlyList<SlotDisplayDocument>? slots = null)
     {
-        if (string.IsNullOrWhiteSpace(animation)) throw new ArgumentException("Animation is required.");
+        if (animation is null || animation.Length > 0 && string.IsNullOrWhiteSpace(animation))
+            throw new ArgumentException("Animation must be a name or an empty setup-pose selection.");
         if (!float.IsFinite(timeSeconds) || timeSeconds < 0) throw new ArgumentOutOfRangeException(nameof(timeSeconds));
         if (!float.IsFinite(trackAlpha) || trackAlpha is < 0 or > 1)
             throw new ArgumentOutOfRangeException(nameof(trackAlpha), "Track alpha must be between 0 and 1.");
@@ -136,6 +143,9 @@ public sealed class AssetService
 {
     internal const long MaxFramePixels = 4096L * 4096;
     internal const long MaxCompositeBufferBytes = 256L * 1024 * 1024;
+    internal const float MinExportScale = 0.01f;
+    internal const float MaxExportScale = 16f;
+    internal const int MaxExportMargin = 1024;
 
     private readonly IReadOnlyList<IRuntimeAdapter> runtimes;
 
@@ -244,14 +254,13 @@ public sealed class AssetService
         var opened = OpenRenderSession(skeletonPath, atlasPath, runtimeOverride, cancellationToken);
         using var session = opened.Session;
         var inspection = opened.Inspection;
-        var animation = inspection.Animations.FirstOrDefault()
-            ?? throw new InvalidDataException("The current renderer requires an animation.");
+        var animation = inspection.Animations.FirstOrDefault();
         var skin = inspection.Skins.FirstOrDefault() ?? "default";
         try
         {
             session.Render(
-                animation.Name,
-                animation.DurationSeconds / 2,
+                animation?.Name ?? "",
+                (animation?.DurationSeconds ?? 0) / 2,
                 width,
                 height,
                 outputPath,
@@ -259,7 +268,7 @@ public sealed class AssetService
                 false,
                 [skin],
                 cancellationToken);
-            return new SceneLayerOpenResult(inspection, animation.Name, skin, Path.GetFullPath(outputPath));
+            return new SceneLayerOpenResult(inspection, animation?.Name ?? "", skin, Path.GetFullPath(outputPath));
         }
         catch
         {
@@ -274,7 +283,8 @@ public sealed class AssetService
         IProgress<AnimationExportProgress>? progress = null)
     {
         if (request is null) throw new ArgumentNullException(nameof(request));
-        if (string.IsNullOrWhiteSpace(request.Animation)) throw new ArgumentException("Animation is required.", nameof(request));
+        if (request.Animation is null || request.Animation.Length > 0 && string.IsNullOrWhiteSpace(request.Animation))
+            throw new ArgumentException("Animation must be a name or an empty setup-pose selection.", nameof(request));
         if (!float.IsFinite(request.DurationSeconds) || request.DurationSeconds < 0)
             throw new ArgumentOutOfRangeException(nameof(request.DurationSeconds));
         if (!float.IsFinite(request.FramesPerSecond) || request.FramesPerSecond <= 0 || request.FramesPerSecond > 240)
@@ -284,6 +294,12 @@ public sealed class AssetService
             throw new ArgumentOutOfRangeException(
                 nameof(request.Width),
                 "Dimensions must be between 1 and 16384 and contain at most 16777216 pixels.");
+        if (request.Framing is { } framing
+            && (!float.IsFinite(framing.Scale) || framing.Scale is < MinExportScale or > MaxExportScale
+                || framing.Margin is < 0 or > MaxExportMargin))
+            throw new ArgumentOutOfRangeException(
+                nameof(request.Framing),
+                "Export scale must be between 0.01 and 16 and margin between 0 and 1024 pixels.");
         if (request.SceneLayers is not null)
         {
             if (request.Width > 4096 || request.Height > 4096)
@@ -319,10 +335,14 @@ public sealed class AssetService
 
         Directory.CreateDirectory(directory);
         var created = new List<string>(frameCount);
+        var outputWidth = request.Width;
+        var outputHeight = request.Height;
         progress?.Report(new AnimationExportProgress(0, frameCount));
         try
         {
-            if (request.SceneLayers is null)
+            if (request.Framing is not null)
+                (outputWidth, outputHeight) = ExportFramedFrames(request, request.Framing, outputs, created, progress, cancellationToken);
+            else if (request.SceneLayers is null)
             {
                 var opened = OpenRenderSession(
                     request.SkeletonPath,
@@ -360,7 +380,226 @@ public sealed class AssetService
             throw;
         }
 
-        return new AnimationExportResult(outputs, frameCount, request.DurationSeconds);
+        return new AnimationExportResult(outputs, frameCount, request.DurationSeconds, outputWidth, outputHeight);
+    }
+
+    // TASK-063: auto-fit export. Pass 1 unions each visible layer's pose bounds over
+    // every exported frame time; pass 2 renders every frame with one fixed camera
+    // per layer and composes them on a canvas sized to the union plus margins.
+    private (int Width, int Height) ExportFramedFrames(
+        AnimationExportRequest request,
+        ExportFraming framing,
+        IReadOnlyList<string> outputs,
+        ICollection<string> created,
+        IProgress<AnimationExportProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyList<SceneLayerDocument> sources = request.SceneLayers
+            ?? [new SceneLayerDocument(
+                request.SkeletonPath,
+                request.AtlasPath,
+                request.RuntimeOverride,
+                request.Animation,
+                "",
+                0,
+                0,
+                1,
+                0,
+                false,
+                false,
+                true,
+                1,
+                0,
+                request.TrackAlpha,
+                request.Pma,
+                request.Slots)];
+        var opened = new List<FramedLayer>();
+        try
+        {
+            foreach (var item in sources
+                         .Select((layer, index) => (Layer: layer, Index: index))
+                         .Where(item => item.Layer.IsVisible && item.Layer.Opacity > 0)
+                         .OrderBy(item => item.Layer.ZIndex)
+                         .ThenBy(item => item.Index))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var session = OpenRenderSession(
+                    item.Layer.SkeletonPath,
+                    item.Layer.AtlasPath,
+                    item.Layer.RuntimeOverride,
+                    cancellationToken);
+                var animation = session.Inspection.Animations.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Name, item.Layer.Animation, StringComparison.Ordinal));
+                if (animation is null && item.Layer.Animation != "")
+                {
+                    session.Session.Dispose();
+                    throw new InvalidDataException($"Animation not found: {item.Layer.Animation}");
+                }
+                IReadOnlyList<string> skins = request.SceneLayers is null
+                    ? request.Skins ?? []
+                    : string.IsNullOrWhiteSpace(item.Layer.SelectedSkin) ? [] : [item.Layer.SelectedSkin];
+                opened.Add(new FramedLayer(item.Layer, session.Session, animation?.DurationSeconds ?? 0, skins));
+            }
+
+            foreach (var layer in opened)
+            for (var index = 0; index < outputs.Count; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var scene = layer.Session.RenderScene(
+                    layer.Layer.Animation,
+                    FramedTime(request, layer, index),
+                    layer.Layer.Pma ?? false,
+                    layer.Skins,
+                    cancellationToken,
+                    (float)(layer.Layer.TrackAlpha ?? 1),
+                    layer.Layer.Slots);
+                layer.Include(scene);
+            }
+
+            var framed = opened.Where(layer => layer.HasBounds).ToArray();
+            var width = request.Width;
+            var height = request.Height;
+            var placed = Array.Empty<(FramedLayer Layer, SceneLayerDocument Document, RenderCamera Camera)>();
+            if (framed.Length > 0)
+            {
+                var scale = (double)framing.Scale;
+                for (var attempt = 0; ; attempt++)
+                {
+                    var extents = framed.Select(layer => LayerExtents(layer, scale)).ToArray();
+                    var minX = extents.Min(item => item.CenterX - item.HalfWidth);
+                    var maxX = extents.Max(item => item.CenterX + item.HalfWidth);
+                    var minY = extents.Min(item => item.CenterY - item.HalfHeight);
+                    var maxY = extents.Max(item => item.CenterY + item.HalfHeight);
+                    var contentWidth = Math.Max(1, maxX - minX);
+                    var contentHeight = Math.Max(1, maxY - minY);
+                    width = (int)Math.Ceiling(contentWidth) + framing.Margin * 2;
+                    height = (int)Math.Ceiling(contentHeight) + framing.Margin * 2;
+                    var budget = (long)width * height * 4 * (framed.Length + 1);
+                    if (width <= 4096 && height <= 4096 && budget <= MaxCompositeBufferBytes)
+                    {
+                        var shiftX = (minX + maxX) / 2;
+                        var shiftY = (minY + maxY) / 2;
+                        placed = framed.Select(layer => (
+                                Layer: layer,
+                                Document: layer.Layer with
+                                {
+                                    ModelX = layer.Layer.ModelX * scale - shiftX,
+                                    ModelY = layer.Layer.ModelY * scale - shiftY,
+                                    ModelScale = 1
+                                },
+                                Camera: new RenderCamera(
+                                    (layer.MinX + layer.MaxX) / 2,
+                                    (layer.MinY + layer.MaxY) / 2,
+                                    (float)(scale * layer.Layer.ModelScale))))
+                            .ToArray();
+                        break;
+                    }
+                    var room = 4096d - framing.Margin * 2;
+                    if (attempt >= 4 || room < 1)
+                        throw new ArgumentOutOfRangeException(
+                            nameof(request.Framing),
+                            "The auto-fit export cannot fit within 4096 pixels per side and 256 MiB of frame buffers.");
+                    var factor = Math.Min(
+                        Math.Min(room / contentWidth, room / contentHeight),
+                        Math.Sqrt((double)MaxCompositeBufferBytes / budget));
+                    scale *= Math.Clamp(factor, 0.01, 1) * 0.98;
+                }
+            }
+
+            for (var index = 0; index < outputs.Count; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var frames = new SceneFrameLayer[placed.Length];
+                for (var layerIndex = 0; layerIndex < placed.Length; layerIndex++)
+                {
+                    var (layer, document, camera) = placed[layerIndex];
+                    var frame = layer.Session.RenderFrame(
+                        layer.Layer.Animation,
+                        FramedTime(request, layer, index),
+                        width,
+                        height,
+                        layer.Layer.Pma ?? false,
+                        layer.Skins,
+                        cancellationToken,
+                        (float)(layer.Layer.TrackAlpha ?? 1),
+                        true,
+                        layer.Layer.Slots,
+                        camera);
+                    frames[layerIndex] = new SceneFrameLayer(frame, document);
+                }
+
+                var composite = SceneFrameCompositor.Compose(frames, width, height);
+                PngFrameWriter.Write(outputs[index], composite, request.Overwrite);
+                created.Add(outputs[index]);
+                progress?.Report(new AnimationExportProgress(index + 1, outputs.Count));
+            }
+            return (width, height);
+        }
+        finally
+        {
+            foreach (var layer in opened) layer.Session.Dispose();
+        }
+    }
+
+    private static float FramedTime(AnimationExportRequest request, FramedLayer layer, int index)
+    {
+        var time = Math.Min(request.DurationSeconds, index / request.FramesPerSecond);
+        return request.SceneLayers is null ? time : Math.Min(time, layer.Duration);
+    }
+
+    // Axis-aligned half extents of a layer's rotated content rectangle, in output
+    // pixels relative to the canvas center, before the union is re-centered.
+    private static (double CenterX, double CenterY, double HalfWidth, double HalfHeight) LayerExtents(
+        FramedLayer layer,
+        double scale)
+    {
+        var halfWidth = (layer.MaxX - layer.MinX) * scale * layer.Layer.ModelScale / 2;
+        var halfHeight = (layer.MaxY - layer.MinY) * scale * layer.Layer.ModelScale / 2;
+        var radians = layer.Layer.ModelRotation % 360d * Math.PI / 180d;
+        var cosine = Math.Abs(Math.Cos(radians));
+        var sine = Math.Abs(Math.Sin(radians));
+        return (
+            layer.Layer.ModelX * scale,
+            layer.Layer.ModelY * scale,
+            cosine * halfWidth + sine * halfHeight,
+            sine * halfWidth + cosine * halfHeight);
+    }
+
+    private sealed class FramedLayer(
+        SceneLayerDocument layer,
+        AssetRenderSession session,
+        float duration,
+        IReadOnlyList<string> skins)
+    {
+        public SceneLayerDocument Layer { get; } = layer;
+        public AssetRenderSession Session { get; } = session;
+        public float Duration { get; } = duration;
+        public IReadOnlyList<string> Skins { get; } = skins;
+        public bool HasBounds { get; private set; }
+        public float MinX { get; private set; }
+        public float MinY { get; private set; }
+        public float MaxX { get; private set; }
+        public float MaxY { get; private set; }
+
+        public void Include(PreviewSceneFrame scene)
+        {
+            if (!float.IsFinite(scene.BoundsX) || !float.IsFinite(scene.BoundsY)
+                || !float.IsFinite(scene.BoundsWidth) || !float.IsFinite(scene.BoundsHeight)
+                || scene.BoundsWidth <= 0 || scene.BoundsHeight <= 0)
+                return;
+            var right = scene.BoundsX + scene.BoundsWidth;
+            var top = scene.BoundsY + scene.BoundsHeight;
+            if (!HasBounds)
+            {
+                (MinX, MinY, MaxX, MaxY) = (scene.BoundsX, scene.BoundsY, right, top);
+                HasBounds = true;
+                return;
+            }
+            MinX = Math.Min(MinX, scene.BoundsX);
+            MinY = Math.Min(MinY, scene.BoundsY);
+            MaxX = Math.Max(MaxX, right);
+            MaxY = Math.Max(MaxY, top);
+        }
     }
 
     private void ExportSceneFrames(
@@ -387,12 +626,12 @@ public sealed class AssetService
                     cancellationToken);
                 var animation = opened.Inspection.Animations.FirstOrDefault(candidate =>
                     string.Equals(candidate.Name, item.Layer.Animation, StringComparison.Ordinal));
-                if (animation is null)
+                if (animation is null && item.Layer.Animation != "")
                 {
                     opened.Session.Dispose();
                     throw new InvalidDataException($"Animation not found: {item.Layer.Animation}");
                 }
-                openedLayers.Add((item.Layer, opened.Session, animation.DurationSeconds));
+                openedLayers.Add((item.Layer, opened.Session, animation?.DurationSeconds ?? 0));
             }
 
             for (var index = 0; index < outputs.Count; index++)
@@ -438,7 +677,7 @@ public sealed class AssetService
             if (layer is null) throw new ArgumentException("Scene layer is required.", nameof(layers));
             if (string.IsNullOrWhiteSpace(layer.SkeletonPath))
                 throw new ArgumentException("Scene layer skeleton path is required.", nameof(layers));
-            if (string.IsNullOrWhiteSpace(layer.Animation))
+            if (layer.Animation is null || layer.Animation.Length > 0 && string.IsNullOrWhiteSpace(layer.Animation))
                 throw new ArgumentException("Scene layer animation is required.", nameof(layers));
             if (!double.IsFinite(layer.ModelX) || !double.IsFinite(layer.ModelY)
                 || !double.IsFinite(layer.ModelRotation)

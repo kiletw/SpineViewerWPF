@@ -148,7 +148,7 @@ public sealed class LegacyRuntimeAdapter : IRuntimeAdapter
         {
             cancellationToken.ThrowIfCancellationRequested();
             var skeleton = Pose(request);
-            return CpuRenderer.RenderFrame(skeleton, request.Width, request.Height, request.Pma, request.LinearFiltering);
+            return CpuRenderer.RenderFrame(skeleton, request.Width, request.Height, request.Pma, request.LinearFiltering, request.Camera);
         }
 
         public PreviewSceneFrame RenderScene(PreviewSceneRequest request, CancellationToken cancellationToken)
@@ -162,8 +162,9 @@ public sealed class LegacyRuntimeAdapter : IRuntimeAdapter
         private RuntimeSpine.Skeleton Pose(FrameRenderRequest request)
         {
             var loaded = asset ?? throw new ObjectDisposedException(nameof(RenderSession));
-            var animation = loaded.Data.FindAnimation(request.Animation)
-                ?? throw new InvalidDataException($"Animation not found: {request.Animation}");
+            var animation = request.Animation == "" ? null
+                : loaded.Data.FindAnimation(request.Animation)
+                    ?? throw new InvalidDataException($"Animation not found: {request.Animation}");
             if (request.Skins.Count > 1) throw new NotSupportedException("This vertical slice supports at most one skin.");
 
             skeleton.Skin = null;
@@ -174,15 +175,18 @@ public sealed class LegacyRuntimeAdapter : IRuntimeAdapter
                 skeleton.SetSlotsToSetupPose();
             }
 
-            var state = new RuntimeSpine.AnimationState(stateData);
-            var entry = state.SetAnimation(0, animation, false);
+            if (animation is not null)
+            {
+                var state = new RuntimeSpine.AnimationState(stateData);
+                var entry = state.SetAnimation(0, animation, false);
 #if SPINE_RUNTIME_2108 || SPINE_RUNTIME_2125 || SPINE_RUNTIME_3107 || SPINE_RUNTIME_32XX || SPINE_RUNTIME_3402
-            entry.Mix = request.TrackAlpha;
+                entry.Mix = request.TrackAlpha;
 #else
-            entry.Alpha = request.TrackAlpha;
+                entry.Alpha = request.TrackAlpha;
 #endif
-            state.Update(request.TimeSeconds);
-            state.Apply(skeleton);
+                state.Update(request.TimeSeconds);
+                state.Apply(skeleton);
+            }
             ApplySlotDisplaySettings(skeleton, request.Slots);
             skeleton.UpdateWorldTransform();
             return skeleton;

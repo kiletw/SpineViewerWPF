@@ -7,7 +7,7 @@ Runtime 版本匯出的檔案。
 
 ## 功能
 
-- 透過隔離的 Runtime Adapter，自動偵測並載入 `2.1.08` 到 `4.2` 的 Spine
+- 透過隔離的 Runtime Adapter，自動偵測並載入 `2.1.08` 到 `4.3` 的 Spine
   匯出檔。
 - 一般 RGBA 播放使用 OpenTK GPU viewport；GPU 初始化或渲染失敗時會保留
   資產並切換為 CPU fallback。
@@ -17,6 +17,10 @@ Runtime 版本匯出的檔案。
   時可手動指定。
 - 提供動畫／Skin、播放速度、預覽 FPS、平移／縮放／Fit、多場景圖層、
   Dark／Light theme 與 GPU／CPU 效能狀態。
+- 無動畫資產顯示 setup pose；仍可選 Skin、建立圖層、儲存 sidecar、截圖及
+  匯出單幀靜態 PNG。
+- 同一工作區 session 內，依完整素材路徑記住動畫／Skin；sidecar 明確選擇優先，
+  不建立跨啟動的設定快取。
 - 圖層、Transform、Slot 顯示／透明度及具名 Attachment 選擇會以非破壞方式
   儲存在版本化的 `*.spineviewer.json` sidecar。
 
@@ -24,7 +28,7 @@ Runtime 版本匯出的檔案。
 
 ```text
 2.1.08  2.1.25  3.1.07  3.2.xx  3.4.02  3.5.51  3.6.32
-3.6.39  3.6.53  3.7.94  3.8.95  4.0.31  4.0.64  4.1  4.2
+3.6.39  3.6.53  3.7.94  3.8.95  4.0.31  4.0.64  4.1  4.2  4.3
 ```
 
 ## 系統需求
@@ -59,7 +63,8 @@ dotnet run --project src/SpineViewerWPF.Cli/SpineViewerWPF.Cli.csproj -c Release
 ```
 
 需要強制指定 Runtime 時可加入 `--runtime`；省略時會使用匯出檔內的版本資訊
-自動選擇。
+自動選擇。無動畫資產可省略 `render` 的 `--animation` 以輸出 setup pose
+（仍需指定 `--time`）；有動畫的資產仍需提供具名動畫。
 
 ## 驗證
 
@@ -67,19 +72,23 @@ dotnet run --project src/SpineViewerWPF.Cli/SpineViewerWPF.Cli.csproj -c Release
 dotnet run --project tests/SpineViewerWPF.Application.Smoke/SpineViewerWPF.Application.Smoke.csproj -c Release --no-restore
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-v3.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-v42.ps1 -Offline
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-v43.ps1 -Offline
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-ui-shell.ps1
 ```
 
-3.8、4.1 與 4.2 的離線相容性腳本使用 gitignored 的官方範例 cache。若 cache
+3.8、4.1、4.2 與 4.3 的離線相容性腳本使用 gitignored 的官方範例 cache。若 cache
 尚未建立，先將對應腳本移除 `-Offline` 執行一次。
 
 ## 目前限制
 
-- 尚未支援 Runtime 4.3。
+- Runtime 4.3 已接入並有固定版本的官方 JSON／binary fixture 驗證，並非全面相容
+  宣稱。官方 4.2／4.3 的 PMA、多頁 atlas、個別 blend parity 與長時間 Physics
+  仍有限制或未驗證；詳見[相容性矩陣](docs/ai/04-runtime-matrix.md)。
 - Spine JSON、binary、atlas 與 texture 原始檔皆為唯讀；Save／Save As 儲存的是
   Viewer sidecar，不會修改 Spine 原始檔。
 - 目前輸出 Screenshot 與可重現的 PNG 序列；尚未實作 GIF、影片及 PSD。
-- Viewport 可使用多個場景圖層，但可重現的動畫序列匯出目前只處理主要圖層。
+- Screenshot 與 PNG 序列匯出包含依序合成的可見圖層、Transform、透明度及
+  Slot 設定。Viewport 背景不寫入輸出；全部圖層隱藏時輸出透明畫面。
 - 多 Track 動畫混合、Attachment 製作、完整 Adobe 式拖曳 Dock、執行期間語言
   切換及 MCP 工具仍為 deferred。
 

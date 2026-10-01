@@ -21,6 +21,10 @@ spineviewerwpf skin list <skeleton> [--atlas <path>] [--format json]
 spineviewerwpf render <skeleton> --animation <name> --time <seconds> --output <png>
 ```
 
+For a no-animation asset, TASK-059 allows `render` without `--animation`; this
+outputs setup pose, with `--time` still required. Animated assets retain the
+existing required named-animation argument. No new CLI command is introduced.
+
 ## Output Rules
 
 - `stdout`: result data only

@@ -133,6 +133,7 @@ try
         new SpineV40Adapter(), new SpineV41Adapter(), new SpineRuntime.V42.Adapter(),
         new SpineRuntime.V43.Adapter()
     });
+    await SetupPoseSmoke.RunAsync(assetService, root);
     var discovered = assetService.Inspect(Path.Combine(fixtureDirectory, "minimal.json"), null, null);
     Assert(discovered.Asset.AtlasPath == Path.GetFullPath(Path.Combine(fixtureDirectory, "minimal.atlas")), "Same-stem atlas discovery failed.");
     using (var sceneSession = assetService.OpenRenderSession(Path.Combine(fixtureDirectory, "minimal.json"), null, "4.1").Session)
@@ -623,6 +624,16 @@ try
     previewViewModel.FitCommand.Execute(null);
     Assert(previewViewModel.ViewportZoom == 1 && previewViewModel.ViewportPanX == 0 && previewViewModel.ViewportPanY == 0, "Fit did not reset the viewport.");
     Assert(previewViewModel.ModelX == modelXBeforeFit && !previewViewModel.IsDirty, "Viewport fit changed editable model state.");
+    previewViewModel.ZoomViewportAt(2, 100, 50);
+    Assert(previewViewModel.ViewportZoom == 2 && previewViewModel.ViewportPanX == -100 && previewViewModel.ViewportPanY == -50,
+        "Cursor-anchored zoom did not keep the anchor point fixed.");
+    previewViewModel.ZoomViewportAt(0.5, 100, 50);
+    Assert(previewViewModel.ViewportZoom == 1 && previewViewModel.ViewportPanX == 0 && previewViewModel.ViewportPanY == 0,
+        "Reversing cursor-anchored zoom did not restore the viewport.");
+    previewViewModel.ZoomViewport(1000);
+    Assert(previewViewModel.ViewportZoom == 8 && previewViewModel.ViewportZoomLabel == "800%", "Viewport zoom was not bounded at 800%.");
+    previewViewModel.FitCommand.Execute(null);
+    Assert(previewViewModel.ViewportZoom == 1 && !previewViewModel.IsDirty, "Fit did not reset bounded zoom without dirtying the project.");
     previewViewModel.ScreenshotCommand.Execute(null);
     for (var attempt = 0; attempt < 200
          && (!File.Exists(capturePath) || new FileInfo(capturePath).Length <= 8);
@@ -769,6 +780,38 @@ try
         !SHA256.HashData(File.ReadAllBytes(sequence.OutputPaths[0]))
             .SequenceEqual(SHA256.HashData(File.ReadAllBytes(hiddenSequence.OutputPaths[0]))),
         "PNG sequence export ignored slot visibility.");
+    // TASK-063: auto-fit export uses one content-sized canvas for every frame.
+    var framedSequence = pngService.Export(sequenceRequest with
+    {
+        OutputDirectory = Path.Combine(root, "sequence-framed"),
+        Framing = new ExportFraming(1, 3)
+    });
+    var framedFrames = framedSequence.OutputPaths.Select(ReadPngFrame).ToArray();
+    Assert(
+        framedSequence.FrameCount == 11 && framedSequence.Width > 6 && framedSequence.Height > 6
+        && framedFrames.All(frame => frame.Width == framedSequence.Width && frame.Height == framedSequence.Height),
+        "Auto-fit export did not use one reported size for every frame.");
+    Assert(framedFrames.All(frame => HasTransparentBorder(frame, 2)), "Auto-fit export did not keep a transparent margin.");
+    Assert(
+        framedFrames.Any(frame => Enumerable.Range(0, frame.Width * frame.Height).Any(index => frame.Bgra32[index * 4 + 3] != 0)),
+        "Auto-fit export produced no visible content.");
+    var doubledSequence = pngService.Export(sequenceRequest with
+    {
+        OutputDirectory = Path.Combine(root, "sequence-framed-2x"),
+        Framing = new ExportFraming(2, 3)
+    });
+    Assert(
+        Math.Abs(doubledSequence.Width - 6 - (framedSequence.Width - 6) * 2) <= 2
+        && Math.Abs(doubledSequence.Height - 6 - (framedSequence.Height - 6) * 2) <= 2,
+        "Auto-fit export scale did not scale the content size.");
+    var invalidFramingDirectory = Path.Combine(root, "sequence-framed-invalid");
+    Expect<ArgumentOutOfRangeException>(() => pngService.Export(sequenceRequest with
+    {
+        OutputDirectory = invalidFramingDirectory,
+        Framing = new ExportFraming(0, 0)
+    }));
+    Assert(!Directory.Exists(invalidFramingDirectory), "Invalid auto-fit export created its output directory.");
+    Assert(sequence.Width == 64 && sequence.Height == 64, "Fixed-size export did not report its requested size.");
     Expect<IOException>(() => pngService.Export(sequenceRequest));
     using (var canceledExport = new CancellationTokenSource())
     {
@@ -930,11 +973,15 @@ try
     realViewModel.Loop = true;
     realViewModel.PreviewFramesPerSecond = previousPreviewFps;
     realViewModel.Position = 0;
+    var sceneBeforeGpuSwitch = realViewModel.SceneLayers[0].PreviewScene;
     realViewModel.SetGpuPreviewAvailable(true);
-    for (var attempt = 0; attempt < 100 && !realViewModel.HasGpuPreview; attempt++)
+    // Wait for this backend transition, not the pre-existing slot metadata scene.
+    for (var attempt = 0; attempt < 100 && (!realViewModel.HasGpuPreview
+        || ReferenceEquals(sceneBeforeGpuSwitch, realViewModel.SceneLayers[0].PreviewScene)); attempt++)
         await Task.Delay(10);
     Assert(
         realViewModel.HasGpuPreview
+        && !ReferenceEquals(sceneBeforeGpuSwitch, realViewModel.SceneLayers[0].PreviewScene)
         && realViewModel.SceneLayers.All(layer => layer.PreviewScene?.DrawCommands.Count > 0),
         "GPU playback did not publish Runtime-neutral scene data.");
     var cpuFrameBeforeGpuPlayback = FrameHash(realViewModel.PreviewFrame);
@@ -953,7 +1000,7 @@ try
         await Task.Delay(10);
     Assert(!realViewModel.IsExporting && File.Exists(Path.Combine(root, "exported", "move-0000.png")), "WPF Export command did not finish a PNG sequence.");
     Assert(realViewModel.LastAction == "Exported 11 frames", "WPF Export command did not use the custom FPS.");
-    realViewModel.BackgroundMode = "Transparent";
+    realViewModel.BackgroundMode = "Dark";
     Assert(realViewModel.UndoCommand.CanExecute(null), "Property edit did not create Undo history before layer import.");
     nextAssetPaths = [pngSkeleton, Path.Combine(fixtureDirectory, "minimal.json")];
     realViewModel.AddLayerCommand.Execute(null);
@@ -965,7 +1012,7 @@ try
         realViewModel.IsDirty && !realViewModel.UndoCommand.CanExecute(null),
         "Adding a scene layer did not stay dirty while invalidating incompatible Undo history.");
     Assert(realViewModel.SceneLayers.All(layer => layer.Animations.Contains("move") && layer.Skins.Contains("default")), "Scene layers did not retain independent animation and skin metadata.");
-    realViewModel.BackgroundMode = "Solid";
+    realViewModel.BackgroundMode = "Light";
     Assert(realViewModel.UndoCommand.CanExecute(null), "Property edit did not create Undo history before auto layout.");
     realViewModel.AutoLayoutCommand.Execute(null);
     Assert(realViewModel.SceneLayers.Select(layer => (Math.Round(layer.ModelX), Math.Round(layer.ModelY))).Distinct().Count() == 3, "Auto layout did not separate scene layers.");
@@ -1000,6 +1047,7 @@ try
     realViewModel.ModelX = 12;
     realViewModel.SceneLayers[0].ModelX = 37;
     realViewModel.SaveCommand.Execute(null);
+    Assert(File.Exists(realProject), $"Real project save failed: {realViewModel.LastAction}");
     var realDocument = store.Load(realProject);
     Assert(realViewModel.SceneLayers[0].ModelX == 37, "Save mutated the primary layer transform.");
     Assert(realDocument.SkeletonPath == Path.GetFullPath(pngSkeleton), "Real skeleton path was not saved.");
@@ -1111,6 +1159,17 @@ static void Assert(bool condition, string message)
 static byte[] FrameHash(RenderedFrame? frame)
 {
     return SHA256.HashData((frame ?? throw new InvalidOperationException("Expected a rendered frame.")).Bgra32);
+}
+
+static bool HasTransparentBorder(RenderedFrame frame, int thickness)
+{
+    for (var y = 0; y < frame.Height; y++)
+    for (var x = 0; x < frame.Width; x++)
+    {
+        var border = x < thickness || y < thickness || x >= frame.Width - thickness || y >= frame.Height - thickness;
+        if (border && frame.Bgra32[(y * frame.Width + x) * 4 + 3] != 0) return false;
+    }
+    return true;
 }
 
 static RenderedFrame ReadPngFrame(string path)

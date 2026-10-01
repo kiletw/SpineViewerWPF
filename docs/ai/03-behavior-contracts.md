@@ -55,7 +55,14 @@ v2 behavior below is verified from commit `79c6135`. “v3 contract” identifie
 - Fit the model in the viewport after successful load.
 - Prefer the last remembered animation for that asset when valid; otherwise select the first.
 - Auto-play is retained from verified v2 behavior.
-- Assets without animations show setup pose and remain usable.
+- Assets without animations show setup pose and remain usable. TASK-059 uses
+  an empty animation string in render requests and scene-layer sidecars, and
+  null for the Shell selection when the animation list is empty. Named animation
+  requests still require an existing animation; no synthetic names are added.
+- Selection memory lasts for one Shell/workspace session, keyed by the existing
+  full skeleton path with case-insensitive Windows comparison. Direct open/reload
+  uses remembered valid animation/skin, otherwise the first available values
+  (no animation means setup pose). Sidecar values take precedence.
 
 ## Playback
 
@@ -107,6 +114,10 @@ v2 behavior below is verified from commit `79c6135`. “v3 contract” identifie
 
 - Capture uses the current visual configuration.
 - Deterministic export timing is independent from interactive frame rate.
+- A pure static setup-pose WPF scene has zero duration and exports one frame under
+  the existing inclusive frame schedule. Setup-pose layers remain static in mixed
+  scenes. Setup pose does not advance Physics with time; playback is disabled
+  for a selected zero-duration layer, while screenshot/export remain available.
 - Existing files are not overwritten without an explicit policy.
 - Export failure does not unload or corrupt the active session.
 - Export owns cancellation, progress, and all temporary resources.

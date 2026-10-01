@@ -78,7 +78,7 @@ public sealed class ViewerProjectStore
                 throw new InvalidDataException("A scene must contain between one and eight layers.");
             foreach (var layer in document.SceneLayers)
             {
-                if (string.IsNullOrWhiteSpace(layer.SkeletonPath) || string.IsNullOrWhiteSpace(layer.Animation) || string.IsNullOrWhiteSpace(layer.SelectedSkin))
+                if (string.IsNullOrWhiteSpace(layer.SkeletonPath) || (layer.Animation is null || layer.Animation.Length > 0 && string.IsNullOrWhiteSpace(layer.Animation)) || string.IsNullOrWhiteSpace(layer.SelectedSkin))
                     throw new InvalidDataException("Scene layers require a skeleton, animation, and skin.");
                 if (!Finite(layer.ModelX, layer.ModelY, layer.ModelScale, layer.ModelRotation, layer.Opacity))
                     throw new InvalidDataException("Scene layer contains a non-finite numeric value.");

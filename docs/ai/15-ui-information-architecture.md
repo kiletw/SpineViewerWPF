@@ -27,22 +27,31 @@ These stay in the main workspace:
 ### Browse / Layers
 
 - ordered scene layers with visibility and Runtime identity
-- add, duplicate, reload, remove, reorder, and auto-layout actions
+- add, duplicate, reload, remove, reorder, and auto-layout actions in a pinned
+  icon footer (TASK-062); the list fills the remaining height
 - scoped copy/paste for all, transform, render, or appearance settings
 - current asset identity
 
 ### Properties
 
-- selected-layer Animation with search, playback speed, loop, preview FPS, and export FPS
-- precise Transform values and flips
-- Render visibility, layer opacity, Track 0 Alpha, and PMA options
-- Appearance skin selection
-- searchable selected-layer slot visibility, opacity, and named attachment selection
-- Viewport display channel and current physical render dimensions
-- active GPU/CPU preview backend
-- background
-- theme and Viewer project identity
+TASK-062 reduces Properties to three single-row tabs so selected-layer editing
+never hides behind a second tab row:
+
+- Animation: skin selection, animation search and list, playback speed, preview
+  FPS, and export FPS
+- Layer: Transform (position X/Y, scale, rotation, flips) and Render
+  (visibility, layer opacity, Track 0 Alpha, PMA) as sections of one scrolling
+  page
+- Slots: searchable one-line rows with visibility switch, named attachment
+  (`Auto` follows animation/setup), and opacity
 - multi-track animation and attachment authoring remain separate tasks
+
+Workspace-wide view settings are not layer properties:
+
+- display channel, background, active GPU/CPU backend, and render dimensions
+  live in a compact viewport overlay (and the View menu)
+- theme lives in View > Theme
+- Viewer project identity lives in the Layers panel asset information
 
 ### Diagnostics
 

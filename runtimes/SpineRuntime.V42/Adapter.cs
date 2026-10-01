@@ -86,7 +86,7 @@ public sealed class Adapter : IRuntimeAdapter
         {
             cancellationToken.ThrowIfCancellationRequested();
             var skeleton = Pose(request, cancellationToken);
-            return CpuRenderer.RenderFrame(skeleton, request.Width, request.Height, request.Pma, request.LinearFiltering);
+            return CpuRenderer.RenderFrame(skeleton, request.Width, request.Height, request.Pma, request.LinearFiltering, request.Camera);
         }
 
         public PreviewSceneFrame RenderScene(PreviewSceneRequest request, CancellationToken cancellationToken)
@@ -100,8 +100,9 @@ public sealed class Adapter : IRuntimeAdapter
         private Skeleton Pose(FrameRenderRequest request, CancellationToken cancellationToken)
         {
             var loaded = asset ?? throw new ObjectDisposedException(nameof(RenderSession));
-            var animation = loaded.Data.FindAnimation(request.Animation)
-                ?? throw new InvalidDataException($"Animation not found: {request.Animation}");
+            var animation = request.Animation == "" ? null
+                : loaded.Data.FindAnimation(request.Animation)
+                    ?? throw new InvalidDataException($"Animation not found: {request.Animation}");
             if (request.Skins.Count > 1)
                 throw new NotSupportedException("This vertical slice supports at most one skin.");
 
@@ -111,6 +112,14 @@ public sealed class Adapter : IRuntimeAdapter
             {
                 skeleton.SetSkin(request.Skins[0]);
                 skeleton.SetSlotsToSetupPose();
+            }
+
+            if (animation is null)
+            {
+                skeleton.Time = 0;
+                skeleton.UpdateWorldTransform(Skeleton.Physics.Reset);
+                ApplySlotDisplaySettings(skeleton, request.Slots);
+                return skeleton;
             }
 
             var state = new AnimationState(stateData);
