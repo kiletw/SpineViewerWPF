@@ -1,6 +1,6 @@
 # TASK-065: Playback transport, layer focus, and slot batch actions
 
-Status: Completed on 2026-10-02 (Esc exit verified with a posted key; see Known Gaps).
+Status: Completed on 2026-10-02.
 
 ## Objective
 
@@ -145,7 +145,7 @@ filter slots, hide all, show all, clear attachments, undo each.
   input queue during the session was intercepted before reaching the app (the
   computer-use overlay reserves Esc), while F11 and Ctrl+arrow keys arrived.
   A trace showed the posted Esc reaching `WindowKeyDown` unhandled and leaving
-  full screen. TBD: confirm a physical Esc press by hand.
+  full screen. The user confirmed a physical Esc press on 2026-10-02.
 - Layer focus is GPU-only; the CPU fallback ignores viewport pan (TASK-060 gap).
 - Layers double-click focus was exercised through the same command path as the
   menu; a physical double-click was not performed.
