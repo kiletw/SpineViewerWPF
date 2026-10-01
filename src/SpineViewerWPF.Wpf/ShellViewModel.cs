@@ -1427,6 +1427,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         finally
         {
             exportCancellation = null;
+            // TASK-064: clear the flag before re-announcing commands so Screenshot
+            // and Export are evaluated as available again.
+            Interlocked.Exchange(ref exportInProgress, 0);
             if (!disposed)
             {
                 State = previousState;
@@ -1434,7 +1437,6 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 Changed(string.Empty);
                 RefreshCommands();
             }
-            Interlocked.Exchange(ref exportInProgress, 0);
         }
     }
 

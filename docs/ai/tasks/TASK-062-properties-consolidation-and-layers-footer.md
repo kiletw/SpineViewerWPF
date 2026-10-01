@@ -1,6 +1,6 @@
 # TASK-062: Properties consolidation and Layers footer
 
-Status: Implemented; automated validation passed on 2026-10-02; manual walkthrough found a Slots row layout defect (see Manual Walkthrough).
+Status: Implemented; automated validation passed on 2026-10-02; manual walkthrough found a Slots row layout defect, fixed by TASK-064.
 
 ## Objective
 
@@ -108,7 +108,7 @@ Environment: Windows 11, single monitor at the system DPI in use (DPI variants a
   horizontal scrolling enabled, so the `*` name column sizes to the longest
   name and the 46 px opacity column falls outside the panel with no visible
   scroll bar; focusing an attachment combo box scrolls the list sideways and
-  clips the switches.
+  clips the switches. Fixed by TASK-064.
 - Observed: in Light theme, menu drop-downs show a dark strip along the right
   edge.
 - Not run: skin switching (spineboy has only `default`), Dark/Light comparison

@@ -164,6 +164,7 @@ $densityTokens = @(
     'Command="{Binding DuplicateLayerCommand}"',
     'Command="{Binding ReloadLayerCommand}"',
     'ItemsSource="{Binding AttachmentOptions}"',
+    'ScrollViewer.HorizontalScrollBarVisibility="Disabled"',
     'Margin="8"',
     '<Menu Grid.Row="0"',
     'AutomationProperties.AutomationId="Main.Activity.Layers"',

@@ -106,7 +106,7 @@ Scale 0.5 and 2, a two-layer scene with offsets/rotation, and Fixed size 512.
 - Not run: `jump`, Scale 0.5 and 2, multi-layer offsets/rotation, Fixed size 512.
 - Observed (pre-existing since `f05f3b9`): Screenshot and Export stay
   disabled after an export completes, because `ExportSequenceAsync` calls
-  `RefreshCommands()` before resetting `exportInProgress`.
+  `RefreshCommands()` before resetting `exportInProgress`. Fixed by TASK-064.
 
 ## Known Gaps
 

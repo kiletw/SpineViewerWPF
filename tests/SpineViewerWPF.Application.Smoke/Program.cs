@@ -995,11 +995,26 @@ try
         "GPU playback unexpectedly replaced the CPU preview frame.");
     realViewModel.IsPlaying = false;
     realViewModel.SetGpuPreviewAvailable(false);
+    // TASK-064: the final command notification after export must report the
+    // commands enabled; WPF does not re-query CanExecute on its own.
+    bool? exportEnabledAtLastRefresh = null;
+    bool? screenshotEnabledAtLastRefresh = null;
+    EventHandler exportRefreshed = (_, _) => exportEnabledAtLastRefresh = realViewModel.ExportCommand.CanExecute(null);
+    EventHandler screenshotRefreshed = (_, _) => screenshotEnabledAtLastRefresh = realViewModel.ScreenshotCommand.CanExecute(null);
+    realViewModel.ExportCommand.CanExecuteChanged += exportRefreshed;
+    realViewModel.ScreenshotCommand.CanExecuteChanged += screenshotRefreshed;
     realViewModel.ExportCommand.Execute(null);
     for (var attempt = 0; attempt < 100 && realViewModel.IsExporting; attempt++)
         await Task.Delay(10);
+    for (var attempt = 0; attempt < 100 && (exportEnabledAtLastRefresh != true || screenshotEnabledAtLastRefresh != true); attempt++)
+        await Task.Delay(10);
+    realViewModel.ExportCommand.CanExecuteChanged -= exportRefreshed;
+    realViewModel.ScreenshotCommand.CanExecuteChanged -= screenshotRefreshed;
     Assert(!realViewModel.IsExporting && File.Exists(Path.Combine(root, "exported", "move-0000.png")), "WPF Export command did not finish a PNG sequence.");
     Assert(realViewModel.LastAction == "Exported 11 frames", "WPF Export command did not use the custom FPS.");
+    Assert(
+        exportEnabledAtLastRefresh == true && screenshotEnabledAtLastRefresh == true,
+        "Export and Screenshot were not re-enabled after export completed.");
     realViewModel.BackgroundMode = "Dark";
     Assert(realViewModel.UndoCommand.CanExecute(null), "Property edit did not create Undo history before layer import.");
     nextAssetPaths = [pngSkeleton, Path.Combine(fixtureDirectory, "minimal.json")];

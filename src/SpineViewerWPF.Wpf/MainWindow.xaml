@@ -1711,7 +1711,8 @@
                                         </TextBlock.Style>
                                     </TextBlock>
                                 </Grid>
-                                <ListBox Grid.Row="1" ItemsSource="{Binding SelectedSceneLayer.FilteredSlots}">
+                                <ListBox Grid.Row="1" ItemsSource="{Binding SelectedSceneLayer.FilteredSlots}"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                     <ListBox.ItemContainerStyle>
                                         <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
                                             <Setter Property="Padding" Value="2,1" />
