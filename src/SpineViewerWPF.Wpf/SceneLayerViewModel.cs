@@ -36,6 +36,7 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
     private bool pma;
     private int zIndex;
     private string slotFilter = "";
+    private IReadOnlyList<SlotDisplayViewModel>? filteredSlots;
     private readonly Dictionary<string, SlotDisplayViewModel> slotSettings = new(StringComparer.Ordinal);
     private readonly Dictionary<string, SlotDisplayDocument> pendingSlotSettings = new(StringComparer.Ordinal);
 
@@ -105,8 +106,10 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
     public RenderedFrame? PreviewFrame => previewFrame;
     public PreviewSceneFrame? PreviewScene => previewScene;
     public ObservableCollection<SlotDisplayViewModel> Slots { get; } = [];
+    // TASK-061: cache the filtered list so repeated notifications keep the same
+    // instance; a new array per frame made the Slots ListBox rebuild every row.
     public IReadOnlyList<SlotDisplayViewModel> FilteredSlots =>
-        Slots.Where(slot => slot.Name.Contains(SlotFilter, StringComparison.OrdinalIgnoreCase)).ToArray();
+        filteredSlots ??= Slots.Where(slot => slot.Name.Contains(SlotFilter, StringComparison.OrdinalIgnoreCase)).ToArray();
     public string SlotFilter
     {
         get => slotFilter;
@@ -115,6 +118,7 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
             var next = value ?? "";
             if (slotFilter == next) return;
             slotFilter = next;
+            filteredSlots = null;
             Changed();
             Changed(nameof(FilteredSlots));
         }
@@ -316,12 +320,17 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Distinct(StringComparer.Ordinal)
             .ToArray();
+        var slotsAdded = false;
         foreach (var name in names)
         {
             if (slotSettings.ContainsKey(name)) continue;
             AddSlot(new SlotDescriptor(name, null, []));
+            slotsAdded = true;
         }
         Changed(nameof(PreviewScene));
+        // Every playback frame publishes a scene; only announce the slot list
+        // when it actually gained slots.
+        if (!slotsAdded) return;
         Changed(nameof(Slots));
         Changed(nameof(FilteredSlots));
     }
@@ -360,6 +369,7 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
             saved?.AttachmentName);
         slotSettings.Add(descriptor.Name, setting);
         Slots.Add(setting);
+        filteredSlots = null;
     }
 
     public void Dispose() => RenderSession.Dispose();
