@@ -186,17 +186,7 @@ public sealed class GpuViewport : Grid, IDisposable
 
     private void DrawLayer(PreviewSceneFrame scene, SceneLayerViewModel layer, int width, int height)
     {
-        var hasBounds = scene.BoundsWidth > 0 && scene.BoundsHeight > 0
-            && float.IsFinite(scene.BoundsX) && float.IsFinite(scene.BoundsY);
-        var shouldFit = hasBounds
-            && (scene.BoundsWidth > width / 4f || scene.BoundsHeight > height / 4f);
-        var fitScale = shouldFit
-            ? MathF.Min(1, MathF.Min(
-                Math.Max(1, width - 32) / scene.BoundsWidth,
-                Math.Max(1, height - 32) / scene.BoundsHeight))
-            : 1;
-        var centerX = shouldFit ? scene.BoundsX + scene.BoundsWidth / 2 : 0;
-        var centerY = shouldFit ? scene.BoundsY + scene.BoundsHeight / 2 : 0;
+        var (centerX, centerY, fitScale) = ViewportMath.ComputeFit(scene, width, height);
 
         GL.Uniform2(GL.GetUniformLocation(program, "uCenter"), centerX, centerY);
         GL.Uniform1(GL.GetUniformLocation(program, "uFitScale"), fitScale);
@@ -340,6 +330,32 @@ public sealed class GpuViewport : Grid, IDisposable
         var log = GL.GetShaderInfoLog(shader);
         GL.DeleteShader(shader);
         throw new InvalidOperationException($"GPU shader compile failed: {log}");
+    }
+
+    // TASK-065: content center of a layer as drawn by the last GPU frame layout,
+    // relative to the viewport center and excluding pan.
+    public bool TryGetLayerContentCenter(SceneLayerViewModel layer, out double centerX, out double centerY)
+    {
+        centerX = centerY = 0;
+        var viewModel = ViewModel;
+        if (!started || failed || disposed || viewModel is null || !viewModel.HasGpuPreview
+            || layer.PreviewScene is not { } scene)
+            return false;
+        return ViewportMath.TryGetLayerContentCenter(
+            scene,
+            layer.ModelX,
+            layer.ModelY,
+            layer.ModelScale,
+            layer.ModelRotation,
+            layer.FlipX,
+            layer.FlipY,
+            control.FrameBufferWidth,
+            control.FrameBufferHeight,
+            viewModel.ViewportZoom,
+            DpiScaleX,
+            DpiScaleY,
+            out centerX,
+            out centerY);
     }
 
     private ShellViewModel? ViewModel => DataContext as ShellViewModel;

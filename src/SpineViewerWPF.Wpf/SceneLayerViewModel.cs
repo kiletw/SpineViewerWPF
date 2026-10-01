@@ -12,7 +12,15 @@ internal enum LayerParameterScope
     All,
     Transform,
     Render,
-    Appearance
+    Appearance,
+    Slots
+}
+
+internal enum SlotBatchAction
+{
+    Show,
+    Hide,
+    ClearAttachments
 }
 
 public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
@@ -278,6 +286,10 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
         {
             if (Animations.Contains(source.Animation, StringComparer.Ordinal)) animation = source.Animation;
             if (Skins.Contains(source.SelectedSkin, StringComparer.Ordinal)) selectedSkin = source.SelectedSkin;
+        }
+
+        if (scope is LayerParameterScope.All or LayerParameterScope.Appearance or LayerParameterScope.Slots)
+        {
             foreach (var saved in source.Slots ?? [])
             {
                 if (string.IsNullOrWhiteSpace(saved.Name)) continue;
@@ -289,6 +301,38 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
 
         Changed(string.Empty);
         changed?.Invoke();
+    }
+
+    // TASK-065: apply one batch action to the slots shown by the current filter
+    // as a single Undo step; returns how many slots changed.
+    internal int ApplySlotBatch(SlotBatchAction action)
+    {
+        var targets = FilteredSlots.Where(slot => action switch
+        {
+            SlotBatchAction.Show => !slot.IsVisible,
+            SlotBatchAction.Hide => slot.IsVisible,
+            _ => slot.AttachmentName is not null
+        }).ToArray();
+        if (targets.Length == 0) return 0;
+
+        changing?.Invoke();
+        foreach (var slot in targets)
+        {
+            switch (action)
+            {
+                case SlotBatchAction.Show:
+                    slot.Apply(true, slot.Opacity, slot.AttachmentName);
+                    break;
+                case SlotBatchAction.Hide:
+                    slot.Apply(false, slot.Opacity, slot.AttachmentName);
+                    break;
+                default:
+                    slot.Apply(slot.IsVisible, slot.Opacity, null);
+                    break;
+            }
+        }
+        changed?.Invoke();
+        return targets.Length;
     }
 
     internal void SetPosition(double x, double y)

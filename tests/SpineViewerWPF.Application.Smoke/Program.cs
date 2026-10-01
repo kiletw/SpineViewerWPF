@@ -577,6 +577,38 @@ try
         Assert(slot.IsVisible, "Undo did not restore slot visibility.");
         gpuViewModel.RedoCommand.Execute(null);
         Assert(!slot.IsVisible, "Redo did not reapply slot visibility.");
+
+        // TASK-065: slot batch actions act on filtered slots as one Undo step.
+        var slotLayer = gpuViewModel.SceneLayers[0];
+        Assert(ReferenceEquals(gpuViewModel.SelectedSceneLayer, slotLayer), "The opened layer was not selected for slot actions.");
+        gpuViewModel.ShowFilteredSlotsCommand.Execute(null);
+        Assert(slotLayer.Slots.All(item => item.IsVisible), "Show all did not show every filtered slot.");
+        gpuViewModel.UndoCommand.Execute(null);
+        Assert(!slot.IsVisible, "Show all was not a single Undo step.");
+        gpuViewModel.RedoCommand.Execute(null);
+        Assert(slot.IsVisible, "Redo did not reapply Show all.");
+        slotLayer.SlotFilter = "no-such-slot";
+        gpuViewModel.HideFilteredSlotsCommand.Execute(null);
+        Assert(slot.IsVisible && gpuViewModel.LastAction == "No slots changed", "Hide all ignored the slot filter.");
+        slotLayer.SlotFilter = "";
+        gpuViewModel.HideFilteredSlotsCommand.Execute(null);
+        Assert(slotLayer.Slots.All(item => !item.IsVisible), "Hide all did not hide every filtered slot.");
+        gpuViewModel.UndoCommand.Execute(null);
+        Assert(slot.IsVisible, "Undo did not restore Hide all.");
+        slot.SelectedAttachmentKey = "tall";
+        gpuViewModel.ClearFilteredSlotAttachmentsCommand.Execute(null);
+        Assert(slot.SelectedAttachmentKey == "", "Clear attachments did not restore Auto.");
+        gpuViewModel.UndoCommand.Execute(null);
+        Assert(slot.SelectedAttachmentKey == "tall", "Clear attachments was not a single Undo step.");
+        var animationBeforeSlotPaste = slotLayer.Animation;
+        slot.IsVisible = false;
+        gpuViewModel.CopySlotParametersCommand.Execute(null);
+        slot.IsVisible = true;
+        slot.SelectedAttachmentKey = "";
+        gpuViewModel.PasteLayerParametersCommand.Execute(null);
+        Assert(
+            !slot.IsVisible && slot.SelectedAttachmentKey == "tall" && slotLayer.Animation == animationBeforeSlotPaste,
+            "Slots-scope paste did not apply only slot settings.");
     }
     var capturePath = Path.Combine(root, "capture.png");
     var previewViewModel = new ShellViewModel(
@@ -634,6 +666,32 @@ try
     Assert(previewViewModel.ViewportZoom == 8 && previewViewModel.ViewportZoomLabel == "800%", "Viewport zoom was not bounded at 800%.");
     previewViewModel.FitCommand.Execute(null);
     Assert(previewViewModel.ViewportZoom == 1 && !previewViewModel.IsDirty, "Fit did not reset bounded zoom without dirtying the project.");
+
+    // TASK-065: layer focus pans the located content center to the viewport
+    // center without dirtying the project; the math mirrors the GPU shader.
+    var focusLayer = previewViewModel.SceneLayers[0];
+    var undoBeforeFocus = previewViewModel.UndoCommand.CanExecute(null);
+    Assert(previewViewModel.FocusLayer(focusLayer, _ => (40, -20)), "Layer focus did not accept a located center.");
+    Assert(previewViewModel.ViewportPanX == -40 && previewViewModel.ViewportPanY == 20 && previewViewModel.ViewportZoom == 1,
+        "Layer focus did not center the located content.");
+    Assert(!previewViewModel.IsDirty && previewViewModel.UndoCommand.CanExecute(null) == undoBeforeFocus,
+        "Layer focus changed project or Undo state.");
+    Assert(!previewViewModel.FocusLayer(focusLayer, _ => null) && previewViewModel.ViewportPanX == -40,
+        "Layer focus without a GPU scene changed the viewport.");
+    previewViewModel.FitCommand.Execute(null);
+    var smallScene = new PreviewSceneFrame(-50, 0, 100, 200, []);
+    Assert(ViewportMath.TryGetLayerContentCenter(smallScene, 10, 5, 1, 0, false, false, 800, 800, 2, 1.5, 1.5, out var focusX, out var focusY)
+        && Math.Abs(focusX - 10) < 0.001 && Math.Abs(focusY + 128.333333) < 0.001,
+        "Unfitted layer focus center did not follow zoom, DPI, and translation.");
+    Assert(ViewportMath.TryGetLayerContentCenter(smallScene, 10, 5, 1, 90, false, false, 800, 800, 2, 1.5, 1.5, out focusX, out focusY)
+        && Math.Abs(focusX - 143.333333) < 0.001 && Math.Abs(focusY - 5) < 0.001,
+        "Layer focus center did not follow rotation.");
+    var largeScene = new PreviewSceneFrame(-200, 0, 400, 400, []);
+    Assert(ViewportMath.TryGetLayerContentCenter(largeScene, 10, 5, 2, 30, true, false, 800, 800, 3, 1.25, 1.25, out focusX, out focusY)
+        && Math.Abs(focusX - 10) < 0.001 && Math.Abs(focusY - 5) < 0.001,
+        "Fitted layer focus center did not resolve to the layer translation.");
+    Assert(!ViewportMath.TryGetLayerContentCenter(new PreviewSceneFrame(0, 0, 0, 0, []), 0, 0, 1, 0, false, false, 800, 800, 1, 1, 1, out _, out _),
+        "Layer focus accepted a scene without bounds.");
     previewViewModel.ScreenshotCommand.Execute(null);
     for (var attempt = 0; attempt < 200
          && (!File.Exists(capturePath) || new FileInfo(capturePath).Length <= 8);
@@ -972,6 +1030,32 @@ try
     realViewModel.IsPlaying = false;
     realViewModel.Loop = true;
     realViewModel.PreviewFramesPerSecond = previousPreviewFps;
+
+    // TASK-065: frame steps use the preview FPS grid, pause, and clamp.
+    var dirtyBeforeTransport = realViewModel.IsDirty;
+    var undoBeforeTransport = realViewModel.UndoCommand.CanExecute(null);
+    var stepFrame = 1 / realViewModel.PreviewFramesPerSecond;
+    realViewModel.Position = 0;
+    realViewModel.IsPlaying = true;
+    realViewModel.NextFrameCommand.Execute(null);
+    Assert(!realViewModel.IsPlaying && Math.Abs(realViewModel.Position - stepFrame) < 0.0001, "Next frame did not pause and step one frame.");
+    realViewModel.ForwardTenFramesCommand.Execute(null);
+    Assert(Math.Abs(realViewModel.Position - 11 * stepFrame) < 0.0001, "Forward 10 frames did not step ten frames.");
+    realViewModel.Position = 15.3 * stepFrame;
+    realViewModel.PreviousFrameCommand.Execute(null);
+    Assert(Math.Abs(realViewModel.Position - 15 * stepFrame) < 0.0001, "Previous frame did not snap to the frame grid.");
+    realViewModel.BackTenFramesCommand.Execute(null);
+    Assert(Math.Abs(realViewModel.Position - 5 * stepFrame) < 0.0001, "Back 10 frames did not step ten frames.");
+    realViewModel.BackTenFramesCommand.Execute(null);
+    Assert(realViewModel.Position == 0, "Frame steps did not clamp at the start.");
+    realViewModel.Position = realViewModel.Duration - 0.5 * stepFrame;
+    realViewModel.ForwardTenFramesCommand.Execute(null);
+    Assert(Math.Abs(realViewModel.Position - realViewModel.Duration) < 0.0001, "Frame steps did not clamp at the end.");
+    realViewModel.RestartCommand.Execute(null);
+    Assert(realViewModel.Position == 0 && realViewModel.IsPlaying, "Restart did not play from the start.");
+    realViewModel.IsPlaying = false;
+    Assert(realViewModel.IsDirty == dirtyBeforeTransport && realViewModel.UndoCommand.CanExecute(null) == undoBeforeTransport,
+        "Playback transport changed project or Undo state.");
     realViewModel.Position = 0;
     var sceneBeforeGpuSwitch = realViewModel.SceneLayers[0].PreviewScene;
     realViewModel.SetGpuPreviewAvailable(true);

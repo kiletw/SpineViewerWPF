@@ -65,6 +65,7 @@ Read `10-cli-contract.md`, `11-mcp-capability-map.md`, and UI documents only whe
 - TASK-061: the Slots list keeps one filtered instance and is re-announced only when slots are added, so rows stay stable and clickable during playback.
 - TASK-062: Properties uses Animation / Layer / Slots single-row tabs with one-line slot rows; channel/background/backend move to a viewport overlay and View menu, theme to View > Theme, project identity to Layers asset information; the Layers list fills the panel above a pinned icon footer.
 - TASK-064: the Slots list no longer scrolls horizontally, so opacity stays visible; Screenshot/Export re-enable after an export completes.
+- TASK-065: frame step/fast step/restart and F11 full-screen preview, layer focus from the Layers panel, and filtered slot batch actions plus a Slots copy scope.
 - TASK-063: optional auto-fit export framing (content bounds over all frames, scale, margin) through a fixed per-layer `RenderCamera`; WPF defaults to Auto fit with Fixed size available; `17-external-feature-reference.md` records the competitor adoption roadmap.
 - Localization: resource boundary required now; runtime language switching remains deferred
 - Editing: TASK-004 adds Inspector editing, Undo/Redo, dirty state, and versioned `*.spineviewer.json` sidecar save; Spine source writing remains forbidden

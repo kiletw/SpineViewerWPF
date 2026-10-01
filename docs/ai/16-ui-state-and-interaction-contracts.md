@@ -85,11 +85,27 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
   a text box, password box, or editable combo box (TASK-060).
 - Delete removes the selected layer only while focus is in the Layers list; the
   Layer and context menus keep their Remove commands.
+- Frame steps (TASK-065): Previous/Next frame move one preview frame
+  (`1 / Preview FPS`) on that frame grid; Back/Forward 10 frames move ten.
+  Steps pause playback, clamp to the selected layer's duration without
+  wrapping, and use Ctrl+Left/Right and Ctrl+Shift+Left/Right outside text
+  boxes. Restart seeks to zero and plays. None of these dirty the project.
+- Full-screen preview (F11, View menu, playback-bar button) hides the menu,
+  command bar, docked Browse and Inspector panels, and status bar, keeping the
+  viewport and playback bar. F11, Esc, or the button restores the previous
+  window state and panels. It is not saved.
+- Layer focus (double-click in Layers, Layer menu, layer context menu) pans the
+  viewport so the layer's GPU-framed content center is centered; zoom is kept
+  and the project is not dirtied. Without a GPU scene it reports that focus
+  needs the GPU preview.
+- Slot batch actions (Show all, Hide all, All Auto) act on the slots shown by
+  the Slots filter of the selected layer; each is one Undo step and a no-op is
+  reported without dirtying.
 - Search/filter does not alter playback until a selection is made.
 - Selecting a scene layer changes the Properties editing context and the timeline duration reference; it does not reorder the scene.
 - Duplicate opens an independent render session and preserves the source layer's editable settings without changing source files.
 - Reload replaces only the selected layer after the replacement render session succeeds; failure preserves the existing scene.
-- Parameter copy/paste never copies source paths or z-order. The supported scopes are all, transform, render, and appearance.
+- Parameter copy/paste never copies source paths or z-order. The supported scopes are all, transform, render, appearance, and slots (slot visibility, opacity, and attachment choices only).
 - Numeric transform input accepts finite coordinates beyond the earlier slider limits; scale remains finite and greater than zero.
 - Slot attachment selection applies after animation posing. An unavailable saved name falls back to animation/setup behavior without unloading the asset.
 - Screenshot and PNG sequence export snapshot the layer list before background rendering. Visible layers use stable ascending Z order and include layer opacity, transform, flips, animation, skin, Track 0 Alpha, PMA, and slot settings. Model translation is interpreted as 96-DPI output pixels; viewport pan and zoom remain preview-only.
@@ -118,6 +134,9 @@ ViewModels may expose primitives, presentation DTOs, commands, and observable co
 | Play | asset ready, animation selected, not blocked |
 | Pause | playing |
 | Seek | duration known and asset ready |
+| Restart, frame steps | playable (same as Play) |
+| Focus layer | selected layer |
+| Slot batch actions | selected layer |
 | Screenshot | asset ready, renderer available, not exporting |
 | Export | asset ready, selection valid, no blocking diagnostic |
 | Reload | asset identity known and not in unsafe operation |
