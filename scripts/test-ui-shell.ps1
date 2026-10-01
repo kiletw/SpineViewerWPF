@@ -126,7 +126,12 @@ $automationIds = @(
     'Main.Scene.CopySlotParameters',
     'Main.Scene.ShowAllSlots',
     'Main.Scene.HideAllSlots',
-    'Main.Scene.ClearSlotAttachments'
+    'Main.Scene.ClearSlotAttachments',
+    'Main.Inspector.ExportFormat',
+    'Main.Inspector.VideoBackground',
+    'Main.Inspector.BrowseFfmpeg',
+    'Main.Inspector.UseFfmpegFromPath',
+    'Main.Inspector.FfmpegPath'
 )
 $markup = Get-Content -LiteralPath $xaml -Raw
 foreach ($automationId in $automationIds) {

@@ -99,6 +99,41 @@ public partial class App : System.Windows.Application
             return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
 
+        // TASK-066: one output file per encoded format; the dialog's overwrite
+        // prompt is the confirmation for replacing it.
+        string? ChooseEncodedExportPath(string format)
+        {
+            var (filter, extension) = format switch
+            {
+                "GIF" => ("Text.ExportGifFilter", ".gif"),
+                "WebP" => ("Text.ExportWebPFilter", ".webp"),
+                "APNG" => ("Text.ExportApngFilter", ".png"),
+                _ => ("Text.ExportMp4Filter", ".mp4")
+            };
+            var dialog = new SaveFileDialog
+            {
+                Title = (string)FindResource("Text.ExportEncodedTitle"),
+                Filter = (string)FindResource(filter),
+                DefaultExt = extension,
+                AddExtension = true,
+                OverwritePrompt = true,
+                FileName = "spine-animation" + extension
+            };
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
+
+        string? ChooseFfmpegPath()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = (string)FindResource("Text.FfmpegTitle"),
+                Filter = (string)FindResource("Text.FfmpegFilter"),
+                CheckFileExists = true,
+                Multiselect = false
+            };
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
+        }
+
         bool ConfirmDiscardChanges() => MessageBox.Show(
             (string)FindResource("Text.DiscardPrompt"),
             (string)FindResource("Text.UnsavedTitle"),
@@ -127,7 +162,10 @@ public partial class App : System.Windows.Application
             chooseScreenshotPath: ChooseScreenshotPath,
             chooseExportPath: ChooseExportPath,
             chooseAssetPaths: ChooseAssetPaths,
-            chooseProjectPathToOpen: ChooseProjectPathToOpen);
+            chooseProjectPathToOpen: ChooseProjectPathToOpen,
+            chooseEncodedExportPath: ChooseEncodedExportPath,
+            chooseFfmpegPath: ChooseFfmpegPath,
+            userSettings: UserSettingsStore.Load());
         MainWindow = new MainWindow
         {
             DataContext = viewModel
