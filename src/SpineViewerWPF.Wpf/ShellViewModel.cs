@@ -1381,12 +1381,16 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
             var output = Path.GetFullPath(target);
             var primaryLayer = sceneLayers.FirstOrDefault();
+            // A single-layer export renders the remaining layer itself, which may
+            // not be the asset that opened the workspace (for example after the
+            // original layer was removed).
+            var singleLayer = sceneLayerSnapshot is null ? primaryLayer : null;
             var request = new AnimationExportRequest(
-                skeletonPath,
-                atlasPath,
-                runtimeLine,
-                SelectedSceneLayer?.Animation ?? SelectedAnimation ?? "",
-                (float)Duration,
+                singleLayer?.SkeletonPath ?? skeletonPath,
+                singleLayer?.AtlasPath ?? atlasPath,
+                singleLayer?.RuntimeOverride ?? runtimeLine,
+                singleLayer?.Animation ?? SelectedSceneLayer?.Animation ?? SelectedAnimation ?? "",
+                (float)(singleLayer?.Duration ?? Duration),
                 (float)ExportFramesPerSecond,
                 IsExportAutoFit ? ExportSize : ExportWidth,
                 IsExportAutoFit ? ExportSize : ExportHeight,
