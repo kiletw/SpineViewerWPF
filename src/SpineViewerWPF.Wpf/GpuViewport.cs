@@ -65,8 +65,10 @@ public sealed class GpuViewport : Grid, IDisposable
         Focusable = false,
         IsHitTestVisible = false
     };
-    private readonly Dictionary<string, int> textures = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> activeTextureKeys = new(StringComparer.OrdinalIgnoreCase);
+    // Keyed by texture instance, not path: a reloaded session yields new pixel
+    // data under the same path, and layers sharing an atlas file each own theirs.
+    private readonly Dictionary<PreviewTexture, int> textures = new(ReferenceEqualityComparer.Instance);
+    private readonly HashSet<PreviewTexture> activeTextureKeys = new(ReferenceEqualityComparer.Instance);
     private bool started;
     private bool initialized;
     private bool frameValidated;
@@ -76,6 +78,10 @@ public sealed class GpuViewport : Grid, IDisposable
     private int vertexArray;
     private int vertexBuffer;
     private int indexBuffer;
+    private int layerFramebuffer;
+    private int layerTexture;
+    private int layerTargetWidth;
+    private int layerTargetHeight;
     private ShellViewModel? subscribedViewModel;
 
     public GpuViewport()
@@ -142,11 +148,20 @@ public sealed class GpuViewport : Grid, IDisposable
                 (float)(viewModel.ViewportPanX * DpiScaleX),
                 (float)(-viewModel.ViewportPanY * DpiScaleY));
             var hasVisibleGeometry = false;
+            GL.GetInteger(GetPName.DrawFramebufferBinding, out int targetFramebuffer);
             foreach (var layer in viewModel.SceneLayers.OrderBy(item => item.ZIndex))
             {
-            if (!layer.IsVisible || layer.PreviewScene is not { } scene) continue;
+                if (!layer.IsVisible || layer.PreviewScene is not { } scene) continue;
                 hasVisibleGeometry |= scene.DrawCommands.Any(command => command.Alpha > 0);
-                DrawLayer(scene, layer, width, height);
+                if (layer.Opacity >= 0.999)
+                {
+                    DrawLayer(scene, layer, width, height, 1);
+                    continue;
+                }
+                if (layer.Opacity <= 0) continue;
+                // Layer opacity fades the composed layer, matching CPU capture and
+                // export: overlapping slots inside the layer must not add alpha.
+                DrawLayerWithOpacity(scene, layer, width, height, targetFramebuffer, viewModel);
             }
             if (!frameValidated && hasVisibleGeometry)
                 ValidateFrame(width, height);
@@ -184,7 +199,86 @@ public sealed class GpuViewport : Grid, IDisposable
         initialized = true;
     }
 
-    private void DrawLayer(PreviewSceneFrame scene, SceneLayerViewModel layer, int width, int height)
+    private void DrawLayerWithOpacity(
+        PreviewSceneFrame scene,
+        SceneLayerViewModel layer,
+        int width,
+        int height,
+        int targetFramebuffer,
+        ShellViewModel viewModel)
+    {
+        EnsureLayerTarget(width, height);
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, layerFramebuffer);
+        GL.Viewport(0, 0, width, height);
+        GL.ClearColor(0, 0, 0, 0);
+        GL.Clear(ClearBufferMask.ColorBufferBit);
+        DrawLayer(scene, layer, width, height, 1);
+
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, targetFramebuffer);
+        GL.Viewport(0, 0, width, height);
+        // The layer target already holds the transformed, premultiplied layer; draw
+        // it back as a screen-aligned quad with identity transforms.
+        GL.Uniform2(GL.GetUniformLocation(program, "uCenter"), 0f, 0f);
+        GL.Uniform1(GL.GetUniformLocation(program, "uFitScale"), 1f);
+        GL.Uniform2(GL.GetUniformLocation(program, "uLayerScale"), 1f, 1f);
+        GL.Uniform1(GL.GetUniformLocation(program, "uRotation"), 0f);
+        GL.Uniform2(GL.GetUniformLocation(program, "uTranslation"), 0f, 0f);
+        GL.Uniform1(GL.GetUniformLocation(program, "uViewportZoom"), 1f);
+        GL.Uniform2(GL.GetUniformLocation(program, "uViewportPan"), 0f, 0f);
+        var halfWidth = width / 2f;
+        var halfHeight = height / 2f;
+        float[] quad =
+        [
+            -halfWidth, -halfHeight, 0, 0,
+            halfWidth, -halfHeight, 1, 0,
+            halfWidth, halfHeight, 1, 1,
+            -halfWidth, halfHeight, 0, 1
+        ];
+        int[] indices = [0, 1, 2, 0, 2, 3];
+        GL.BindBuffer(BufferTarget.ArrayBuffer, vertexBuffer);
+        GL.BufferData(BufferTarget.ArrayBuffer, quad.Length * sizeof(float), quad, BufferUsageHint.DynamicDraw);
+        GL.BindBuffer(BufferTarget.ElementArrayBuffer, indexBuffer);
+        GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(int), indices, BufferUsageHint.DynamicDraw);
+        GL.ActiveTexture(TextureUnit.Texture0);
+        GL.BindTexture(TextureTarget.Texture2D, layerTexture);
+        GL.Uniform1(GL.GetUniformLocation(program, "uTexture"), 0);
+        GL.Uniform4(GL.GetUniformLocation(program, "uTint"), 1f, 1f, 1f, (float)layer.Opacity);
+        GL.Uniform1(GL.GetUniformLocation(program, "uPma"), 1);
+        SetBlend(PreviewBlendMode.Normal);
+        GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+
+        GL.Uniform1(GL.GetUniformLocation(program, "uViewportZoom"), (float)viewModel.ViewportZoom);
+        GL.Uniform2(
+            GL.GetUniformLocation(program, "uViewportPan"),
+            (float)(viewModel.ViewportPanX * DpiScaleX),
+            (float)(-viewModel.ViewportPanY * DpiScaleY));
+    }
+
+    private void EnsureLayerTarget(int width, int height)
+    {
+        if (layerFramebuffer != 0 && layerTargetWidth == width && layerTargetHeight == height) return;
+        if (layerTexture == 0) layerTexture = GL.GenTexture();
+        GL.BindTexture(TextureTarget.Texture2D, layerTexture);
+        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, width, height, 0,
+            OpenTK.Graphics.OpenGL4.PixelFormat.Rgba, PixelType.UnsignedByte, IntPtr.Zero);
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+        if (layerFramebuffer == 0) layerFramebuffer = GL.GenFramebuffer();
+        GL.GetInteger(GetPName.DrawFramebufferBinding, out int previous);
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, layerFramebuffer);
+        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0,
+            TextureTarget.Texture2D, layerTexture, 0);
+        var status = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, previous);
+        if (status != FramebufferErrorCode.FramebufferComplete)
+            throw new InvalidOperationException($"OpenGL layer target is incomplete: {status}.");
+        layerTargetWidth = width;
+        layerTargetHeight = height;
+    }
+
+    private void DrawLayer(PreviewSceneFrame scene, SceneLayerViewModel layer, int width, int height, float opacity)
     {
         var (centerX, centerY, fitScale) = ViewportMath.ComputeFit(scene, width, height);
 
@@ -225,7 +319,7 @@ public sealed class GpuViewport : Grid, IDisposable
                 command.Red,
                 command.Green,
                 command.Blue,
-                command.Alpha * (float)layer.Opacity);
+                command.Alpha * opacity);
             GL.Uniform1(GL.GetUniformLocation(program, "uPma"), command.Pma ? 1 : 0);
             SetBlend(command.BlendMode);
             GL.DrawElements(
@@ -238,8 +332,8 @@ public sealed class GpuViewport : Grid, IDisposable
 
     private int GetTexture(PreviewTexture texture)
     {
-        activeTextureKeys.Add(texture.Key);
-        if (textures.TryGetValue(texture.Key, out var existing)) return existing;
+        activeTextureKeys.Add(texture);
+        if (textures.TryGetValue(texture, out var existing)) return existing;
 
         var handle = GL.GenTexture();
         GL.BindTexture(TextureTarget.Texture2D, handle);
@@ -258,7 +352,7 @@ public sealed class GpuViewport : Grid, IDisposable
             OpenTK.Graphics.OpenGL4.PixelFormat.Rgba,
             PixelType.UnsignedByte,
             texture.Rgba32);
-        textures.Add(texture.Key, handle);
+        textures.Add(texture, handle);
         return handle;
     }
 

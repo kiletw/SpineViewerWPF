@@ -870,6 +870,33 @@ try
     }));
     Assert(!Directory.Exists(invalidFramingDirectory), "Invalid auto-fit export created its output directory.");
     Assert(sequence.Width == 64 && sequence.Height == 64, "Fixed-size export did not report its requested size.");
+
+    // Review fix: a rotated layer renders unrotated into its own frame, so a
+    // 90-degree wide layer keeps its content instead of being clipped by the
+    // rotated (narrow) canvas.
+    var wideSkeleton = Path.Combine(root, "wide.json");
+    File.WriteAllText(wideSkeleton, System.Text.RegularExpressions.Regex.Replace(
+        File.ReadAllText(pngSkeleton), "\"width\":\\s*16,\\s*\"height\":\\s*16", "\"width\": 96, \"height\": 8"));
+    SceneLayerDocument WideLayer(double rotation) => new(
+        wideSkeleton, pngAtlas, null, "move", "default", 0, 0, 1, rotation, false, false, true, 1, 0, 1, false, null);
+    long TotalAlpha(RenderedFrame frame) =>
+        Enumerable.Range(0, frame.Width * frame.Height).Sum(index => (long)frame.Bgra32[index * 4 + 3]);
+    var wideFlat = ReadPngFrame(pngService.Export(sequenceRequest with
+    {
+        OutputDirectory = Path.Combine(root, "wide-0"),
+        SceneLayers = [WideLayer(0)],
+        Framing = new ExportFraming(1, 2)
+    }).OutputPaths[0]);
+    var wideTurned = ReadPngFrame(pngService.Export(sequenceRequest with
+    {
+        OutputDirectory = Path.Combine(root, "wide-90"),
+        SceneLayers = [WideLayer(90)],
+        Framing = new ExportFraming(1, 2)
+    }).OutputPaths[0]);
+    Assert(wideFlat.Width > wideFlat.Height * 4 && wideTurned.Height > wideTurned.Width * 4,
+        "Auto-fit did not size the canvas to the rotated content.");
+    Assert(Math.Abs(TotalAlpha(wideTurned) - TotalAlpha(wideFlat)) <= TotalAlpha(wideFlat) * 0.05,
+        $"Rotated auto-fit export clipped its layer: alpha {TotalAlpha(wideTurned)} of {TotalAlpha(wideFlat)}.");
     Expect<IOException>(() => pngService.Export(sequenceRequest));
     using (var canceledExport = new CancellationTokenSource())
     {
@@ -1101,6 +1128,45 @@ try
     Assert(
         exportEnabledAtLastRefresh == true && screenshotEnabledAtLastRefresh == true,
         "Export and Screenshot were not re-enabled after export completed.");
+
+    // Review fix: after the opening layer is removed, a single-layer export must
+    // render the remaining layer's own asset, not the original skeleton.
+    var remainingExport = Path.Combine(root, "remaining", "layer.png");
+    using (var remainingViewModel = new ShellViewModel(
+               WorkspaceState.Empty,
+               true,
+               store,
+               _ => null,
+               pngService,
+               chooseAssetPath: () => pngSkeleton,
+               chooseAssetPaths: () => [wideSkeleton],
+               chooseExportPath: () => remainingExport))
+    {
+        remainingViewModel.SetViewportSize(256, 256);
+        await remainingViewModel.OpenAssetAsync(pngSkeleton);
+        remainingViewModel.AddLayerCommand.Execute(null);
+        for (var attempt = 0; attempt < 200 && remainingViewModel.SceneLayers.Count < 2; attempt++)
+            await Task.Delay(10);
+        Assert(remainingViewModel.SceneLayers.Count == 2, "The second layer was not added.");
+        var wideLayer = remainingViewModel.SceneLayers[1];
+        wideLayer.ModelX = 0;
+        wideLayer.ModelY = 0;
+        wideLayer.ModelScale = 1;
+        wideLayer.ModelRotation = 0;
+        remainingViewModel.SelectedSceneLayer = remainingViewModel.SceneLayers[0];
+        remainingViewModel.RemoveLayerCommand.Execute(null);
+        Assert(remainingViewModel.SceneLayers.Count == 1 && ReferenceEquals(remainingViewModel.SceneLayers[0], wideLayer),
+            "Removing the opening layer did not leave the added layer.");
+        remainingViewModel.ExportFramesPerSecond = 10;
+        remainingViewModel.ExportCommand.Execute(null);
+        for (var attempt = 0; attempt < 300 && (remainingViewModel.IsExporting
+             || !remainingViewModel.LastAction.StartsWith("Export", StringComparison.Ordinal)); attempt++)
+            await Task.Delay(10);
+        var remainingFrame = ReadPngFrame(Path.Combine(root, "remaining", "layer-0000.png"));
+        var remainingMargin = remainingViewModel.ExportMargin * 2;
+        Assert(remainingFrame.Width - remainingMargin > (remainingFrame.Height - remainingMargin) * 4,
+            $"Single-layer export did not render the remaining layer's asset: {remainingFrame.Width} x {remainingFrame.Height}, {remainingViewModel.LastAction}.");
+    }
     realViewModel.BackgroundMode = "Dark";
     Assert(realViewModel.UndoCommand.CanExecute(null), "Property edit did not create Undo history before layer import.");
     nextAssetPaths = [pngSkeleton, Path.Combine(fixtureDirectory, "minimal.json")];

@@ -110,6 +110,8 @@ public partial class MainWindow : Window
         ShellGrid.RowDefinitions[4].Height = hidden ? new GridLength(0) : new GridLength(24);
         foreach (var element in new FrameworkElement[] { MainMenu, CommandBar, StatusBar, BrowsePanel, InspectorPanel })
         {
+            // A floating Inspector lives in its own window and stays as it is.
+            if (hidden && ReferenceEquals(element, InspectorPanel) && inspectorPanelWindow is not null) continue;
             // Clearing the local value restores the style-driven panel visibility.
             if (hidden) element.Visibility = Visibility.Collapsed;
             else element.ClearValue(VisibilityProperty);
@@ -339,6 +341,8 @@ public partial class MainWindow : Window
         if (DataContext is ShellViewModel viewModel)
             viewModel.IsInspectorVisible = true;
 
+        // Floating during full screen must show the panel hidden in the dock.
+        InspectorPanel.ClearValue(VisibilityProperty);
         DetachPanel(InspectorPanel);
         var window = CreatePanelWindow(GetResourceText("Text.FloatInspector"), InspectorPanel, 320, 720);
         inspectorPanelWindow = window;
@@ -407,6 +411,8 @@ public partial class MainWindow : Window
         Grid.SetColumn(InspectorPanel, 2);
         if (DataContext is ShellViewModel viewModel)
             viewModel.IsInspectorVisible = true;
+        // Re-docking during full screen keeps the docked panel hidden.
+        if (IsFullScreen) InspectorPanel.Visibility = Visibility.Collapsed;
     }
 
     private static void DetachPanel(FrameworkElement panel)

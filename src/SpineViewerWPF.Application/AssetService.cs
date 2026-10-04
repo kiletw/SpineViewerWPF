@@ -545,7 +545,7 @@ public sealed class AssetService
             var framed = opened.Where(layer => layer.HasBounds).ToArray();
             var width = request.Width;
             var height = request.Height;
-            var placed = Array.Empty<(FramedLayer Layer, SceneLayerDocument Document, RenderCamera Camera)>();
+            var placed = Array.Empty<(FramedLayer Layer, SceneLayerDocument Document, RenderCamera Camera, int FrameWidth, int FrameHeight)>();
             if (framed.Length > 0)
             {
                 var scale = (double)framing.Scale;
@@ -558,10 +558,17 @@ public sealed class AssetService
                     var maxY = extents.Max(item => item.CenterY + item.HalfHeight);
                     var contentWidth = Math.Max(1, maxX - minX);
                     var contentHeight = Math.Max(1, maxY - minY);
-                    width = (int)Math.Ceiling(contentWidth) + framing.Margin * 2;
-                    height = (int)Math.Ceiling(contentHeight) + framing.Margin * 2;
-                    var budget = (long)width * height * 4 * (framed.Length + 1);
-                    if (width <= 4096 && height <= 4096 && budget <= MaxCompositeBufferBytes)
+                    // Ignore floating-point noise (cos 90 degrees is not exactly 0)
+                    // so exact sizes do not round up to an extra, off-center pixel.
+                    width = (int)Math.Ceiling(contentWidth - 1e-6) + framing.Margin * 2;
+                    height = (int)Math.Ceiling(contentHeight - 1e-6) + framing.Margin * 2;
+                    // Each layer renders unrotated into its own frame sized to its
+                    // scaled content; the compositor then rotates and places it, so
+                    // rotation never clips content against the rotated canvas.
+                    var frameSizes = framed.Select(layer => LayerFrameSize(layer, scale)).ToArray();
+                    var largestFrameSide = frameSizes.Max(size => Math.Max(size.Width, size.Height));
+                    var budget = (long)width * height * 4 + frameSizes.Sum(size => (long)size.Width * size.Height * 4);
+                    if (width <= 4096 && height <= 4096 && largestFrameSide <= 4096 && budget <= MaxCompositeBufferBytes)
                     {
                         var shiftX = (minX + maxX) / 2;
                         var shiftY = (minY + maxY) / 2;
@@ -576,7 +583,9 @@ public sealed class AssetService
                                 Camera: new RenderCamera(
                                     (layer.MinX + layer.MaxX) / 2,
                                     (layer.MinY + layer.MaxY) / 2,
-                                    (float)(scale * layer.Layer.ModelScale))))
+                                    (float)(scale * layer.Layer.ModelScale)),
+                                FrameWidth: LayerFrameSize(layer, scale).Width,
+                                FrameHeight: LayerFrameSize(layer, scale).Height))
                             .ToArray();
                         break;
                     }
@@ -586,7 +595,7 @@ public sealed class AssetService
                             nameof(request.Framing),
                             "The auto-fit export cannot fit within 4096 pixels per side and 256 MiB of frame buffers.");
                     var factor = Math.Min(
-                        Math.Min(room / contentWidth, room / contentHeight),
+                        Math.Min(Math.Min(room / contentWidth, room / contentHeight), 4094d / Math.Max(1, largestFrameSide - 2)),
                         Math.Sqrt((double)MaxCompositeBufferBytes / budget));
                     scale *= Math.Clamp(factor, 0.01, 1) * 0.98;
                 }
@@ -598,12 +607,12 @@ public sealed class AssetService
                 var frames = new SceneFrameLayer[placed.Length];
                 for (var layerIndex = 0; layerIndex < placed.Length; layerIndex++)
                 {
-                    var (layer, document, camera) = placed[layerIndex];
+                    var (layer, document, camera, frameWidth, frameHeight) = placed[layerIndex];
                     var frame = layer.Session.RenderFrame(
                         layer.Layer.Animation,
                         FramedTime(request, layer, index),
-                        width,
-                        height,
+                        frameWidth,
+                        frameHeight,
                         layer.Layer.Pma ?? false,
                         layer.Skins,
                         cancellationToken,
@@ -631,6 +640,16 @@ public sealed class AssetService
     {
         var time = Math.Min(request.DurationSeconds, index / request.FramesPerSecond);
         return request.SceneLayers is null ? time : Math.Min(time, layer.Duration);
+    }
+
+    // Unrotated frame for one layer at the export scale, with a one-pixel guard
+    // on each side for bilinear sampling at the content edge.
+    private static (int Width, int Height) LayerFrameSize(FramedLayer layer, double scale)
+    {
+        var layerScale = scale * layer.Layer.ModelScale;
+        return (
+            Math.Max(1, (int)Math.Ceiling((layer.MaxX - layer.MinX) * layerScale) + 2),
+            Math.Max(1, (int)Math.Ceiling((layer.MaxY - layer.MinY) * layerScale) + 2));
     }
 
     // Axis-aligned half extents of a layer's rotated content rectangle, in output
