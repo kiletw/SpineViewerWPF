@@ -44,15 +44,19 @@ public static class SceneFrameCompositor
             var translationX = layer.ModelX;
             var translationY = layer.ModelY;
             var opacity = (float)layer.Opacity;
+            // A layer frame may be smaller or larger than the canvas; it is
+            // mapped around its own center (same size keeps the old mapping).
+            var sourceCenterX = item.Frame.Width / 2d;
+            var sourceCenterY = item.Frame.Height / 2d;
 
             for (var y = 0; y < height; y++)
             for (var x = 0; x < width; x++)
             {
                 var translatedX = x + 0.5f - centerX - translationX;
                 var translatedY = y + 0.5f - centerY - translationY;
-                var sourceX = (cosine * translatedX + sine * translatedY) / scaleX + centerX - 0.5f;
-                var sourceY = (-sine * translatedX + cosine * translatedY) / scaleY + centerY - 0.5f;
-                if (sourceX <= -1 || sourceX >= width || sourceY <= -1 || sourceY >= height) continue;
+                var sourceX = (cosine * translatedX + sine * translatedY) / scaleX + sourceCenterX - 0.5f;
+                var sourceY = (-sine * translatedX + cosine * translatedY) / scaleY + sourceCenterY - 0.5f;
+                if (sourceX <= -1 || sourceX >= item.Frame.Width || sourceY <= -1 || sourceY >= item.Frame.Height) continue;
 
                 var source = Sample(item.Frame, (float)sourceX, (float)sourceY) * opacity;
                 if (source.W <= 0) continue;
@@ -89,9 +93,9 @@ public static class SceneFrameCompositor
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(item.Frame);
         ArgumentNullException.ThrowIfNull(item.Layer);
-        if (item.Frame.Width != width || item.Frame.Height != height
-            || item.Frame.Bgra32.Length != checked(width * height * 4))
-            throw new ArgumentException("Every scene frame must match the composite dimensions.", nameof(item));
+        if (item.Frame.Width is < 1 or > 4096 || item.Frame.Height is < 1 or > 4096
+            || item.Frame.Bgra32.Length != checked(item.Frame.Width * item.Frame.Height * 4))
+            throw new ArgumentException("Every scene frame must be between 1 and 4096 pixels per side with matching pixel data.", nameof(item));
         if (!double.IsFinite(item.Layer.ModelX) || !double.IsFinite(item.Layer.ModelY)
             || !double.IsFinite(item.Layer.ModelRotation)
             || !double.IsFinite(item.Layer.ModelScale) || item.Layer.ModelScale <= 0)
