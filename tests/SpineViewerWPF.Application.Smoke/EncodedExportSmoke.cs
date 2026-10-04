@@ -61,6 +61,17 @@ static class EncodedExportSmoke
             Check(!Directory.EnumerateFiles(root, "frame-*.png").Any(), $"{format} export left frames beside the output.");
         }
 
+        // MP4 pads odd sizes to even; the result must report the encoded size.
+        var oddOutput = Path.Combine(root, "odd.mp4");
+        var odd = service.ExportEncoded(
+            request with { Framing = null, Width = 65, Height = 63 },
+            new AnimationEncodeOptions(AnimationEncodeFormat.Mp4, ffmpeg),
+            oddOutput,
+            false);
+        var trackSize = Mp4TrackSize(File.ReadAllBytes(oddOutput));
+        Check(odd.Width == 66 && odd.Height == 64 && trackSize == (66, 64),
+            $"MP4 did not report its padded size: result {odd.Width} x {odd.Height}, track {trackSize}.");
+
         var existing = Path.Combine(root, "move.gif");
         var before = File.GetLastWriteTimeUtc(existing);
         Expect<IOException>(() => service.ExportEncoded(
@@ -172,6 +183,17 @@ static class EncodedExportSmoke
               && shell.LastAction == "Exported 11 frames to shell.gif" && shell.LastExportSize.Contains('×'),
             $"Shell GIF export did not finish: {shell.LastAction}");
         Check(shell.ExportCommand.CanExecute(null), "Export was not re-enabled after an encoded export.");
+    }
+
+    // Width and height (16.16 fixed point) from the first track header box.
+    private static (int Width, int Height) Mp4TrackSize(byte[] data)
+    {
+        var index = data.AsSpan().IndexOf("tkhd"u8);
+        if (index < 0) return (0, 0);
+        var body = index + 4;
+        var offset = body + (data[body] == 1 ? 88 : 76);
+        int Fixed(int at) => (data[at] << 8) | data[at + 1];
+        return (Fixed(offset), Fixed(offset + 4));
     }
 
     private static int CountWorkDirectories() =>

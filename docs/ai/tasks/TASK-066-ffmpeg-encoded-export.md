@@ -131,3 +131,14 @@ confirm the path is remembered.
 - Browse, Use PATH, and the remembered path were verified through the view model
   and settings file in smoke tests; choosing a path in the real dialog and
   restarting the app was not done manually.
+
+## Review Fix (2026-10-05)
+
+External review of kiletw/SpineViewerWPF#56: MP4 pads odd frame sizes to even,
+but `EncodedAnimationResult` reported the unpadded PNG size. MP4 results now
+report the padded encoded size.
+
+Validation: a 65 x 63 MP4 export reports 66 x 64, matching the width and height
+in the file's `tkhd` box (without the fix it reported 65 x 63). Build,
+Application.Smoke, `test-v3.ps1`, `test-ui-shell.ps1` (101 AutomationIds), and
+`git diff --check` passed after merging the PR #54 and #55 review fixes.

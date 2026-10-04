@@ -446,7 +446,11 @@ public sealed class AssetService
             Directory.CreateDirectory(Path.GetDirectoryName(output) ?? ".");
             File.Move(encoded, output, overwrite);
             progress?.Report(new AnimationExportProgress(totalFrames * 2, totalFrames * 2));
-            return new EncodedAnimationResult(output, frames.FrameCount, request.DurationSeconds, width, height);
+            // MP4 (yuv420p) pads odd sizes to even; report the encoded size.
+            var (encodedWidth, encodedHeight) = options.Format == AnimationEncodeFormat.Mp4
+                ? ((width + 1) / 2 * 2, (height + 1) / 2 * 2)
+                : (width, height);
+            return new EncodedAnimationResult(output, frames.FrameCount, request.DurationSeconds, encodedWidth, encodedHeight);
         }
         finally
         {
