@@ -149,3 +149,18 @@ filter slots, hide all, show all, clear attachments, undo each.
 - Layer focus is GPU-only; the CPU fallback ignores viewport pan (TASK-060 gap).
 - Layers double-click focus was exercised through the same command path as the
   menu; a physical double-click was not performed.
+
+## Review Fix (2026-10-05)
+
+External review of kiletw/SpineViewerWPF#55 found that full screen collapsed the
+Inspector even while it was floating, because Float Inspector moves the same
+`InspectorPanel` into the floating window. Full screen now hides the Inspector
+only while it is docked; floating it during full screen clears the hidden
+state, and re-docking during full screen keeps it hidden.
+
+Validation: UI Automation against the built app (spineboy 4.1) — floating
+Inspector content stays visible in full screen (it disappeared without the
+fix); closing the floating window during full screen keeps the docked panel
+hidden; leaving full screen shows the docked panel. Build, Application.Smoke,
+and `test-ui-shell.ps1` (96 AutomationIds) passed after merging the PR #54
+review fixes into this branch.
