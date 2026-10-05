@@ -1,0 +1,29 @@
+{
+  "skeleton": {
+    "hash": "spineviewerwpf-v41-multipage",
+    "spine": "4.1.00",
+    "x": -16,
+    "y": -8,
+    "width": 32,
+    "height": 16
+  },
+  "bones": [
+    { "name": "root" },
+    { "name": "left", "parent": "root", "x": -8 },
+    { "name": "right", "parent": "root", "x": 8 }
+  ],
+  "slots": [
+    { "name": "left", "bone": "left", "attachment": "left" },
+    { "name": "right", "bone": "right", "attachment": "right" }
+  ],
+  "skins": [
+    {
+      "name": "default",
+      "attachments": {
+        "left": { "left": { "width": 16, "height": 16 } },
+        "right": { "right": { "width": 16, "height": 16 } }
+      }
+    }
+  ],
+  "animations": { "move": {} }
+}

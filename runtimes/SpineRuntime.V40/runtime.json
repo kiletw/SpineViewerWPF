@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/esotericsoftware/spine-runtimes",
+  "branchOrTag": "4.0.64",
+  "commit": "01524d4",
+  "sourcePath": "src",
+  "supportedExportLines": [
+    "4.0.64"
+  ],
+  "localPatches": [
+    "project-owned adapter and deterministic CPU renderer bridge"
+  ]
+}

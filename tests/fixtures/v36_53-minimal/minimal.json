@@ -1,0 +1,7 @@
+{
+  "skeleton": { "hash": "spineviewerwpf-v36_53-minimal", "spine": "3.6.53", "x": -8, "y": -8, "width": 16, "height": 16 },
+  "bones": [{ "name": "root" }, { "name": "sprite", "parent": "root" }],
+  "slots": [{ "name": "sprite", "bone": "sprite", "attachment": "square" }],
+  "skins": { "default": { "sprite": { "square": { "width": 16, "height": 16 } } } },
+  "animations": { "move": { "bones": { "sprite": { "translate": [{ "time": 0 }, { "time": 1, "x": 8 }] } } } }
+}

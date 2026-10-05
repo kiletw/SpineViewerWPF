@@ -1,0 +1,377 @@
+{
+  "schemaVersion": 1,
+  "repositoryBaseline": "kiletw/SpineViewerWPF@79c6135",
+  "assetsCommitted": true,
+  "note": "Project-authored minimal JSON fixtures cover every connected Runtime line through 4.3. Official 4.3, 4.2, 4.1, and 3.8 caches verify JSON, binary, atlas, PNG, and (for 3.8) PMA loading through offline scripts. The 4.2 and 4.3 project fixtures also verify bounded deterministic Physics replay. A project-authored two-page 4.1 atlas verifies page discovery/rendering. Feature-isolated visual parity and production-renderer gaps remain explicit.",
+  "officialCaches": [
+    {
+      "runtimeSelection": "4.3",
+      "runtimePackageVersion": "4.3.39",
+      "exportVersion": "4.3.75-beta",
+      "sourceCommit": "de14116488688c27c01b6e2b61fe1544792af2dd",
+      "path": "artifacts/official-v43/spineboy",
+      "downloadScript": "scripts/test-v43.ps1",
+      "files": {
+        "json": "spineboy-pro.json",
+        "binary": "spineboy-pro.skel",
+        "atlas": "spineboy.atlas",
+        "texture": "spineboy.png",
+        "license": "license.txt"
+      },
+      "sha256": {
+        "json": "24CCFFC13E334E721DFD427EE2B8AEA05C25B59167B5FB0BB0F9685E11D2A7D3",
+        "binary": "E10DE3F2473A37139C3AD1FDA14E84B29EF401475EC9FA2129E7D2A311088845",
+        "atlas": "FBD452640DF513D637E0A34D21C1D3EA4EDB27F57BD1856FFD5530B16EE83D00",
+        "texture": "AB874448A224F8A92188E133735062C86E5F93EB7286B0FC37C5D39864E6569F",
+        "license": "08074C5F8C5F072626A0830250304FE3063D9D49F8F9B039E063BB238F2B993B"
+      },
+      "renderSha256": {
+        "json": "9E1A72725C44FFF30A4BD955E72E12331F1071C03F2ED3FFF1F1DBCF5802DF12",
+        "binary": "C093E2754ABF375CE84EEA8DCE8E9693585D57F1C65B3003CE76265637824BA5"
+      },
+      "legalStatus": "Official example cache; keep license.txt beside the files; do not commit binaries."
+    },
+    {
+      "runtimeSelection": "4.2",
+      "exportVersion": "4.2.22",
+      "sourceCommit": "b81e5a58ed38704aee4f866f0e0ac672623ce914",
+      "path": "artifacts/official-v42/spineboy",
+      "downloadScript": "scripts/test-v42.ps1",
+      "files": {
+        "json": "spineboy-pro.json",
+        "binary": "spineboy-pro.skel",
+        "atlas": "spineboy.atlas",
+        "texture": "spineboy.png",
+        "license": "license.txt"
+      },
+      "sha256": {
+        "json": "488FACE411DDFAD77EE3239B29431DEB574D73F4FECA7ECA541452AD24BB6BFC",
+        "binary": "1345DE0E8E4729559F39060ED614429B21AB39BFC09ED2E1F58FCF054A8B5925",
+        "atlas": "FC90C2A604C14BB3AE1A81F9C950660863A41654CB29C869423A86E127FA75AE",
+        "texture": "071A6ADEC73378EEBD802A047D274DEEFE11ABEE3CE689A1E71ACB4CB41E331E",
+        "license": "08074C5F8C5F072626A0830250304FE3063D9D49F8F9B039E063BB238F2B993B"
+      },
+      "renderSha256": {
+        "json": "6065E7919809405F237A29A77871A13402E3EF8120176689D5FA821690AE919A",
+        "binary": "DD3A2C6E92B0B89A999CE907B12C03D2236AA7FC14612A2255EDD1F217B1FB67"
+      },
+      "legalStatus": "Official example cache; keep license.txt beside the files; do not commit binaries."
+    },
+    {
+      "runtimeSelection": "4.1.00",
+      "sourceCommit": "ab28b77c70e3aa766be5bdb759d7aedac9fd0bde",
+      "path": "artifacts/official-v41/spineboy",
+      "downloadScript": "scripts/test-official-v41.ps1",
+      "files": {
+        "json": "spineboy-pro.json",
+        "binary": "spineboy-pro.skel",
+        "atlas": "spineboy.atlas",
+        "texture": "spineboy.png",
+        "license": "license.txt"
+      },
+      "sha256": {
+        "json": "719AD3DA48EF93C1BBE3927EBB2FD1E861B409478CCB552690C2C8142E154442",
+        "binary": "5ABFC213ADFB64380C13D7E60B03F306E7D88C846B930C6DB7DCFA4FB376A266",
+        "atlas": "FDC4BBC4BE5F1A638FA0FF384271007B1F2DF72855DD80B4B239BCFE8A4AC31E",
+        "texture": "1932938CA3F4B97F59F2FE6AE8A84B3F27F420C038EC9687B8D2AB60281E9602",
+        "license": "E10E34D4F3B31A4AD76FF08A3B2BD1581B74C1A143F096103A93EE4C16EF4857"
+      },
+      "legalStatus": "Official example cache; keep license.txt beside the files; do not commit binaries."
+    },
+    {
+      "runtimeSelection": "3.8.95",
+      "exportVersion": "3.8.55",
+      "sourceCommit": "8b4844bd4b193ba9e54487ed397a777993cbad56",
+      "path": "artifacts/official-v38/spineboy",
+      "downloadScript": "scripts/test-official-v38.ps1",
+      "files": {
+        "json": "spineboy-pro.json",
+        "binary": "spineboy-pro.skel",
+        "atlas": "spineboy.atlas",
+        "texture": "spineboy.png",
+        "pmaAtlas": "spineboy-pma.atlas",
+        "pmaTexture": "spineboy-pma.png",
+        "license": "license.txt"
+      },
+      "sha256": {
+        "json": "D794AE5ECC8F245929FEF6B6F5212CE511990FC7FFDBC3ED77422DB72AB3B14C",
+        "binary": "D36F8E97A113E7EC2B1C9E20A706B0A1464914A92C057DC5541C921A3EC4123C",
+        "atlas": "2A504910A91F8541D0FB1F83D80C07236EDC80888C95901953009E86E53A8147",
+        "texture": "42E3D9411F5CA02146908FD22081968267419E048D66FCC5C721315146E114F6",
+        "pmaAtlas": "829EE567E7E1652F8B3BB1BC0AC154B2CB4A603567F6CB1793544CDB0121AE66",
+        "pmaTexture": "329772025BC8B329FB9C94F6B0DEC5EB8BDBC0CD401291ADB24ABF327250D195",
+        "license": "E10E34D4F3B31A4AD76FF08A3B2BD1581B74C1A143F096103A93EE4C16EF4857"
+      },
+      "renderSha256": {
+        "json": "B3D532AB8CDB88016276292F19C68AE1534A709642042A6A22FB27DDF48631DA",
+        "binary": "4FFA23C7B2E31F1E4AAFEC3AE7440EEAD1F84BD365F4661C02424732535217F1",
+        "pma": "C51B19EEAC11D1C969657FEFF5560751F9938972072DCF38C0C08688EC8996DF"
+      },
+      "legalStatus": "Official example cache; keep license.txt beside the files; do not commit binaries."
+    }
+  ],
+  "fixtures": [
+    {
+      "runtimeSelection": "2.1.08",
+      "officialTagCandidate": "2.1.08",
+      "json": "tests/fixtures/v21_08-minimal/minimal.json",
+      "binary": "not-supported-by-v2-player",
+      "atlas": "tests/fixtures/v21_08-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v21_08-minimal/minimal.ppm",
+      "sha256": { "json": "DD035B6D1FAE3630A560DDE78E0095D2410425A3107F31C87B5DAB88A5640916", "atlas": "ECF4943C4AC9D4AE09D38BAAB8C6BBCCD3E643716718EA02A68D1DC85484B939", "texture": "E84A4C38319172C9C0736571F3792E4AEE17429853495F119E08A2EB11E8F63E", "render64x64At0.5": "28EE4EEEE49F2381E59D20F4B1D8439D7FE5A9335D57519D6352E613D1ADEE14" },
+      "expectedAnimation": { "name": "move", "durationSeconds": 1 },
+      "expectedSkins": [ "default" ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/2.1.08"
+    },
+    {
+      "runtimeSelection": "2.1.25",
+      "officialTagCandidate": "2.1.25",
+      "json": "tests/fixtures/v21_25-minimal/minimal.json",
+      "binary": "missing",
+      "atlas": "tests/fixtures/v21_25-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v21_25-minimal/minimal.ppm",
+      "sha256": { "json": "4B3D0494C81F344563518451965365A5E6433BB98F15DF49F35464BA027E4D82", "atlas": "ECF4943C4AC9D4AE09D38BAAB8C6BBCCD3E643716718EA02A68D1DC85484B939", "texture": "E84A4C38319172C9C0736571F3792E4AEE17429853495F119E08A2EB11E8F63E", "render64x64At0.5": "28EE4EEEE49F2381E59D20F4B1D8439D7FE5A9335D57519D6352E613D1ADEE14" },
+      "expectedAnimation": { "name": "move", "durationSeconds": 1 },
+      "expectedSkins": [ "default" ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/2.1.25"
+    },
+    {
+      "runtimeSelection": "3.1.07",
+      "officialTagCandidate": "3.1.07",
+      "json": "tests/fixtures/v31_07-minimal/minimal.json",
+      "binary": "missing",
+      "atlas": "tests/fixtures/v31_07-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v31_07-minimal/minimal.ppm",
+      "sha256": { "json": "15BA0FA97B33EE4C32A3DEB3EEEF8F64ACF0DCFD236CD72A45486AD5EDE7E31D", "atlas": "ECF4943C4AC9D4AE09D38BAAB8C6BBCCD3E643716718EA02A68D1DC85484B939", "texture": "E84A4C38319172C9C0736571F3792E4AEE17429853495F119E08A2EB11E8F63E", "render64x64At0.5": "28EE4EEEE49F2381E59D20F4B1D8439D7FE5A9335D57519D6352E613D1ADEE14" },
+      "expectedAnimation": { "name": "move", "durationSeconds": 1 },
+      "expectedSkins": [ "default" ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/3.1.07"
+    },
+    {
+      "runtimeSelection": "3.2.xx",
+      "officialTagCandidate": null,
+      "json": "tests/fixtures/v32-minimal/minimal.json",
+      "binary": "missing",
+      "atlas": "tests/fixtures/v32-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v32-minimal/minimal.ppm",
+      "sha256": { "json": "7460FD83BD115C791A23E7F7D05DCC9FD77CBA5B98D5915D9CAD6584E155EF14", "atlas": "ECF4943C4AC9D4AE09D38BAAB8C6BBCCD3E643716718EA02A68D1DC85484B939", "texture": "E84A4C38319172C9C0736571F3792E4AEE17429853495F119E08A2EB11E8F63E", "render64x64At0.5": "28EE4EEEE49F2381E59D20F4B1D8439D7FE5A9335D57519D6352E613D1ADEE14" },
+      "expectedAnimation": { "name": "move", "durationSeconds": 1 },
+      "expectedSkins": [ "default" ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/3.2.xx"
+    },
+    {
+      "runtimeSelection": "3.4.02",
+      "officialTagCandidate": "3.4.02",
+      "json": "tests/fixtures/v34_02-minimal/minimal.json",
+      "binary": "missing",
+      "atlas": "tests/fixtures/v34_02-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v34_02-minimal/minimal.ppm",
+      "sha256": { "json": "D05D085A33D0C1895A41F5ECE989C0A2B30C4C0D00C3A70BF554788826C6D234", "atlas": "ECF4943C4AC9D4AE09D38BAAB8C6BBCCD3E643716718EA02A68D1DC85484B939", "texture": "E84A4C38319172C9C0736571F3792E4AEE17429853495F119E08A2EB11E8F63E", "render64x64At0.5": "28EE4EEEE49F2381E59D20F4B1D8439D7FE5A9335D57519D6352E613D1ADEE14" },
+      "expectedAnimation": { "name": "move", "durationSeconds": 1 },
+      "expectedSkins": [ "default" ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/3.4.02"
+    },
+    {
+      "runtimeSelection": "3.5.51",
+      "officialTagCandidate": "3.5.51",
+      "json": "tests/fixtures/v35_51-minimal/minimal.json",
+      "binary": "missing",
+      "atlas": "tests/fixtures/v35_51-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v35_51-minimal/minimal.ppm",
+      "sha256": { "json": "6233FB253716B8A57FBFDEFD0794AF535CCA1D667EBCAF4403E3F0DBB8E22024", "atlas": "ECF4943C4AC9D4AE09D38BAAB8C6BBCCD3E643716718EA02A68D1DC85484B939", "texture": "E84A4C38319172C9C0736571F3792E4AEE17429853495F119E08A2EB11E8F63E", "render64x64At0.5": "28EE4EEEE49F2381E59D20F4B1D8439D7FE5A9335D57519D6352E613D1ADEE14" },
+      "expectedAnimation": { "name": "move", "durationSeconds": 1 },
+      "expectedSkins": [ "default" ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/3.5.51"
+    },
+    {
+      "runtimeSelection": "3.6.32",
+      "officialTagCandidate": "3.6.32",
+      "json": "tests/fixtures/v36_32-minimal/minimal.json",
+      "binary": "missing",
+      "atlas": "tests/fixtures/v36_32-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v36_32-minimal/minimal.ppm",
+      "sha256": { "json": "8E909CD63D739027B1EBDC2C653A102BF559AC421E18B4C57EBDF579BB3B9EF7", "atlas": "ECF4943C4AC9D4AE09D38BAAB8C6BBCCD3E643716718EA02A68D1DC85484B939", "texture": "E84A4C38319172C9C0736571F3792E4AEE17429853495F119E08A2EB11E8F63E", "render64x64At0.5": "28EE4EEEE49F2381E59D20F4B1D8439D7FE5A9335D57519D6352E613D1ADEE14" },
+      "expectedAnimation": { "name": "move", "durationSeconds": 1 },
+      "expectedSkins": [ "default" ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/3.6.32"
+    },
+    {
+      "runtimeSelection": "3.6.39",
+      "officialTagCandidate": "3.6.39",
+      "json": "tests/fixtures/v36_39-minimal/minimal.json",
+      "binary": "missing",
+      "atlas": "tests/fixtures/v36_39-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v36_39-minimal/minimal.ppm",
+      "sha256": { "json": "F0E53012C6382A380DE371D2D89ADF4025A1A0C8D4B90977F82A039649C8F57F", "atlas": "ECF4943C4AC9D4AE09D38BAAB8C6BBCCD3E643716718EA02A68D1DC85484B939", "texture": "E84A4C38319172C9C0736571F3792E4AEE17429853495F119E08A2EB11E8F63E", "render64x64At0.5": "28EE4EEEE49F2381E59D20F4B1D8439D7FE5A9335D57519D6352E613D1ADEE14" },
+      "expectedAnimation": { "name": "move", "durationSeconds": 1 },
+      "expectedSkins": [ "default" ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/3.6.39"
+    },
+    {
+      "runtimeSelection": "3.6.53",
+      "officialTagCandidate": "3.6.53",
+      "json": "tests/fixtures/v36_53-minimal/minimal.json",
+      "binary": "missing",
+      "atlas": "tests/fixtures/v36_53-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v36_53-minimal/minimal.ppm",
+      "sha256": { "json": "474133E0D05F67B55C02FB2B2E0248677D41FC9B023D315A7C2906355EF806DC", "atlas": "ECF4943C4AC9D4AE09D38BAAB8C6BBCCD3E643716718EA02A68D1DC85484B939", "texture": "E84A4C38319172C9C0736571F3792E4AEE17429853495F119E08A2EB11E8F63E", "render64x64At0.5": "28EE4EEEE49F2381E59D20F4B1D8439D7FE5A9335D57519D6352E613D1ADEE14" },
+      "expectedAnimation": { "name": "move", "durationSeconds": 1 },
+      "expectedSkins": [ "default" ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/3.6.53"
+    },
+    {
+      "runtimeSelection": "3.7.94",
+      "officialTagCandidate": "3.7.94",
+      "json": "tests/fixtures/v37_94-minimal/minimal.json",
+      "binary": "missing",
+      "atlas": "tests/fixtures/v37_94-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v37_94-minimal/minimal.ppm",
+      "sha256": { "json": "F7838FC62E8BFCF0F1D1639A35C728CC073497226C40737908505CEFE98C95C6", "atlas": "ECF4943C4AC9D4AE09D38BAAB8C6BBCCD3E643716718EA02A68D1DC85484B939", "texture": "E84A4C38319172C9C0736571F3792E4AEE17429853495F119E08A2EB11E8F63E", "render64x64At0.5": "28EE4EEEE49F2381E59D20F4B1D8439D7FE5A9335D57519D6352E613D1ADEE14" },
+      "expectedAnimation": { "name": "move", "durationSeconds": 1 },
+      "expectedSkins": [ "default" ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/3.7.94"
+    },
+    {
+      "runtimeSelection": "3.8.95",
+      "officialTagCandidate": "3.8.95",
+      "json": "tests/fixtures/v38_95-minimal/minimal.json",
+      "binary": "missing",
+      "atlas": "tests/fixtures/v38_95-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v38_95-minimal/minimal.ppm",
+      "sha256": { "json": "6FBE29D3D9062A18B14657D37DCF73BFFE6B77AF09F2FE95F10A9FCBDD0B4E00", "atlas": "ECF4943C4AC9D4AE09D38BAAB8C6BBCCD3E643716718EA02A68D1DC85484B939", "texture": "E84A4C38319172C9C0736571F3792E4AEE17429853495F119E08A2EB11E8F63E", "render64x64At0.5": "28EE4EEEE49F2381E59D20F4B1D8439D7FE5A9335D57519D6352E613D1ADEE14" },
+      "expectedAnimation": { "name": "move", "durationSeconds": 1 },
+      "expectedSkins": [ "default" ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/3.8.95"
+    },
+    {
+      "runtimeSelection": "4.0.31",
+      "officialTagCandidate": "4.0.31",
+      "json": "tests/fixtures/v40_31-minimal/minimal.json",
+      "binary": "missing",
+      "atlas": "tests/fixtures/v40_31-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v40_31-minimal/minimal.ppm",
+      "sha256": { "json": "2077361E10AEF92B88F58DB0AAB7342EB5FED14C2E6F9D23B5C9F8831A6E1B7D", "atlas": "ECF4943C4AC9D4AE09D38BAAB8C6BBCCD3E643716718EA02A68D1DC85484B939", "texture": "E84A4C38319172C9C0736571F3792E4AEE17429853495F119E08A2EB11E8F63E", "render64x64At0.5": "28EE4EEEE49F2381E59D20F4B1D8439D7FE5A9335D57519D6352E613D1ADEE14" },
+      "expectedAnimation": { "name": "move", "durationSeconds": 1 },
+      "expectedSkins": [ "default" ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/4.0.31"
+    },
+    {
+      "runtimeSelection": "4.0.64",
+      "officialTagCandidate": "4.0.64",
+      "json": "tests/fixtures/v40-minimal/minimal.json",
+      "binary": "missing",
+      "atlas": "tests/fixtures/v40-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v40-minimal/minimal.ppm",
+      "sha256": {
+        "json": "B29967EF703DD470B5201CF46B335368416AEE078A4AABD3F01FB8AEEDF126A6",
+        "atlas": "3E22B909F54991E15A83CC8C40FFC6FD579118099A1E30251E92EE001D16A33C",
+        "texture": "BB2744BC0A12DD09CA4538CC1DF4F39332D3451AB103DEBA5E0A50607B5D85A4",
+        "render64x64At0.5": "E16719DD53FB8CACED7D8C28E4BDD50DBEB8812483B041EC640913C13C09D28B"
+      },
+      "expectedAnimation": {
+        "name": "move",
+        "durationSeconds": 1
+      },
+      "expectedSkins": [
+        "default"
+      ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/4.0.64"
+    },
+    {
+      "runtimeSelection": "4.1.00",
+      "officialTagCandidate": "4.1.00",
+      "json": "tests/fixtures/v41-minimal/minimal.json",
+      "binary": "missing",
+      "atlas": "tests/fixtures/v41-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v41-minimal/minimal.ppm",
+      "sha256": {
+        "json": "05E3A44173072898D5371DAF518CD31F05FBB477DE23324A431FB106265632CF",
+        "atlas": "3E22B909F54991E15A83CC8C40FFC6FD579118099A1E30251E92EE001D16A33C",
+        "texture": "83C1C13A32583E56E33EAFAF162E210DDBDBC5DA02399F8A0A0CAFA636392A86",
+        "render64x64At0.5": "7178BBFA4315C36332AB5C4743A413FE6A7CD165D75C907BBC34D88DB846301E"
+      },
+      "expectedAnimation": {
+        "name": "move",
+        "durationSeconds": 1
+      },
+      "expectedSkins": [
+        "default"
+      ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/4.1.00-real-export"
+    },
+    {
+      "runtimeSelection": "4.1.00",
+      "officialTagCandidate": null,
+      "json": "tests/fixtures/v41-multipage/multi.json",
+      "binary": "missing",
+      "atlas": "tests/fixtures/v41-multipage/multi.atlas",
+      "textures": [
+        "tests/fixtures/v41-multipage/page-left.ppm",
+        "tests/fixtures/v41-multipage/page-right.ppm"
+      ],
+      "sha256": {
+        "json": "DE89C784CF2ED9AF5D024462A71C3205C1E14A3B6804C98064A948AEA33E2A84",
+        "atlas": "08B986E996B78DB94C879AD56D59F7B2C6E0DAA27B44BF744070219C2CD5C152",
+        "pageLeft": "329A5A97681A526D786AEE07F3B0D028A8A34926A9CB1FEB77EB619CFD95F8BA",
+        "pageRight": "EDC511001CC9151316987A7DA77CCEF7C755DC2C5301D1693691D1A78C61E0BB",
+        "render64x64At0": "89115E7CC5AA6B1B594C14C9E1F7F74B5C30644F926B1D032420DC7B753ED6AA"
+      },
+      "expectedAnimation": { "name": "move", "durationSeconds": 0 },
+      "expectedSkins": [ "default" ],
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/4.1.00-multipage"
+    },
+    {
+      "runtimeSelection": "4.2",
+      "officialTagCandidate": "4.2 branch at b81e5a58ed38704aee4f866f0e0ac672623ce914",
+      "json": "tests/fixtures/v42-minimal/minimal.json",
+      "binary": "verified through the official cache",
+      "atlas": "tests/fixtures/v42-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v42-minimal/minimal.ppm",
+      "sha256": {
+        "json": "DA7B06495DD998FD01B8A6E2317D9E036553291CEAF4E89AFFE625A16EFF10AC",
+        "atlas": "80E44885B32A10947F67A606FF6E80E8BEFFC4964BE6465257B969329F3FD81B",
+        "texture": "83C1C13A32583E56E33EAFAF162E210DDBDBC5DA02399F8A0A0CAFA636392A86",
+        "render64x64At0.5": "9F94B3309ABFC350372E67ED894971BF24A230C9087BF19C4AC628720579C7A9"
+      },
+      "expectedAnimation": { "name": "move", "durationSeconds": 1 },
+      "expectedSkins": [ "default" ],
+      "verifiedFeature": "Physics replay, named slot attachment selection, and A-B-A absolute-time determinism",
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/4.2"
+    },
+    {
+      "runtimeSelection": "4.3",
+      "officialTagCandidate": "4.3 branch at de14116488688c27c01b6e2b61fe1544792af2dd",
+      "json": "tests/fixtures/v43-minimal/minimal.json",
+      "binary": "verified through the official cache",
+      "atlas": "tests/fixtures/v43-minimal/minimal.atlas",
+      "textures": "tests/fixtures/v43-minimal/minimal.ppm",
+      "sha256": {
+        "json": "2B8836C74BEF3A8DDFEFF62B2B8FC9DE66288C3336C459023364917FEE1AFC20",
+        "atlas": "80E44885B32A10947F67A606FF6E80E8BEFFC4964BE6465257B969329F3FD81B",
+        "texture": "83C1C13A32583E56E33EAFAF162E210DDBDBC5DA02399F8A0A0CAFA636392A86",
+        "render64x64At0.5": "7178BBFA4315C36332AB5C4743A413FE6A7CD165D75C907BBC34D88DB846301E"
+      },
+      "expectedAnimation": { "name": "move", "durationSeconds": 1 },
+      "expectedSkins": [ "default" ],
+      "verifiedFeature": "Physics replay, Runtime-neutral textured triangles, named slot attachment selection, slot visibility and opacity, Track 0 Alpha, and A-B-A absolute-time determinism",
+      "legalStatus": "Project-authored test data; not a Spine Editor export.",
+      "expectedLocalDirectory": "fixtures-local/4.3"
+    }
+  ]
+}

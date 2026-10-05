@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/EsotericSoftware/spine-runtimes",
+  "branchOrTag": "4.1.00",
+  "commit": "ab28b77c70e3aa766be5bdb759d7aedac9fd0bde",
+  "sourcePath": "spine-csharp/src",
+  "supportedExportLines": [
+    "4.1"
+  ],
+  "localPatches": []
+}

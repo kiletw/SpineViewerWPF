@@ -1,0 +1,8 @@
+minimal.ppm
+size: 2, 2
+filter: Nearest, Nearest
+repeat: none
+square
+bounds: 0, 0, 2, 2
+tall
+bounds: 0, 0, 2, 2

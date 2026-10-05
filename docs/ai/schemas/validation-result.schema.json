@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spineviewerwpf.local/schemas/validation-result.schema.json",
+  "title": "SpineViewerWPF Validation Result",
+  "type": "object",
+  "required": [
+    "valid",
+    "blockingErrors",
+    "warnings",
+    "diagnostics"
+  ],
+  "properties": {
+    "valid": {
+      "type": "boolean"
+    },
+    "blockingErrors": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "warnings": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "severity",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "severity": {
+            "enum": [
+              "info",
+              "warning",
+              "error"
+            ]
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <DefineConstants>$(DefineConstants);SPINE_V42</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="src/**/*.cs" />
+    <Compile Include="Adapter.cs" />
+    <Compile Include="../SpineRuntime.V41/CpuRenderer.cs" Link="CpuRenderer.cs" />
+    <Compile Include="../SpineRuntime.V41/PngReader.cs" Link="PngReader.cs" />
+    <Compile Include="../SpineRuntime.V41/PngWriter.cs" Link="PngWriter.cs" />
+    <ProjectReference Include="../../src/SpineViewerWPF.Application/SpineViewerWPF.Application.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,65 @@
+{
+  "skeleton": {
+    "hash": "spineviewerwpf-v42-minimal",
+    "spine": "4.2.00",
+    "x": -8,
+    "y": -8,
+    "width": 16,
+    "height": 16
+  },
+  "bones": [
+    {
+      "name": "root"
+    },
+    {
+      "name": "sprite",
+      "parent": "root"
+    }
+  ],
+  "slots": [
+    {
+      "name": "sprite",
+      "bone": "sprite",
+      "attachment": "square"
+    }
+  ],
+  "physics": [
+    {
+      "name": "sprite-physics",
+      "bone": "sprite",
+      "x": 1
+    }
+  ],
+  "skins": [
+    {
+      "name": "default",
+      "attachments": {
+        "sprite": {
+          "square": {
+            "width": 16,
+            "height": 16
+          },
+          "tall": {
+            "width": 8,
+            "height": 16
+          }
+        }
+      }
+    }
+  ],
+  "animations": {
+    "move": {
+      "bones": {
+        "sprite": {
+          "translate": [
+            {},
+            {
+              "time": 1,
+              "x": 8
+            }
+          ]
+        }
+      }
+    }
+  }
+}
