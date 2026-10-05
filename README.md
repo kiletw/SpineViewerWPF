@@ -23,6 +23,9 @@ multiple historical Runtime versions.
   session; explicit sidecar selections take precedence.
 - Stores non-destructive layer, transform, slot visibility/opacity, and named
   attachment settings in versioned `*.spineviewer.json` sidecars.
+- Exports the current animation as GIF, animated WebP, APNG, or MP4 (H.264) in
+  the desktop app by encoding the same deterministic frames with a
+  user-installed [FFmpeg](https://ffmpeg.org/).
 
 Supported Runtime selections:
 
@@ -89,11 +92,20 @@ once to populate a missing cache.
   or unverified. See the [compatibility matrix](docs/ai/04-runtime-matrix.md).
 - Spine JSON, binary, atlas, and texture source files are read-only. Save/Save
   As writes a Viewer sidecar, not a modified Spine source file.
-- Export currently produces screenshots and deterministic PNG sequences; GIF,
-  video, and PSD export are not implemented.
-- Screenshot and PNG sequence export include ordered visible scene layers, their
-  transforms, opacity, and slot settings. Viewport backgrounds are not baked in;
-  all-hidden scenes export transparent frames.
+- Export produces screenshots, deterministic PNG sequences, and (desktop app
+  only) GIF, WebP, APNG, and MP4. PSD export and encoded export from the CLI are
+  not implemented.
+- GIF, WebP, APNG, and MP4 export require FFmpeg, which is not bundled. The app
+  uses the FFmpeg chosen under Export settings (remembered across sessions) or
+  otherwise `ffmpeg` on `PATH`; without it, export reports how to fix the
+  setup. The selected FFmpeg build must include `libwebp` for WebP and
+  `libx264` for MP4.
+- Screenshot and all sequence/animation exports include ordered visible scene
+  layers, their transforms, opacity, and slot settings. Viewport backgrounds are
+  not baked in; all-hidden scenes export transparent frames. GIF, WebP, and APNG
+  keep transparency and loop forever; GIF frame delays are rounded to 1/100 s.
+  MP4 has no alpha: frames are composited over the chosen background color
+  (default black) and padded to even dimensions.
 - Multi-track animation mixing, attachment authoring, unrestricted Adobe-style
   drag docking, runtime language switching, and MCP tools remain deferred.
 

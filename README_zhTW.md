@@ -23,6 +23,8 @@ Runtime 版本匯出的檔案。
   不建立跨啟動的設定快取。
 - 圖層、Transform、Slot 顯示／透明度及具名 Attachment 選擇會以非破壞方式
   儲存在版本化的 `*.spineviewer.json` sidecar。
+- 桌面版可將目前動畫匯出為 GIF、動態 WebP、APNG 或 MP4（H.264），以使用者
+  自行安裝的 [FFmpeg](https://ffmpeg.org/) 編碼同一組可重現的畫格。
 
 支援的 Runtime 選項：
 
@@ -86,9 +88,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-ui-shell.ps1
   仍有限制或未驗證；詳見[相容性矩陣](docs/ai/04-runtime-matrix.md)。
 - Spine JSON、binary、atlas 與 texture 原始檔皆為唯讀；Save／Save As 儲存的是
   Viewer sidecar，不會修改 Spine 原始檔。
-- 目前輸出 Screenshot 與可重現的 PNG 序列；尚未實作 GIF、影片及 PSD。
-- Screenshot 與 PNG 序列匯出包含依序合成的可見圖層、Transform、透明度及
-  Slot 設定。Viewport 背景不寫入輸出；全部圖層隱藏時輸出透明畫面。
+- 可輸出 Screenshot、可重現的 PNG 序列，以及（僅桌面版）GIF、WebP、APNG 與
+  MP4。尚未實作 PSD 匯出，CLI 也還不能輸出這些編碼格式。
+- GIF、WebP、APNG 與 MP4 匯出需要 FFmpeg，程式不內附。會優先使用在 Export
+  設定中選擇的 FFmpeg（跨啟動記住），否則使用 `PATH` 上的 `ffmpeg`；找不到時
+  匯出會提示如何設定。WebP 需要含 `libwebp`、MP4 需要含 `libx264` 的 FFmpeg
+  版本。
+- Screenshot 與所有序列／動畫匯出都包含依序合成的可見圖層、Transform、透明度
+  及 Slot 設定。Viewport 背景不寫入輸出；全部圖層隱藏時輸出透明畫面。GIF、
+  WebP 與 APNG 保留透明並無限循環；GIF 每幀時間以 1/100 秒為單位取整。MP4
+  不支援透明，會合成在選定的背景色（預設黑色）上，並補齊為偶數寬高。
 - 多 Track 動畫混合、Attachment 製作、完整 Adobe 式拖曳 Dock、執行期間語言
   切換及 MCP 工具仍為 deferred。
 
