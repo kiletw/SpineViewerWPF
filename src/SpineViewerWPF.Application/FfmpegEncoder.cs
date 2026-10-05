@@ -49,31 +49,42 @@ internal static partial class FfmpegEncoder
 
     internal static bool IsValidBackground(string? value) => value is not null && BackgroundPattern().IsMatch(value);
 
-    // Arguments are passed as a list (never through a shell). Frames are read as
-    // an image sequence starting at index 0.
-    internal static IReadOnlyList<string> BuildArguments(
+    // FFmpeg runs, in order; progress comes from the last one. Arguments are
+    // passed as a list (never through a shell). Frames are read as an image
+    // sequence starting at index 0.
+    internal static IReadOnlyList<IReadOnlyList<string>> BuildPasses(
         AnimationEncodeOptions options,
         float framesPerSecond,
         string inputPattern,
         int width,
         int height,
-        string outputPath)
+        string outputPath,
+        string workDirectory)
     {
         var fps = framesPerSecond.ToString("0.###", CultureInfo.InvariantCulture);
-        var arguments = new List<string>
-        {
+        List<string> Input() =>
+        [
             "-hide_banner", "-nostdin", "-loglevel", "error", "-y",
             "-progress", "pipe:1", "-nostats",
             "-framerate", fps, "-start_number", "0", "-i", inputPattern
-        };
+        ];
+        var arguments = Input();
         switch (options.Format)
         {
             case AnimationEncodeFormat.Gif:
+                // Two passes: a single split/palettegen/paletteuse graph holds every
+                // frame in memory until the palette is complete (about 2 GiB for 600
+                // frames of 1024 x 1024); reading the PNG sequence twice does not.
+                var palette = Path.Combine(workDirectory, "palette.png");
+                var paletteArguments = Input();
+                paletteArguments.AddRange([
+                    "-vf", "palettegen=reserve_transparent=1:stats_mode=full",
+                    "-frames:v", "1", "-update", "1", palette]);
                 arguments.AddRange([
-                    "-filter_complex",
-                    "[0:v]split[a][b];[a]palettegen=reserve_transparent=1:stats_mode=full[p];[b][p]paletteuse=alpha_threshold=128",
-                    "-loop", "0"]);
-                break;
+                    "-i", palette,
+                    "-lavfi", "[0:v][1:v]paletteuse=alpha_threshold=128",
+                    "-loop", "0", outputPath]);
+                return [paletteArguments, arguments];
             case AnimationEncodeFormat.WebP:
                 arguments.AddRange(["-c:v", "libwebp_anim", "-lossless", "0", "-quality", "90", "-pix_fmt", "yuva420p", "-loop", "0"]);
                 break;
@@ -91,7 +102,7 @@ internal static partial class FfmpegEncoder
                 throw new ArgumentOutOfRangeException(nameof(options));
         }
         arguments.Add(outputPath);
-        return arguments;
+        return [arguments];
     }
 
     // Runs FFmpeg to completion. Progress reports encoded frames; cancellation

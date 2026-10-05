@@ -142,3 +142,19 @@ Validation: a 65 x 63 MP4 export reports 66 x 64, matching the width and height
 in the file's `tkhd` box (without the fix it reported 65 x 63). Build,
 Application.Smoke, `test-v3.ps1`, `test-ui-shell.ps1` (101 AutomationIds), and
 `git diff --check` passed after merging the PR #54 and #55 review fixes.
+
+## Review Fix 2 (2026-10-06)
+
+External review of kiletw/SpineViewerWPF#56: the single GIF filter graph
+(`split` → `palettegen` → `paletteuse`) holds every frame in memory until the
+palette is complete. Measured locally with FFmpeg 6.1 on 600 frames of
+1024 x 1024: 2,021 MiB peak working set. GIF now runs two FFmpeg passes over
+the PNG sequence: `palettegen` writes `palette.png` in the temporary work
+directory (44 MiB peak in the same measurement), then `paletteuse` encodes with
+that palette (90 MiB peak). Progress comes from the encode pass. Other formats
+keep one pass.
+
+Validation: a smoke check asserts two GIF passes (palette only in the first,
+`paletteuse` with the palette file in the second, no `split`) and one pass for
+WebP, APNG, and MP4; the existing GIF export signature, progress, overwrite,
+and cancellation checks pass. Build: 0 warnings, 0 errors.

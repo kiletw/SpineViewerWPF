@@ -433,13 +433,21 @@ public sealed class AssetService
             var encoded = Path.Combine(workDirectory, "encoded" + FfmpegEncoder.Extension(options.Format));
             var width = frames.Width > 0 ? frames.Width : request.Width;
             var height = frames.Height > 0 ? frames.Height : request.Height;
-            FfmpegEncoder.Run(
-                options.FfmpegPath,
-                FfmpegEncoder.BuildArguments(options, request.FramesPerSecond, inputPattern, width, height, encoded),
-                workDirectory,
-                frame => progress?.Report(new AnimationExportProgress(
-                    totalFrames + Math.Clamp(frame, 0, totalFrames), totalFrames * 2)),
-                cancellationToken);
+            var passes = FfmpegEncoder.BuildPasses(
+                options, request.FramesPerSecond, inputPattern, width, height, encoded, workDirectory);
+            for (var pass = 0; pass < passes.Count; pass++)
+            {
+                var last = pass == passes.Count - 1;
+                FfmpegEncoder.Run(
+                    options.FfmpegPath,
+                    passes[pass],
+                    workDirectory,
+                    last
+                        ? frame => progress?.Report(new AnimationExportProgress(
+                            totalFrames + Math.Clamp(frame, 0, totalFrames), totalFrames * 2))
+                        : null,
+                    cancellationToken);
+            }
             if (!File.Exists(encoded) || new FileInfo(encoded).Length == 0)
                 throw new InvalidOperationException("FFmpeg did not write an output file.");
 

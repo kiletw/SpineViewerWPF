@@ -20,6 +20,21 @@ static class EncodedExportSmoke
             false));
         Check(!File.Exists(Path.Combine(root, "missing.gif")), "Missing FFmpeg wrote an output.");
 
+        // GIF uses a palette pass and an encode pass instead of one split graph,
+        // which would hold every frame in memory until the palette is complete.
+        var gifPasses = FfmpegEncoder.BuildPasses(
+            new AnimationEncodeOptions(AnimationEncodeFormat.Gif, "ffmpeg"), 30, "frame-%04d.png", 64, 64, "out.gif", root);
+        Check(gifPasses.Count == 2
+              && gifPasses[0].Any(argument => argument.StartsWith("palettegen", StringComparison.Ordinal))
+              && !gifPasses[0].Any(argument => argument.Contains("paletteuse", StringComparison.Ordinal))
+              && gifPasses[1].Contains(Path.Combine(root, "palette.png"))
+              && gifPasses[1].Any(argument => argument.Contains("paletteuse", StringComparison.Ordinal))
+              && !gifPasses.SelectMany(pass => pass).Any(argument => argument.Contains("split", StringComparison.Ordinal)),
+            "GIF encoding did not use separate palette and encode passes.");
+        foreach (var format in new[] { AnimationEncodeFormat.WebP, AnimationEncodeFormat.Apng, AnimationEncodeFormat.Mp4 })
+            Check(FfmpegEncoder.BuildPasses(new AnimationEncodeOptions(format, "ffmpeg"), 30, "frame-%04d.png", 64, 64, "out", root).Count == 1,
+                $"{format} encoding did not use a single pass.");
+
         var ffmpeg = FfmpegLocator.Find(null);
         if (ffmpeg is null)
         {
