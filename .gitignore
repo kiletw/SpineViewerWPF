@@ -7,6 +7,51 @@
 **/obj
 /runtimes/SpineRuntime.V41/src/**/*.meta
 /runtimes/SpineRuntime.V41/src/package.json
+
+# Local AI prompts and notes
 DESKTOP-PROMPT.md
 MANIFEST.md
 START-HERE.md
+.claude/settings.local.json
+.claude/worktrees/
+
+# IDE and per-user state
+.vs/
+.idea/
+*.user
+*.suo
+*.rsuser
+*.userprefs
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Build, publish, and test output
+publish/
+TestResults/
+*.binlog
+*.log
+*.nupkg
+*.snupkg
+
+# Signing material and secrets
+*.pfx
+*.p12
+*.snk
+*.pem
+*.key
+.env
+.env.*
+secrets.json
+
+# Optional user-installed tools (ADR-010) and local assets without redistribution rights
+ffmpeg.exe
+ffprobe.exe
+/local-assets/
+
+# OS and merge leftovers
+Thumbs.db
+desktop.ini
+*.orig

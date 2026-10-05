@@ -1,0 +1,9 @@
+<Project>
+  <!-- TASK-069: release builds override this with -p:Version from the git tag. -->
+  <PropertyGroup>
+    <VersionPrefix>3.0.0</VersionPrefix>
+    <VersionSuffix>dev</VersionSuffix>
+    <Product>SpineViewerWPF</Product>
+    <RepositoryUrl>https://github.com/kiletw/SpineViewerWPF</RepositoryUrl>
+  </PropertyGroup>
+</Project>

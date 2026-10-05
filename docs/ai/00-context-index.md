@@ -67,5 +67,6 @@ Read `10-cli-contract.md`, `11-mcp-capability-map.md`, and UI documents only whe
 - TASK-064: the Slots list no longer scrolls horizontally, so opacity stays visible; Screenshot/Export re-enable after an export completes.
 - TASK-067: PR #54 review fixes: single-layer export uses the remaining layer asset, rotated auto-fit layers render into their own frames, GPU layer opacity fades the composed layer, and the GPU texture cache follows texture instances.
 - TASK-063: optional auto-fit export framing (content bounds over all frames, scale, margin) through a fixed per-layer `RenderCamera`; WPF defaults to Auto fit with Fixed size available; `17-external-feature-reference.md` records the competitor adoption roadmap.
+- Delivery: TASK-069 adds GitHub Actions CI (Release build, Application.Smoke, `scripts/test-v3.ps1`) and tag-driven releases of self-contained `win-x64` WPF/CLI zips with Spine license texts; `master` is the v3 release line.
 - Localization: resource boundary required now; runtime language switching remains deferred
 - Editing: TASK-004 adds Inspector editing, Undo/Redo, dirty state, and versioned `*.spineviewer.json` sidecar save; Spine source writing remains forbidden

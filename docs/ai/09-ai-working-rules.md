@@ -24,7 +24,7 @@ Every change must reference one `TASK-xxx.md`. The task defines allowed paths, f
 ## Git Rules
 
 - v2 fixes branch from `legacy/v2`.
-- v3 work branches from `v3`.
+- v3 work branches from `master`, the v3 integration and release line (TASK-069).
 - Protected branches are never edited directly.
 - Suggested names: `docs/*`, `test/*`, `refactor/*`, `feat/*`, `fix/*`.
 
