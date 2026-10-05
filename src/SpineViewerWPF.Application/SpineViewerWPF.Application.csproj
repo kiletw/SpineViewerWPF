@@ -5,6 +5,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="SpineViewerWPF.Application.Smoke" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../SpineViewerWPF.Core/SpineViewerWPF.Core.csproj" />
   </ItemGroup>
 </Project>

@@ -1,3 +1,4 @@
+using System.Globalization;
 using SpineViewerWPF.Core;
 
 namespace SpineViewerWPF.Application;
@@ -381,6 +382,103 @@ public sealed class AssetService
         }
 
         return new AnimationExportResult(outputs, frameCount, request.DurationSeconds, outputWidth, outputHeight);
+    }
+
+    // TASK-066 / ADR-010: render the request's PNG frames into a private temp
+    // directory, encode them with FFmpeg into a temp file, then move that file
+    // to the output. Progress covers both phases (2 x frames); temporary files
+    // never outlive the call.
+    public EncodedAnimationResult ExportEncoded(
+        AnimationExportRequest request,
+        AnimationEncodeOptions options,
+        string outputPath,
+        bool overwrite,
+        CancellationToken cancellationToken = default,
+        IProgress<AnimationExportProgress>? progress = null)
+    {
+        if (request is null) throw new ArgumentNullException(nameof(request));
+        if (options is null) throw new ArgumentNullException(nameof(options));
+        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("Output path is required.", nameof(outputPath));
+        if (!Enum.IsDefined(options.Format)) throw new ArgumentOutOfRangeException(nameof(options), "Unknown encode format.");
+        if (string.IsNullOrWhiteSpace(options.FfmpegPath) || !File.Exists(options.FfmpegPath))
+            throw new FileNotFoundException(
+                "FFmpeg was not found. Install FFmpeg on PATH or choose ffmpeg.exe in Export settings.",
+                options.FfmpegPath);
+        if (options.Format == AnimationEncodeFormat.Mp4 && !FfmpegEncoder.IsValidBackground(options.VideoBackground))
+            throw new ArgumentException("Video background must be a #RRGGBB color.", nameof(options));
+
+        var output = Path.GetFullPath(outputPath);
+        if (!overwrite && File.Exists(output)) throw new IOException($"Output exists: {output}");
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var workDirectory = Path.Combine(Path.GetTempPath(), $"SpineViewerWPF-export-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(workDirectory);
+        try
+        {
+            var totalFrames = 0;
+            var frameProgress = progress is null
+                ? null
+                : new SynchronousProgress<AnimationExportProgress>(value =>
+                {
+                    totalFrames = value.TotalFrames;
+                    progress.Report(new AnimationExportProgress(value.CompletedFrames, value.TotalFrames * 2));
+                });
+            var frames = Export(
+                request with { OutputDirectory = workDirectory, FilePrefix = "frame", Overwrite = false },
+                cancellationToken,
+                frameProgress);
+            totalFrames = frames.FrameCount;
+            var digits = Math.Max(4, frames.FrameCount.ToString(CultureInfo.InvariantCulture).Length);
+            var inputPattern = Path.Combine(workDirectory, $"frame-%0{digits}d.png");
+            var encoded = Path.Combine(workDirectory, "encoded" + FfmpegEncoder.Extension(options.Format));
+            var width = frames.Width > 0 ? frames.Width : request.Width;
+            var height = frames.Height > 0 ? frames.Height : request.Height;
+            var passes = FfmpegEncoder.BuildPasses(
+                options, request.FramesPerSecond, inputPattern, width, height, encoded, workDirectory);
+            for (var pass = 0; pass < passes.Count; pass++)
+            {
+                var last = pass == passes.Count - 1;
+                FfmpegEncoder.Run(
+                    options.FfmpegPath,
+                    passes[pass],
+                    workDirectory,
+                    last
+                        ? frame => progress?.Report(new AnimationExportProgress(
+                            totalFrames + Math.Clamp(frame, 0, totalFrames), totalFrames * 2))
+                        : null,
+                    cancellationToken);
+            }
+            if (!File.Exists(encoded) || new FileInfo(encoded).Length == 0)
+                throw new InvalidOperationException("FFmpeg did not write an output file.");
+
+            Directory.CreateDirectory(Path.GetDirectoryName(output) ?? ".");
+            File.Move(encoded, output, overwrite);
+            progress?.Report(new AnimationExportProgress(totalFrames * 2, totalFrames * 2));
+            // MP4 (yuv420p) pads odd sizes to even; report the encoded size.
+            var (encodedWidth, encodedHeight) = options.Format == AnimationEncodeFormat.Mp4
+                ? ((width + 1) / 2 * 2, (height + 1) / 2 * 2)
+                : (width, height);
+            return new EncodedAnimationResult(output, frames.FrameCount, request.DurationSeconds, encodedWidth, encodedHeight);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(workDirectory, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Best effort: a file still held by a terminating process.
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+        }
+    }
+
+    private sealed class SynchronousProgress<T>(Action<T> report) : IProgress<T>
+    {
+        public void Report(T value) => report(value);
     }
 
     // TASK-063: auto-fit export. Pass 1 unions each visible layer's pose bounds over

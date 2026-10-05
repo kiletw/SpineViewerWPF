@@ -115,7 +115,23 @@ $automationIds = @(
     'Main.Viewport.Options',
     'Main.Status.Zoom',
     'Main.Scene.ReloadLayer',
-    'Main.Viewport.SceneLayers'
+    'Main.Viewport.SceneLayers',
+    'Main.Playback.Restart',
+    'Main.Playback.PreviousFrame',
+    'Main.Playback.NextFrame',
+    'Main.Playback.FullScreen',
+    'Main.Menu.View.FullScreen',
+    'Main.Menu.Layer.Focus',
+    'Main.Scene.ContextFocus',
+    'Main.Scene.CopySlotParameters',
+    'Main.Scene.ShowAllSlots',
+    'Main.Scene.HideAllSlots',
+    'Main.Scene.ClearSlotAttachments',
+    'Main.Inspector.ExportFormat',
+    'Main.Inspector.VideoBackground',
+    'Main.Inspector.BrowseFfmpeg',
+    'Main.Inspector.UseFfmpegFromPath',
+    'Main.Inspector.FfmpegPath'
 )
 $markup = Get-Content -LiteralPath $xaml -Raw
 foreach ($automationId in $automationIds) {
@@ -165,6 +181,7 @@ $densityTokens = @(
     'Command="{Binding ReloadLayerCommand}"',
     'ItemsSource="{Binding AttachmentOptions}"',
     'ScrollViewer.HorizontalScrollBarVisibility="Disabled"',
+    'MouseDoubleClick="SceneLayerListMouseDoubleClick"',
     'Margin="8"',
     '<Menu Grid.Row="0"',
     'AutomationProperties.AutomationId="Main.Activity.Layers"',

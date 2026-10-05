@@ -22,6 +22,22 @@ public partial class MainWindow : Window
         nameof(FloatInspectorCommand),
         typeof(MainWindow));
 
+    public static RoutedUICommand ToggleFullScreenCommand { get; } = new(
+        "Full screen",
+        nameof(ToggleFullScreenCommand),
+        typeof(MainWindow));
+
+    public static RoutedUICommand FocusLayerCommand { get; } = new(
+        "Focus layer",
+        nameof(FocusLayerCommand),
+        typeof(MainWindow));
+
+    public static readonly DependencyProperty IsFullScreenProperty = DependencyProperty.Register(
+        nameof(IsFullScreen),
+        typeof(bool),
+        typeof(MainWindow),
+        new PropertyMetadata(false));
+
     private const double PanStartThreshold = 3;
 
     private Point? viewportPressPoint;
@@ -31,6 +47,13 @@ public partial class MainWindow : Window
     private FloatingPanelWindow? browsePanelWindow;
     private FloatingPanelWindow? inspectorPanelWindow;
     private bool isClosing;
+    private (WindowState State, WindowStyle Style, ResizeMode ResizeMode)? windowBeforeFullScreen;
+
+    public bool IsFullScreen
+    {
+        get => (bool)GetValue(IsFullScreenProperty);
+        private set => SetValue(IsFullScreenProperty, value);
+    }
 
     public MainWindow()
     {
@@ -43,6 +66,83 @@ public partial class MainWindow : Window
 
     private void ExecuteFloatInspectorCommand(object sender, ExecutedRoutedEventArgs e) =>
         FloatInspectorPanel(sender, e);
+
+    private void ExecuteToggleFullScreenCommand(object sender, ExecutedRoutedEventArgs e) =>
+        SetFullScreen(!IsFullScreen);
+
+    // TASK-065: full-screen preview keeps only the viewport and playback bar.
+    // Window state and docked panel visibility are restored on exit; nothing is
+    // written to the view model, so the project is not dirtied.
+    private void SetFullScreen(bool enable)
+    {
+        if (IsFullScreen == enable) return;
+        if (enable)
+        {
+            windowBeforeFullScreen = (WindowState, WindowStyle, ResizeMode);
+            // Leaving Maximized first lets the borderless window cover the taskbar.
+            if (WindowState == WindowState.Maximized) WindowState = WindowState.Normal;
+            WindowStyle = WindowStyle.None;
+            ResizeMode = ResizeMode.NoResize;
+            WindowState = WindowState.Maximized;
+            SetChromeVisibility(Visibility.Collapsed);
+        }
+        else
+        {
+            SetChromeVisibility(Visibility.Visible);
+            if (windowBeforeFullScreen is { } previous)
+            {
+                WindowState = WindowState.Normal;
+                WindowStyle = previous.Style;
+                ResizeMode = previous.ResizeMode;
+                WindowState = previous.State;
+            }
+            windowBeforeFullScreen = null;
+        }
+        IsFullScreen = enable;
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void SetChromeVisibility(Visibility visibility)
+    {
+        var hidden = visibility != Visibility.Visible;
+        ShellGrid.RowDefinitions[0].Height = hidden ? new GridLength(0) : new GridLength(26);
+        ShellGrid.RowDefinitions[1].Height = hidden ? new GridLength(0) : new GridLength(38);
+        ShellGrid.RowDefinitions[4].Height = hidden ? new GridLength(0) : new GridLength(24);
+        foreach (var element in new FrameworkElement[] { MainMenu, CommandBar, StatusBar, BrowsePanel, InspectorPanel })
+        {
+            // A floating Inspector lives in its own window and stays as it is.
+            if (hidden && ReferenceEquals(element, InspectorPanel) && inspectorPanelWindow is not null) continue;
+            // Clearing the local value restores the style-driven panel visibility.
+            if (hidden) element.Visibility = Visibility.Collapsed;
+            else element.ClearValue(VisibilityProperty);
+        }
+    }
+
+    private void CanExecuteFocusLayerCommand(object sender, CanExecuteRoutedEventArgs e) =>
+        e.CanExecute = DataContext is ShellViewModel { SelectedSceneLayer: not null };
+
+    private void ExecuteFocusLayerCommand(object sender, ExecutedRoutedEventArgs e)
+    {
+        if (DataContext is ShellViewModel { SelectedSceneLayer: { } layer } viewModel)
+            FocusLayer(viewModel, layer);
+    }
+
+    private void SceneLayerListMouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Left
+            || sender is not ListBox list
+            || e.OriginalSource is not DependencyObject source
+            || FindAncestor<ButtonBase>(source) is not null
+            || ItemsControl.ContainerFromElement(list, source) is not ListBoxItem { DataContext: SceneLayerViewModel layer }
+            || DataContext is not ShellViewModel viewModel)
+            return;
+        FocusLayer(viewModel, layer);
+        e.Handled = true;
+    }
+
+    private void FocusLayer(ShellViewModel viewModel, SceneLayerViewModel layer) =>
+        viewModel.FocusLayer(layer, target =>
+            GpuPreview.TryGetLayerContentCenter(target, out var x, out var y) ? (x, y) : null);
 
     private void MainWindowDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
@@ -241,6 +341,8 @@ public partial class MainWindow : Window
         if (DataContext is ShellViewModel viewModel)
             viewModel.IsInspectorVisible = true;
 
+        // Floating during full screen must show the panel hidden in the dock.
+        InspectorPanel.ClearValue(VisibilityProperty);
         DetachPanel(InspectorPanel);
         var window = CreatePanelWindow(GetResourceText("Text.FloatInspector"), InspectorPanel, 320, 720);
         inspectorPanelWindow = window;
@@ -309,6 +411,8 @@ public partial class MainWindow : Window
         Grid.SetColumn(InspectorPanel, 2);
         if (DataContext is ShellViewModel viewModel)
             viewModel.IsInspectorVisible = true;
+        // Re-docking during full screen keeps the docked panel hidden.
+        if (IsFullScreen) InspectorPanel.Visibility = Visibility.Collapsed;
     }
 
     private static void DetachPanel(FrameworkElement panel)
@@ -337,6 +441,16 @@ public partial class MainWindow : Window
     // text field, so they are handled here instead of as window KeyBindings.
     private void WindowKeyDown(object sender, KeyEventArgs e)
     {
+        // TASK-065: Esc leaves full screen unless a focused control (for example
+        // an open drop-down) already consumed it. With an East Asian IME active,
+        // Esc arrives as ImeProcessed.
+        var key = e.Key == Key.ImeProcessed ? e.ImeProcessedKey : e.Key;
+        if (!e.Handled && key == Key.Escape && IsFullScreen)
+        {
+            SetFullScreen(false);
+            e.Handled = true;
+            return;
+        }
         if (e.Handled || Keyboard.Modifiers != ModifierKeys.None || DataContext is not ShellViewModel viewModel) return;
         if (IsTextEntry(Keyboard.FocusedElement as DependencyObject)) return;
         ICommand? command = e.Key switch
@@ -373,6 +487,18 @@ public partial class MainWindow : Window
 
     private static bool IsTextEntry(DependencyObject? element) =>
         element is TextBoxBase or PasswordBox || element is ComboBox { IsEditable: true };
+
+    private static T? FindAncestor<T>(DependencyObject? element) where T : DependencyObject
+    {
+        while (element is not null)
+        {
+            if (element is T match) return match;
+            element = element is Visual or System.Windows.Media.Media3D.Visual3D
+                ? VisualTreeHelper.GetParent(element)
+                : LogicalTreeHelper.GetParent(element);
+        }
+        return null;
+    }
 
     private void ViewportMouseWheel(object sender, MouseWheelEventArgs e)
     {

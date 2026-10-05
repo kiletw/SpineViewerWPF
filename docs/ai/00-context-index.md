@@ -65,7 +65,9 @@ Read `10-cli-contract.md`, `11-mcp-capability-map.md`, and UI documents only whe
 - TASK-061: the Slots list keeps one filtered instance and is re-announced only when slots are added, so rows stay stable and clickable during playback.
 - TASK-062: Properties uses Animation / Layer / Slots single-row tabs with one-line slot rows; channel/background/backend move to a viewport overlay and View menu, theme to View > Theme, project identity to Layers asset information; the Layers list fills the panel above a pinned icon footer.
 - TASK-064: the Slots list no longer scrolls horizontally, so opacity stays visible; Screenshot/Export re-enable after an export completes.
+- TASK-066: GIF, WebP, APNG, and MP4 export encoded by a user-installed FFmpeg (ADR-010), with the FFmpeg path remembered in a user settings file.
 - TASK-067: PR #54 review fixes: single-layer export uses the remaining layer asset, rotated auto-fit layers render into their own frames, GPU layer opacity fades the composed layer, and the GPU texture cache follows texture instances.
+- TASK-065: frame step/fast step/restart and F11 full-screen preview, layer focus from the Layers panel, and filtered slot batch actions plus a Slots copy scope.
 - TASK-063: optional auto-fit export framing (content bounds over all frames, scale, margin) through a fixed per-layer `RenderCamera`; WPF defaults to Auto fit with Fixed size available; `17-external-feature-reference.md` records the competitor adoption roadmap.
 - Delivery: TASK-069 adds GitHub Actions CI (Release build, Application.Smoke, `scripts/test-v3.ps1`) and tag-driven releases of self-contained `win-x64` WPF/CLI zips with Spine license texts; `master` is the v3 release line.
 - Localization: resource boundary required now; runtime language switching remains deferred
