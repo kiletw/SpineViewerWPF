@@ -168,6 +168,29 @@ public sealed record AnimationExportRequest(
 // skeleton unit, plus Margin transparent pixels on each side.
 public sealed record ExportFraming(float Scale = 1, int Margin = 0);
 
+// TASK-066: encoded single-file formats produced by an external FFmpeg from the
+// deterministic PNG frames (ADR-010).
+public enum AnimationEncodeFormat
+{
+    Gif,
+    WebP,
+    Apng,
+    Mp4
+}
+
+// VideoBackground is a #RRGGBB color used only by formats without alpha (MP4).
+public sealed record AnimationEncodeOptions(
+    AnimationEncodeFormat Format,
+    string FfmpegPath,
+    string VideoBackground = "#000000");
+
+public sealed record EncodedAnimationResult(
+    string OutputPath,
+    int FrameCount,
+    float DurationSeconds,
+    int Width,
+    int Height);
+
 public sealed record AnimationExportResult(
     IReadOnlyList<string> OutputPaths,
     int FrameCount,

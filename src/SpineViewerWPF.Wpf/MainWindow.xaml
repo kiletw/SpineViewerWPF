@@ -1611,6 +1611,40 @@
                                                 </StackPanel>
                                             </Expander.Header>
                                             <StackPanel Margin="0,8,0,0">
+                                                <DockPanel Style="{StaticResource PropertyRow}" ToolTip="{DynamicResource Text.ExportFormatHint}">
+                                                    <TextBlock Text="{DynamicResource Text.ExportFormat}" Style="{StaticResource PropertyLabel}" />
+                                                    <ComboBox DockPanel.Dock="Right" Width="108"
+                                                              ItemsSource="{Binding ExportFormats}"
+                                                              SelectedItem="{Binding ExportFormat}"
+                                                              AutomationProperties.Name="{DynamicResource Text.ExportFormat}"
+                                                              AutomationProperties.AutomationId="Main.Inspector.ExportFormat" />
+                                                </DockPanel>
+                                                <DockPanel Style="{StaticResource PropertyRow}"
+                                                           ToolTip="{DynamicResource Text.VideoBackgroundHint}"
+                                                           Visibility="{Binding IsVideoExport, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <TextBlock Text="{DynamicResource Text.VideoBackground}" Style="{StaticResource PropertyLabel}" />
+                                                    <TextBox DockPanel.Dock="Right" Style="{StaticResource NumericTextBox}" Width="80"
+                                                             Text="{Binding ExportVideoBackground, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                             AutomationProperties.Name="{DynamicResource Text.VideoBackground}"
+                                                             AutomationProperties.AutomationId="Main.Inspector.VideoBackground" />
+                                                </DockPanel>
+                                                <StackPanel Margin="0,0,0,7" Visibility="{Binding IsEncodedExport, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <DockPanel LastChildFill="False">
+                                                        <TextBlock Text="{DynamicResource Text.Ffmpeg}" Style="{StaticResource PropertyLabel}" />
+                                                        <Button DockPanel.Dock="Right" Style="{StaticResource ButtonBase}" MinHeight="24" Padding="8,2" FontSize="12"
+                                                                Content="{DynamicResource Text.UseFfmpegFromPath}"
+                                                                Command="{Binding UseFfmpegFromPathCommand}"
+                                                                AutomationProperties.AutomationId="Main.Inspector.UseFfmpegFromPath" />
+                                                        <Button DockPanel.Dock="Right" Style="{StaticResource ButtonBase}" MinHeight="24" Padding="8,2" Margin="0,0,4,0" FontSize="12"
+                                                                Content="{DynamicResource Text.BrowseFfmpeg}"
+                                                                Command="{Binding BrowseFfmpegCommand}"
+                                                                AutomationProperties.AutomationId="Main.Inspector.BrowseFfmpeg" />
+                                                    </DockPanel>
+                                                    <TextBlock Text="{Binding FfmpegStatus}" ToolTip="{Binding FfmpegStatus}"
+                                                               Style="{StaticResource MutedText}" FontSize="11.5" Margin="0,4,0,0"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               AutomationProperties.AutomationId="Main.Inspector.FfmpegPath" />
+                                                </StackPanel>
                                                 <DockPanel Style="{StaticResource PropertyRow}">
                                                     <TextBlock Text="{DynamicResource Text.ExportFps}" Style="{StaticResource PropertyLabel}" />
                                                     <TextBox DockPanel.Dock="Right" Style="{StaticResource NumericTextBox}" Text="{Binding ExportFramesPerSecond, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}, ValidatesOnExceptions=True}" AutomationProperties.AutomationId="Main.Inspector.ExportFps" />

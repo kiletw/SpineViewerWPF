@@ -31,6 +31,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private const double MaxViewportZoom = 8;
     private const double MaxViewportPan = 20000;
     private const int FastStepFrames = 10;
+    private const string PngSequenceFormat = "PNG sequence";
     private static readonly string[] DefaultAnimations = ["idle", "walk", "attack", "victory"];
     private static readonly string[] DefaultSkins = ["default", "armor", "shadow"];
     private static readonly IReadOnlyDictionary<WorkspaceState, StateDefinition> Definitions =
@@ -54,6 +55,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private readonly Func<string?> chooseProjectPathToOpen;
     private readonly Func<string?> chooseScreenshotPath;
     private readonly Func<string?> chooseExportPath;
+    private readonly Func<string, string?> chooseEncodedExportPath;
+    private readonly Func<string?> chooseFfmpegPath;
+    private readonly UserSettingsStore userSettings;
     private readonly Func<IReadOnlyList<string>?> chooseAssetPaths;
     private readonly Func<bool> confirmDiscardChanges;
     private readonly DispatcherTimer playbackTimer;
@@ -92,6 +96,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private int screenshotInProgress;
     private int exportInProgress;
     private int exportCompletedFrames;
+    private bool exportEncoding;
     private int exportTotalFrames;
     private int sceneLayerOperationInProgress;
     private int loadGeneration;
@@ -118,6 +123,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private double previewFramesPerSecond = 30;
     private double exportFramesPerSecond = 30;
     private string exportSizeMode = "Auto fit";
+    private string exportFormat = PngSequenceFormat;
+    private string exportVideoBackground = "#000000";
     private int exportWidth = ExportSize;
     private int exportHeight = ExportSize;
     private double exportScale = 1;
@@ -145,7 +152,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         Func<string?>? chooseScreenshotPath = null,
         Func<string?>? chooseExportPath = null,
         Func<IReadOnlyList<string>?>? chooseAssetPaths = null,
-        Func<string?>? chooseProjectPathToOpen = null)
+        Func<string?>? chooseProjectPathToOpen = null,
+        Func<string, string?>? chooseEncodedExportPath = null,
+        Func<string?>? chooseFfmpegPath = null,
+        UserSettingsStore? userSettings = null)
     {
         state = initialState;
         if (initialState == WorkspaceState.Empty)
@@ -169,6 +179,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         this.chooseProjectPathToOpen = chooseProjectPathToOpen ?? (() => null);
         this.chooseScreenshotPath = chooseScreenshotPath ?? (() => null);
         this.chooseExportPath = chooseExportPath ?? (() => null);
+        this.chooseEncodedExportPath = chooseEncodedExportPath ?? (_ => null);
+        this.chooseFfmpegPath = chooseFfmpegPath ?? (() => null);
+        this.userSettings = userSettings ?? UserSettingsStore.InMemory();
         this.chooseAssetPaths = chooseAssetPaths ?? (() =>
         {
             var path = chooseAssetPath ?? (() => null);
@@ -196,6 +209,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 await OpenAssetAsync(skeletonPath);
         }, () => HasAsset && !IsLoading && Volatile.Read(ref screenshotInProgress) == 0);
         ExportCommand = new RelayCommand(StartExport, () => CanExport);
+        BrowseFfmpegCommand = new RelayCommand(BrowseFfmpeg);
+        UseFfmpegFromPathCommand = new RelayCommand(() => SetFfmpegPath(null), () => HasCustomFfmpegPath);
         CancelExportCommand = new RelayCommand(CancelExport, () => IsExporting);
         AddLayerCommand = new RelayCommand(StartAddLayer, () => CanAddLayer);
         AutoLayoutCommand = new RelayCommand(AutoLayoutLayers, () => sceneLayers.Count > 1 && !IsLoading);
@@ -282,6 +297,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public ICommand OpenProjectCommand { get; }
     public ICommand ReloadCommand { get; }
     public ICommand ExportCommand { get; }
+    public ICommand BrowseFfmpegCommand { get; }
+    public ICommand UseFfmpegFromPathCommand { get; }
     public ICommand CancelExportCommand { get; }
     public ICommand AddLayerCommand { get; }
     public ICommand AutoLayoutCommand { get; }
@@ -608,9 +625,87 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    public string ExportSizeSummary => IsExportAutoFit
+    public string ExportSizeSummary => (IsEncodedExport ? $"{exportFormat} · " : "") + (IsExportAutoFit
         ? $"Auto fit · {exportScale:0.##}× · {exportMargin}px margin"
-        : $"{exportWidth} × {exportHeight}";
+        : $"{exportWidth} × {exportHeight}");
+
+    // TASK-066: output format and MP4 background are session preferences; the
+    // FFmpeg path is a user setting remembered across sessions (ADR-010).
+    public IReadOnlyList<string> ExportFormats { get; } = [PngSequenceFormat, "GIF", "WebP", "APNG", "MP4"];
+
+    public string ExportFormat
+    {
+        get => exportFormat;
+        set
+        {
+            var next = ExportFormats.Contains(value, StringComparer.Ordinal) ? value : PngSequenceFormat;
+            if (exportFormat == next) return;
+            exportFormat = next;
+            Changed();
+            Changed(nameof(IsEncodedExport));
+            Changed(nameof(IsVideoExport));
+            Changed(nameof(ExportSizeSummary));
+            Changed(nameof(FfmpegStatus));
+        }
+    }
+
+    public bool IsEncodedExport => EncodeFormat(exportFormat) is not null;
+    public bool IsVideoExport => EncodeFormat(exportFormat) == AnimationEncodeFormat.Mp4;
+
+    public string ExportVideoBackground
+    {
+        get => exportVideoBackground;
+        set
+        {
+            var next = (value ?? "").Trim();
+            if (!next.StartsWith('#')) next = "#" + next;
+            if (next.Length != 7 || !next.Skip(1).All(Uri.IsHexDigit) || exportVideoBackground == next.ToUpperInvariant())
+            {
+                Changed();
+                return;
+            }
+            exportVideoBackground = next.ToUpperInvariant();
+            Changed();
+        }
+    }
+
+    public string? CustomFfmpegPath => userSettings.FfmpegPath;
+    public string? ResolvedFfmpegPath => FfmpegLocator.Find(userSettings.FfmpegPath);
+    public bool HasCustomFfmpegPath => !string.IsNullOrWhiteSpace(userSettings.FfmpegPath);
+
+    public string FfmpegStatus => ResolvedFfmpegPath is not { } resolved
+        ? HasCustomFfmpegPath ? $"Not found: {userSettings.FfmpegPath}" : "Not found on PATH"
+        : HasCustomFfmpegPath && string.Equals(resolved, Path.GetFullPath(userSettings.FfmpegPath!), StringComparison.OrdinalIgnoreCase)
+            ? resolved
+            : $"PATH: {resolved}";
+
+    private static AnimationEncodeFormat? EncodeFormat(string format) => format switch
+    {
+        "GIF" => AnimationEncodeFormat.Gif,
+        "WebP" => AnimationEncodeFormat.WebP,
+        "APNG" => AnimationEncodeFormat.Apng,
+        "MP4" => AnimationEncodeFormat.Mp4,
+        _ => null
+    };
+
+    private void BrowseFfmpeg()
+    {
+        if (chooseFfmpegPath() is not { } path) return;
+        SetFfmpegPath(path);
+    }
+
+    private void SetFfmpegPath(string? path)
+    {
+        if (!userSettings.SetFfmpegPath(path))
+            LastAction = "FFmpeg path could not be saved; using it for this session";
+        else
+            LastAction = path is null ? "Using FFmpeg from PATH" : "FFmpeg path saved";
+        Changed(nameof(CustomFfmpegPath));
+        Changed(nameof(ResolvedFfmpegPath));
+        Changed(nameof(HasCustomFfmpegPath));
+        Changed(nameof(FfmpegStatus));
+        RefreshCommands();
+    }
 
     public double PreviewFramesPerSecond
     {
@@ -710,7 +805,11 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public double ExportProgress => exportTotalFrames == 0 ? 0 : (double)exportCompletedFrames / exportTotalFrames;
     public string ExportProgressLabel => exportTotalFrames == 0
         ? "Exporting…"
-        : $"Exporting {exportCompletedFrames}/{exportTotalFrames}";
+        : !exportEncoding
+            ? $"Exporting {exportCompletedFrames}/{exportTotalFrames}"
+            : exportCompletedFrames < exportTotalFrames / 2
+                ? $"Rendering {exportCompletedFrames}/{exportTotalFrames / 2}"
+                : $"Encoding {exportCompletedFrames - exportTotalFrames / 2}/{exportTotalFrames / 2}";
     public bool IsDirty => sceneDirty || Capture() != savedSnapshot;
     public bool HasBlockingOverlay => State is WorkspaceState.Unsupported or WorkspaceState.Failed or WorkspaceState.RendererUnavailable;
     public string StateTitle => stateTitleOverride ?? Definition.Title;
@@ -1043,7 +1142,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         if (disposed
             || Volatile.Read(ref screenshotInProgress) != 0
             || Interlocked.Exchange(ref exportInProgress, 1) != 0) return;
-        var target = chooseExportPath();
+        var encodeFormat = EncodeFormat(exportFormat);
+        var target = encodeFormat is null ? chooseExportPath() : chooseEncodedExportPath(exportFormat);
         if (target is null)
         {
             Interlocked.Exchange(ref exportInProgress, 0);
@@ -1053,7 +1153,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         var sceneLayerSnapshot = layers.Length == 1 && IsIdentityPresentation(layers[0])
             ? null
             : layers;
-        _ = ExportSequenceAsync(target, sceneLayerSnapshot);
+        _ = ExportSequenceAsync(target, sceneLayerSnapshot, encodeFormat);
     }
 
     private void StartAddLayer()
@@ -1441,7 +1541,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     private void CancelExport() => exportCancellation?.Cancel();
 
-    private async Task ExportSequenceAsync(string target, IReadOnlyList<SceneLayerDocument>? sceneLayerSnapshot)
+    private async Task ExportSequenceAsync(
+        string target,
+        IReadOnlyList<SceneLayerDocument>? sceneLayerSnapshot,
+        AnimationEncodeFormat? encodeFormat = null)
     {
         var previousState = State;
         var wasPlaying = IsPlaying;
@@ -1452,6 +1555,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             State = WorkspaceState.Exporting;
             exportCompletedFrames = 0;
             exportTotalFrames = 0;
+            exportEncoding = encodeFormat is not null;
             Changed(string.Empty);
 
             var output = Path.GetFullPath(target);
@@ -1487,12 +1591,25 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 Changed(nameof(ExportProgress));
                 Changed(nameof(ExportProgressLabel));
             });
-            var result = await Task.Run(
-                () => assetService!.Export(request, cancellation.Token, progress),
-                cancellation.Token);
-            LastAction = $"Exported {result.FrameCount} frames";
-            if (result.Width > 0 && result.Height > 0)
-                LastExportSize = $"{result.Width} × {result.Height}";
+            if (encodeFormat is { } format)
+            {
+                // The format-specific save dialog already confirmed replacing the file.
+                var options = new AnimationEncodeOptions(format, ResolvedFfmpegPath ?? "", exportVideoBackground);
+                var encoded = await Task.Run(
+                    () => assetService!.ExportEncoded(request, options, output, true, cancellation.Token, progress),
+                    cancellation.Token);
+                LastAction = $"Exported {encoded.FrameCount} frames to {Path.GetFileName(encoded.OutputPath)}";
+                LastExportSize = $"{encoded.Width} × {encoded.Height}";
+            }
+            else
+            {
+                var result = await Task.Run(
+                    () => assetService!.Export(request, cancellation.Token, progress),
+                    cancellation.Token);
+                LastAction = $"Exported {result.FrameCount} frames";
+                if (result.Width > 0 && result.Height > 0)
+                    LastExportSize = $"{result.Width} × {result.Height}";
+            }
         }
         catch (OperationCanceledException)
         {
@@ -2252,7 +2369,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                  {
                      OpenAssetCommand, OpenProjectCommand, ReloadCommand, ExportCommand, CancelExportCommand, ScreenshotCommand, TogglePlayCommand, StopCommand, FitCommand,
                      RestartCommand, PreviousFrameCommand, NextFrameCommand, BackTenFramesCommand, ForwardTenFramesCommand,
-                     CopySlotParametersCommand, ShowFilteredSlotsCommand, HideFilteredSlotsCommand, ClearFilteredSlotAttachmentsCommand,
+                     UseFfmpegFromPathCommand, CopySlotParametersCommand, ShowFilteredSlotsCommand, HideFilteredSlotsCommand, ClearFilteredSlotAttachmentsCommand,
                      AddLayerCommand, AutoLayoutCommand, RemoveLayerCommand, MoveLayerUpCommand, MoveLayerDownCommand,
                      DuplicateLayerCommand, ReloadLayerCommand, CopyAllLayerParametersCommand, CopyTransformParametersCommand,
                      CopyRenderParametersCommand, CopyAppearanceParametersCommand, PasteLayerParametersCommand,

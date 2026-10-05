@@ -43,7 +43,7 @@ to the quick-browse and export workflow; each item still needs its own task.
 | 2 | Playback transport: frame step, fast step, restart, full screen, reset view | TASK-065 (reset view is Fit) |
 | 3 | Focus/center the selected layer (double-click in Layers) | TASK-065 |
 | 4 | Slot batch actions: show/hide all, clear attachment choices, scoped copy | TASK-065 |
-| 5 | GIF / WebP / APNG / MP4 export through an external FFmpeg | planned; FFmpeg is an optional user-installed tool |
+| 5 | GIF / WebP / APNG / MP4 export through an external FFmpeg | TASK-066 (ADR-010); FFmpeg is an optional user-installed tool |
 | 6 | Folder browser with thumbnails, filtering, and batch import | planned |
 | later | Debug geometry (bounds, bones first), multi-track animation, skin combinations | needs Runtime-neutral contracts across all adapters |
 | later | Direct viewport selection and layer dragging | needs a tool mode; left-drag currently pans |
