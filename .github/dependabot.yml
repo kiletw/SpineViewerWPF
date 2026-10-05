@@ -1,0 +1,18 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ['*']
+
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: monthly
+    # Major package upgrades need their own task record (05-technical-constraints.md).
+    ignore:
+      - dependency-name: '*'
+        update-types: [version-update:semver-major]

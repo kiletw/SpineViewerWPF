@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master, v3]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  ContinuousIntegrationBuild: true
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check whitespace in pull request changes
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git diff --check "origin/$env:BASE_REF...HEAD"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          dotnet-version: 8.0.x
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'src/Directory.Build.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore SpineViewerWPF.sln
+
+      - name: Build
+        run: dotnet build SpineViewerWPF.sln -c Release --no-restore
+
+      - name: Application smoke
+        run: dotnet run --project tests/SpineViewerWPF.Application.Smoke/SpineViewerWPF.Application.Smoke.csproj -c Release --no-build
+
+      - name: CLI smoke (test-v3)
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-v3.ps1
+
+      - name: Upload smoke output
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-output
+          path: artifacts/v3-smoke/
+          if-no-files-found: ignore
+          retention-days: 7

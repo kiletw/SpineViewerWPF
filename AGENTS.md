@@ -42,7 +42,7 @@ Implementation that changes product behavior, public contracts, architecture, de
 - Do not broaden scope beyond the active task.
 - Do not replace a verified behavior with a cleaner design unless the task explicitly changes the contract.
 
-For branch selection, preserve the v2/v3 base rules in `09-ai-working-rules.md`: v2 fixes start from `legacy/v2`, and new v3 work starts from `v3`. An existing suitable task branch can be continued. Do not recreate or switch it merely to follow a naming suggestion. If a new branch is needed, follow the user's/session's branch naming preference; the prefixes in that document are suggestions. Never discard working-tree changes to change branches.
+For branch selection, preserve the v2/v3 base rules in `09-ai-working-rules.md`: v2 fixes start from `legacy/v2`, and new v3 work starts from `master` (the v3 integration and release line). An existing suitable task branch can be continued. Do not recreate or switch it merely to follow a naming suggestion. If a new branch is needed, follow the user's/session's branch naming preference; the prefixes in that document are suggestions. Never discard working-tree changes to change branches.
 
 ## Completion Requirements
 

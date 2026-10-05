@@ -3,11 +3,12 @@
 ## Long-Lived Lines
 
 ```text
-master      v2 reference until repository migration is decided
+master      v3 integration and release line (pull requests merge here; TASK-069)
 legacy/v2   v2 maintenance
-v3          v3 integration during development
-main        optional future default after v3 release
+v3          optional v3 integration branch; CI also runs on pushes to it
 ```
+
+The v2 reference remains available through the `2.x.0.0` tags.
 
 Before creating branches, inspect existing remote branches and tags; do not assume they already exist.
 
@@ -16,8 +17,8 @@ Before creating branches, inspect existing remote branches and tags; do not assu
 1. verify current stable v2 commit
 2. tag the verified release, for example `v2.4.0`
 3. create `legacy/v2` from that commit
-4. create `v3` from the chosen base commit
-5. protect `legacy/v2`, `v3`, and later `main`
+4. develop v3 on `master` (the former plan of a separate `v3`/`main` line was superseded by TASK-069)
+5. protect `master` (require the CI check) and `legacy/v2`
 
 ## Task Branches
 
@@ -31,8 +32,8 @@ Before creating branches, inspect existing remote branches and tags; do not assu
 ## Merge Targets
 
 - v2 hotfix → `legacy/v2`
-- v3 feature/refactor → `v3`
-- release candidate → future default branch
+- v3 feature/refactor → `master` through a pull request that passes CI
+- release → SemVer tag on a `master` commit
 
 ## Release Tags
 
@@ -42,5 +43,11 @@ v3.0.0-beta.1
 v3.0.0-rc.1
 v3.0.0
 ```
+
+Pushing a tag matching `vMAJOR.MINOR.PATCH[-PRERELEASE]` runs
+`.github/workflows/release.yml`: it rejects tags whose commit is not on `master`,
+reruns the build and smoke checks, and publishes self-contained `win-x64` WPF and
+CLI zips with `SHA256SUMS.txt`. Suffixed tags become prereleases. A manual run of
+the workflow is a dry run that uploads the packages as workflow artifacts only.
 
 Do not use a complicated GitFlow unless concurrent release stabilization creates a real need.

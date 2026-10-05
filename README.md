@@ -31,10 +31,24 @@ Supported Runtime selections:
 3.6.39  3.6.53  3.7.94  3.8.95  4.0.31  4.0.64  4.1  4.2  4.3
 ```
 
+## Download
+
+Portable Windows x64 packages are published on the
+[Releases](https://github.com/kiletw/SpineViewerWPF/releases) page. Extract the
+zip and run `SpineViewerWPF.exe`; no .NET installation is required. The
+executables are not code-signed, so SmartScreen may warn on first launch.
+
+SpineViewerWPF integrates the Spine Runtimes: each user must hold their own
+[Spine Editor license](https://esotericsoftware.com/spine-editor-license). See
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
 ## Requirements
 
 - Windows
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- To build: .NET SDK 9.0.300 or a later 9.0 feature band (pinned by
+  `global.json`; the projects target .NET 8) and the
+  [.NET 8 runtime](https://dotnet.microsoft.com/download/dotnet/8.0) for running
+  from source
 
 An OpenGL-capable GPU is recommended for interactive playback. The application
 reports the active backend and retains a CPU fallback.
@@ -80,6 +94,25 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-ui-shell.ps1
 The offline 3.8, 4.1, 4.2, and 4.3 compatibility scripts use official example
 assets from gitignored caches. Run the corresponding script without `-Offline`
 once to populate a missing cache.
+
+GitHub Actions runs the build, Application.Smoke, and `scripts/test-v3.ps1` on
+every pull request and on pushes to `master`.
+
+## Release
+
+Push a SemVer tag on a `master` commit to publish a GitHub Release:
+
+```powershell
+git tag v3.0.0-alpha.1
+git push origin v3.0.0-alpha.1
+```
+
+Tags with a suffix such as `-alpha.1` become prereleases. To build the same
+packages locally into `artifacts/release`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/publish-release.ps1 -Version 3.0.0-local.1
+```
 
 ## Current boundaries
 

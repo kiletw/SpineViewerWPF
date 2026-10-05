@@ -31,10 +31,22 @@ Runtime 版本匯出的檔案。
 3.6.39  3.6.53  3.7.94  3.8.95  4.0.31  4.0.64  4.1  4.2  4.3
 ```
 
+## 下載
+
+Windows x64 免安裝版發布於 [Releases](https://github.com/kiletw/SpineViewerWPF/releases)
+頁面。解壓縮後執行 `SpineViewerWPF.exe`，不需要另外安裝 .NET。執行檔尚未
+程式碼簽章，第一次執行時 SmartScreen 可能會顯示警告。
+
+SpineViewerWPF 整合了 Spine Runtimes：每位使用者都必須自行取得
+[Spine Editor 授權](https://esotericsoftware.com/spine-editor-license)。詳見
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
+
 ## 系統需求
 
 - Windows
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- 建置：.NET SDK 9.0.300 或之後的 9.0 feature band（由 `global.json` 固定；
+  專案目標為 .NET 8），從原始碼執行需要
+  [.NET 8 runtime](https://dotnet.microsoft.com/download/dotnet/8.0)
 
 互動播放建議使用支援 OpenGL 的 GPU。程式會顯示目前使用 GPU 或 CPU
 fallback。
@@ -78,6 +90,25 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-ui-shell.ps1
 
 3.8、4.1、4.2 與 4.3 的離線相容性腳本使用 gitignored 的官方範例 cache。若 cache
 尚未建立，先將對應腳本移除 `-Offline` 執行一次。
+
+GitHub Actions 會在每個 pull request 與推送到 `master` 時執行建置、
+Application.Smoke 與 `scripts/test-v3.ps1`。
+
+## 發布
+
+在 `master` 的 commit 上推送 SemVer tag 即會自動發布 GitHub Release：
+
+```powershell
+git tag v3.0.0-alpha.1
+git push origin v3.0.0-alpha.1
+```
+
+帶有 `-alpha.1` 等後綴的 tag 會標記為 prerelease。要在本機產生相同的套件
+（輸出到 `artifacts/release`）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/publish-release.ps1 -Version 3.0.0-local.1
+```
 
 ## 目前限制
 
