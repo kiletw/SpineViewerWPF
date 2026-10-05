@@ -133,7 +133,21 @@ $automationIds = @(
     'Main.Inspector.VideoBackground',
     'Main.Inspector.BrowseFfmpeg',
     'Main.Inspector.UseFfmpegFromPath',
-    'Main.Inspector.FfmpegPath'
+    'Main.Inspector.FfmpegPath',
+    'Main.Activity.Browser',
+    'Main.Browser.Panel',
+    'Main.Browser.Count',
+    'Main.Browser.Folder',
+    'Main.Browser.ChooseFolder',
+    'Main.Browser.Refresh',
+    'Main.Browser.Filter',
+    'Main.Browser.IncludeSubfolders',
+    'Main.Browser.List',
+    'Main.Browser.Status',
+    'Main.Browser.AddToScene',
+    'Main.Browser.Open',
+    'Main.Browser.ContextAdd',
+    'Main.Browser.ContextOpen'
 )
 $markup = Get-Content -LiteralPath $xaml -Raw
 foreach ($automationId in $automationIds) {
@@ -309,7 +323,7 @@ try {
 
     $windowMenu = Wait-AutomationId $mainWindow 'Main.Command.Window'
     if (-not $windowMenu) { throw 'WPF shell did not expose the Window menu.' }
-    foreach ($activityId in 'Main.Activity.Layers', 'Main.Activity.Properties', 'Main.Activity.Diagnostics') {
+    foreach ($activityId in 'Main.Activity.Layers', 'Main.Activity.Browser', 'Main.Activity.Properties', 'Main.Activity.Diagnostics') {
         if (-not (Wait-AutomationId $mainWindow $activityId)) {
             throw "WPF shell did not expose activity: $activityId"
         }

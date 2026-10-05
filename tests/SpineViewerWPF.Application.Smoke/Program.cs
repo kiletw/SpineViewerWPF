@@ -917,6 +917,7 @@ try
     await ViewportCameraSmoke.RunAsync(pngService, store, sequenceRequest, root);
     await MixEventsSmoke.RunShellAsync(pngService, store, sequenceRequest, root);
     await EncodedExportSmoke.RunShellAsync(pngService, store, pngSkeleton, root);
+    await BrowserSmoke.RunAsync(pngService, store, pngSkeleton, pngAtlas, pngTexture, root);
 
     var sceneOutputs = pngService.RenderScene(
         [

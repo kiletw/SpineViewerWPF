@@ -974,6 +974,39 @@
                                                 <MultiDataTrigger.Conditions>
                                                     <Condition Binding="{Binding IsBrowsePanelVisible}" Value="True" />
                                                     <Condition Binding="{Binding IsRailExpanded}" Value="True" />
+                                                    <Condition Binding="{Binding IsLayersPanelActive}" Value="True" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button ToolTip="{DynamicResource Text.Browser}"
+                                    Click="ToggleAssetBrowser"
+                                    AutomationProperties.Name="{DynamicResource Text.Browser}"
+                                    AutomationProperties.HelpText="{DynamicResource Text.Browser}"
+                                    AutomationProperties.AutomationId="Main.Activity.Browser">
+                                <Button.Content>
+                                    <Viewbox Width="20" Height="20">
+                                        <Path Width="20" Height="20"
+                                              Data="M2.5,5 H8 L10,7 H17.5 V16 H2.5 Z"
+                                              Fill="Transparent"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                              StrokeThickness="1.6"
+                                              StrokeLineJoin="Round" />
+                                    </Viewbox>
+                                </Button.Content>
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ActivityButton}">
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsBrowsePanelVisible}" Value="True" />
+                                                    <Condition Binding="{Binding IsRailExpanded}" Value="True" />
+                                                    <Condition Binding="{Binding IsAssetBrowserActive}" Value="True" />
                                                 </MultiDataTrigger.Conditions>
                                                 <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
                                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
@@ -1054,6 +1087,7 @@
                     </Border>
 
                     <Grid x:Name="BrowsePanelContent" Grid.Column="1">
+                      <Grid Visibility="{Binding IsLayersPanelActive, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -1181,6 +1215,142 @@
                                 </Button>
                             </DockPanel>
                         </Border>
+                      </Grid>
+                      <Grid Visibility="{Binding IsAssetBrowserActive, Converter={StaticResource BooleanToVisibilityConverter}}">
+                      <Grid DataContext="{Binding AssetBrowser}"
+                            AutomationProperties.AutomationId="Main.Browser.Panel">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <DockPanel Margin="12,10,12,6">
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding CountLabel}" Style="{StaticResource MutedText}" FontSize="11.5" VerticalAlignment="Center" AutomationProperties.AutomationId="Main.Browser.Count" />
+                            <TextBlock Text="{DynamicResource Text.Browser}" FontSize="13" FontWeight="SemiBold" />
+                        </DockPanel>
+                        <DockPanel Grid.Row="1" Margin="8,0,8,6">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}"
+                                    ToolTip="{DynamicResource Text.Refresh}"
+                                    AutomationProperties.Name="{DynamicResource Text.Refresh}"
+                                    Command="{Binding RefreshCommand}"
+                                    AutomationProperties.AutomationId="Main.Browser.Refresh">
+                                <Path Style="{StaticResource IconPath}" Data="M13,8 A5,5 0 1 1 11.5,4.4 M13,2.5 V5.5 H10" />
+                            </Button>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource ButtonBase}" MinHeight="24" Padding="8,2" Margin="0,0,4,0" FontSize="12"
+                                    Content="{DynamicResource Text.ChooseFolder}"
+                                    Command="{Binding ChooseFolderCommand}"
+                                    AutomationProperties.AutomationId="Main.Browser.ChooseFolder" />
+                            <TextBlock Text="{Binding FolderLabel}" ToolTip="{Binding FolderLabel}" Style="{StaticResource MutedText}" FontSize="11.5"
+                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="4,0,6,0"
+                                       AutomationProperties.AutomationId="Main.Browser.Folder" />
+                        </DockPanel>
+                        <StackPanel Grid.Row="2" Margin="8,0,8,6">
+                            <Grid>
+                                <TextBox x:Name="BrowserFilterBox"
+                                         Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}"
+                                         AutomationProperties.Name="{DynamicResource Text.FilterFiles}"
+                                         AutomationProperties.AutomationId="Main.Browser.Filter"
+                                         Padding="22,5,6,5" />
+                                <TextBlock Text="🔍" IsHitTestVisible="False" VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource MutedBrush}" FontSize="10" />
+                                <TextBlock Text="{DynamicResource Text.FilterFiles}" IsHitTestVisible="False" VerticalAlignment="Center" Margin="24,0,0,0"
+                                           Foreground="{DynamicResource MutedBrush}" FontStyle="Italic">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Text.Length, ElementName=BrowserFilterBox}" Value="0">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                            <CheckBox Content="{DynamicResource Text.IncludeSubfolders}" IsChecked="{Binding IncludeSubfolders}" Margin="0,6,0,0"
+                                      AutomationProperties.AutomationId="Main.Browser.IncludeSubfolders" />
+                        </StackPanel>
+                        <Grid Grid.Row="3" Margin="6,0">
+                            <ListBox x:Name="AssetBrowserList"
+                                     ItemsSource="{Binding FilteredItems}"
+                                     SelectionMode="Extended"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     MouseDoubleClick="AssetBrowserListMouseDoubleClick"
+                                     AutomationProperties.AutomationId="Main.Browser.List">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                        <Setter Property="ToolTip" Value="{Binding Path}" />
+                                        <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+                                        <Setter Property="AutomationProperties.AutomationId" Value="Main.Browser.Item" />
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ContextMenu>
+                                    <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                        <MenuItem Header="{DynamicResource Text.AddToScene}" Command="{Binding AddToSceneCommand}"
+                                                  CommandParameter="{Binding PlacementTarget.SelectedItems, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  AutomationProperties.AutomationId="Main.Browser.ContextAdd" />
+                                        <MenuItem Header="{DynamicResource Text.OpenInWorkspace}" Command="{Binding OpenCommand}"
+                                                  CommandParameter="{Binding PlacementTarget.SelectedItems, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  AutomationProperties.AutomationId="Main.Browser.ContextOpen" />
+                                    </ContextMenu>
+                                </ListBox.ContextMenu>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="2,2,2,3">
+                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock TextTrimming="CharacterEllipsis" FontSize="11.5">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource MutedText}">
+                                                        <Setter Property="Text" Value="{Binding Detail}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasProblem}" Value="True">
+                                                                <Setter Property="FontStyle" Value="Italic" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding Location}" FontSize="11" TextTrimming="CharacterEllipsis">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource MutedText}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Location}" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <TextBlock Text="{Binding Status}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="10,12" IsHitTestVisible="False"
+                                       AutomationProperties.AutomationId="Main.Browser.Status" />
+                        </Grid>
+                        <Border Grid.Row="4"
+                                Background="{DynamicResource PanelRaisedBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="0,1,0,0"
+                                Padding="6,5">
+                            <UniformGrid Columns="2">
+                                <Button Style="{StaticResource ButtonBase}" MinHeight="26" Margin="0,0,3,0"
+                                        Content="{DynamicResource Text.AddToScene}"
+                                        ToolTip="{DynamicResource Text.AddToSceneHint}"
+                                        Command="{Binding AddToSceneCommand}"
+                                        CommandParameter="{Binding SelectedItems, ElementName=AssetBrowserList}"
+                                        AutomationProperties.AutomationId="Main.Browser.AddToScene" />
+                                <Button Style="{StaticResource ButtonBase}" MinHeight="26" Margin="3,0,0,0"
+                                        Content="{DynamicResource Text.OpenInWorkspace}"
+                                        ToolTip="{DynamicResource Text.OpenInWorkspaceHint}"
+                                        Command="{Binding OpenCommand}"
+                                        CommandParameter="{Binding SelectedItems, ElementName=AssetBrowserList}"
+                                        AutomationProperties.AutomationId="Main.Browser.Open" />
+                            </UniformGrid>
+                        </Border>
+                      </Grid>
+                      </Grid>
                     </Grid>
                 </Grid>
             </Border>

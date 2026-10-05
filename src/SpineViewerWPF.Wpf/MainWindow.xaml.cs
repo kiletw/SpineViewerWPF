@@ -280,18 +280,40 @@ public partial class MainWindow : Window
         viewModel.IsRailExpanded = show;
     }
 
-    private void ToggleLayersPanel(object sender, RoutedEventArgs e)
+    private void ToggleLayersPanel(object sender, RoutedEventArgs e) => ToggleBrowsePanelView(showBrowser: false);
+
+    private void ToggleAssetBrowser(object sender, RoutedEventArgs e) => ToggleBrowsePanelView(showBrowser: true);
+
+    // TASK-068: Layers and Browser share the left panel. Pressing the button of
+    // the view already shown closes the panel; the other button switches views.
+    private void ToggleBrowsePanelView(bool showBrowser)
     {
+        if (DataContext is not ShellViewModel viewModel) return;
         if (browsePanelWindow is { } floating)
         {
+            viewModel.IsAssetBrowserActive = showBrowser;
             floating.Activate();
             return;
         }
 
-        if (DataContext is not ShellViewModel viewModel) return;
-        var show = !viewModel.IsBrowsePanelVisible || !viewModel.IsRailExpanded;
+        var open = viewModel.IsBrowsePanelVisible && viewModel.IsRailExpanded;
+        var show = !open || viewModel.IsAssetBrowserActive != showBrowser;
+        if (show) viewModel.IsAssetBrowserActive = showBrowser;
         viewModel.IsBrowsePanelVisible = show;
         viewModel.IsRailExpanded = show;
+    }
+
+    private void AssetBrowserListMouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Left
+            || sender is not ListBox list
+            || e.OriginalSource is not DependencyObject source
+            || ItemsControl.ContainerFromElement(list, source) is not ListBoxItem { DataContext: AssetBrowserItem item }
+            || DataContext is not ShellViewModel viewModel)
+            return;
+        if (viewModel.AssetBrowser.AddToSceneCommand.CanExecute(item))
+            viewModel.AssetBrowser.AddToSceneCommand.Execute(item);
+        e.Handled = true;
     }
 
     private void ToggleInspectorPanel(object sender, RoutedEventArgs e)

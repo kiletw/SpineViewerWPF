@@ -120,6 +120,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private CancellationTokenSource? exportCancellation;
     private bool disposed;
     private bool sceneDirty;
+    private bool isAssetBrowserActive;
     private SceneLayerViewModel? selectedSceneLayer;
     private string animationFilter = "";
     private string? selectedAnimation = DefaultAnimations[0];
@@ -184,7 +185,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         Func<string, string?>? chooseEncodedExportPath = null,
         Func<string?>? chooseFfmpegPath = null,
         UserSettingsStore? userSettings = null,
-        Action<RenderedFrame, string>? copyImageToClipboard = null)
+        Action<RenderedFrame, string>? copyImageToClipboard = null,
+        Func<string?>? chooseBrowserFolder = null)
     {
         this.copyImageToClipboard = copyImageToClipboard;
         state = initialState;
@@ -212,6 +214,12 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         this.chooseEncodedExportPath = chooseEncodedExportPath ?? (_ => null);
         this.chooseFfmpegPath = chooseFfmpegPath ?? (() => null);
         this.userSettings = userSettings ?? UserSettingsStore.InMemory();
+        AssetBrowser = new AssetBrowserViewModel(
+            assetService,
+            this.userSettings,
+            chooseBrowserFolder ?? (() => null),
+            AddLayerPathsAsync,
+            path => OpenAssetAsync(path));
         this.chooseAssetPaths = chooseAssetPaths ?? (() =>
         {
             var path = chooseAssetPath ?? (() => null);
@@ -258,7 +266,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         }, () => HasAsset && !IsLoading && Volatile.Read(ref screenshotInProgress) == 0);
         OpenRecentCommand = new ParameterCommand(
             parameter => _ = OpenRecentAsync(parameter as string),
-            () => !IsLoading && Volatile.Read(ref screenshotInProgress) == 0);
+            _ => !IsLoading && Volatile.Read(ref screenshotInProgress) == 0);
         ClearRecentFilesCommand = new RelayCommand(ClearRecentFiles, () => HasRecentFiles);
         ExportCommand = new RelayCommand(StartExport, () => CanExport);
         BrowseFfmpegCommand = new RelayCommand(BrowseFfmpeg);
@@ -423,6 +431,24 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             Changed();
         }
     }
+
+    public AssetBrowserViewModel AssetBrowser { get; }
+
+    // TASK-068: the left panel shows either the scene Layers or the asset browser.
+    public bool IsAssetBrowserActive
+    {
+        get => isAssetBrowserActive;
+        set
+        {
+            if (isAssetBrowserActive == value) return;
+            isAssetBrowserActive = value;
+            if (value) AssetBrowser.EnsureLoaded();
+            Changed();
+            Changed(nameof(IsLayersPanelActive));
+        }
+    }
+
+    public bool IsLayersPanelActive => !isAssetBrowserActive;
 
     public bool IsBrowsePanelVisible
     {
@@ -1450,6 +1476,18 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             ? null
             : layers;
         _ = ExportSequenceAsync(target, sceneLayerSnapshot, encodeFormat);
+    }
+
+    // TASK-068: layers chosen in the asset browser use the same path as Add layer;
+    // with no open asset the first file opens the workspace.
+    public Task AddLayerPathsAsync(IReadOnlyList<string> paths)
+    {
+        var targets = paths.Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (disposed || targets.Length == 0 || Interlocked.Exchange(ref sceneLayerOperationInProgress, 1) != 0)
+            return Task.CompletedTask;
+        return AddLayersAsync(targets);
     }
 
     private void StartAddLayer()
@@ -2814,6 +2852,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         if (disposed) return;
         disposed = true;
+        AssetBrowser.Dispose();
         Interlocked.Increment(ref loadGeneration);
         playbackTimer.Stop();
         exportCancellation?.Cancel();
@@ -3035,10 +3074,27 @@ internal sealed class RelayCommand(Action execute, Func<bool>? canExecute = null
     public void Refresh() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 }
 
-internal sealed class ParameterCommand(Action<object?> execute, Func<bool>? canExecute = null) : ICommand
+// A command whose availability may depend on its parameter. It re-queries on
+// WPF's CommandManager signal (TASK-068) and on an explicit Refresh (TASK-073).
+internal sealed class ParameterCommand(Action<object?> execute, Func<object?, bool>? canExecute = null) : ICommand
 {
-    public event EventHandler? CanExecuteChanged;
-    public bool CanExecute(object? parameter) => canExecute?.Invoke() ?? true;
+    private EventHandler? refreshed;
+
+    public event EventHandler? CanExecuteChanged
+    {
+        add
+        {
+            refreshed += value;
+            CommandManager.RequerySuggested += value;
+        }
+        remove
+        {
+            refreshed -= value;
+            CommandManager.RequerySuggested -= value;
+        }
+    }
+
+    public bool CanExecute(object? parameter) => canExecute?.Invoke(parameter) ?? true;
     public void Execute(object? parameter) => execute(parameter);
-    public void Refresh() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+    public void Refresh() => refreshed?.Invoke(this, EventArgs.Empty);
 }

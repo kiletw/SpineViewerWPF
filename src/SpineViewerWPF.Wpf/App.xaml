@@ -53,6 +53,16 @@
         <sys:String x:Key="Text.ExportPngFilter">PNG sequence prefix (*.png)|*.png</sys:String>
         <sys:String x:Key="Text.SceneLayers">SCENE LAYERS</sys:String>
         <sys:String x:Key="Text.Layers">Layers</sys:String>
+        <sys:String x:Key="Text.Browser">Browser</sys:String>
+        <sys:String x:Key="Text.ChooseFolder">Folder…</sys:String>
+        <sys:String x:Key="Text.ChooseFolderTitle">Choose a folder with Spine skeletons</sys:String>
+        <sys:String x:Key="Text.Refresh">Refresh</sys:String>
+        <sys:String x:Key="Text.FilterFiles">Filter files</sys:String>
+        <sys:String x:Key="Text.IncludeSubfolders">Include subfolders</sys:String>
+        <sys:String x:Key="Text.AddToScene">Add to scene</sys:String>
+        <sys:String x:Key="Text.AddToSceneHint">Add the selected skeletons as layers (double-click adds one)</sys:String>
+        <sys:String x:Key="Text.OpenInWorkspace">Open</sys:String>
+        <sys:String x:Key="Text.OpenInWorkspaceHint">Open the selected skeleton as a new workspace</sys:String>
         <sys:String x:Key="Text.LayerProperties">Layer properties</sys:String>
         <sys:String x:Key="Text.AddLayer">Add layer</sys:String>
         <sys:String x:Key="Text.RemoveLayer">Remove</sys:String>

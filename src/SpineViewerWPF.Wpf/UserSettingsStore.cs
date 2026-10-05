@@ -6,13 +6,16 @@ namespace SpineViewerWPF.Wpf;
 // TASK-066 / ADR-010: cross-session user preferences, kept apart from the
 // Viewer project sidecar. A missing or unreadable file means defaults; a
 // failed write keeps the in-memory value for the current session.
-// TASK-073 adds recent files and the auto-reload preference.
+// TASK-068 adds the asset browser folder; TASK-073 adds recent files and the
+// auto-reload preference.
 public sealed class UserSettingsStore
 {
     public const int MaxRecentFiles = 10;
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private readonly string? path;
     private string? ffmpegPath;
+    private string? browserFolder;
+    private bool browserIncludeSubfolders;
     private List<string> recentFiles = [];
     private bool autoReload = true;
     private bool showAxes = true;
@@ -26,7 +29,9 @@ public sealed class UserSettingsStore
         try
         {
             var document = JsonSerializer.Deserialize<SettingsDocument>(File.ReadAllText(path));
-            ffmpegPath = string.IsNullOrWhiteSpace(document?.FfmpegPath) ? null : document.FfmpegPath;
+            ffmpegPath = Normalize(document?.FfmpegPath);
+            browserFolder = Normalize(document?.BrowserFolder);
+            browserIncludeSubfolders = document?.BrowserIncludeSubfolders ?? false;
             recentFiles = (document?.RecentFiles ?? [])
                 .Where(item => !string.IsNullOrWhiteSpace(item))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -40,6 +45,8 @@ public sealed class UserSettingsStore
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
         {
             ffmpegPath = null;
+            browserFolder = null;
+            browserIncludeSubfolders = false;
             recentFiles = [];
             autoReload = true;
             showAxes = true;
@@ -60,6 +67,10 @@ public sealed class UserSettingsStore
 
     public string? FfmpegPath => ffmpegPath;
 
+    // TASK-068: the asset browser's last folder and subfolder choice.
+    public string? BrowserFolder => browserFolder;
+    public bool BrowserIncludeSubfolders => browserIncludeSubfolders;
+
     // Most recent first, unique ignoring case.
     public IReadOnlyList<string> RecentFiles => recentFiles;
 
@@ -74,7 +85,14 @@ public sealed class UserSettingsStore
 
     public bool SetFfmpegPath(string? value)
     {
-        ffmpegPath = string.IsNullOrWhiteSpace(value) ? null : value;
+        ffmpegPath = Normalize(value);
+        return Save();
+    }
+
+    public bool SetBrowser(string? folder, bool includeSubfolders)
+    {
+        browserFolder = Normalize(folder);
+        browserIncludeSubfolders = includeSubfolders;
         return Save();
     }
 
@@ -128,6 +146,8 @@ public sealed class UserSettingsStore
 
     private static double ClampMix(double value) => double.IsFinite(value) ? Math.Clamp(value, 0, 5) : 0;
 
+    private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
+
     private bool Save()
     {
         if (path is null) return true;
@@ -137,7 +157,9 @@ public sealed class UserSettingsStore
             var temporary = path + ".tmp";
             File.WriteAllText(
                 temporary,
-                JsonSerializer.Serialize(new SettingsDocument(1, ffmpegPath, recentFiles, autoReload, showAxes, showExportFrame, mixDuration), JsonOptions));
+                JsonSerializer.Serialize(
+                    new SettingsDocument(1, ffmpegPath, browserFolder, browserIncludeSubfolders, recentFiles, autoReload, showAxes, showExportFrame, mixDuration),
+                    JsonOptions));
             File.Move(temporary, path, overwrite: true);
             return true;
         }
@@ -150,6 +172,8 @@ public sealed class UserSettingsStore
     private sealed record SettingsDocument(
         int SchemaVersion,
         string? FfmpegPath,
+        string? BrowserFolder = null,
+        bool? BrowserIncludeSubfolders = null,
         IReadOnlyList<string>? RecentFiles = null,
         bool? AutoReload = null,
         bool? ShowAxes = null,

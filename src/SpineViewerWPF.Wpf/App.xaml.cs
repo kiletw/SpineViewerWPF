@@ -137,6 +137,16 @@ public partial class App : System.Windows.Application
             return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
 
+        string? ChooseBrowserFolder()
+        {
+            var dialog = new OpenFolderDialog
+            {
+                Title = (string)FindResource("Text.ChooseFolderTitle"),
+                Multiselect = false
+            };
+            return dialog.ShowDialog() == true ? dialog.FolderName : null;
+        }
+
         bool ConfirmDiscardChanges() => MessageBox.Show(
             (string)FindResource("Text.DiscardPrompt"),
             (string)FindResource("Text.UnsavedTitle"),
@@ -169,7 +179,8 @@ public partial class App : System.Windows.Application
             chooseEncodedExportPath: ChooseEncodedExportPath,
             chooseFfmpegPath: ChooseFfmpegPath,
             userSettings: UserSettingsStore.Load(string.IsNullOrWhiteSpace(settingsPath) ? null : settingsPath),
-            copyImageToClipboard: PreviewFrameBitmap.CopyToClipboard);
+            copyImageToClipboard: PreviewFrameBitmap.CopyToClipboard,
+            chooseBrowserFolder: ChooseBrowserFolder);
         MainWindow = new MainWindow
         {
             DataContext = viewModel

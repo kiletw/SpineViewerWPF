@@ -102,6 +102,13 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
   viewport so the layer's GPU-framed content center is centered; zoom is kept
   and the project is not dirtied. Without a GPU scene it reports that focus
   needs the GPU preview.
+- Asset browser (TASK-068): the Browser rail button shows a folder view in the
+  left panel in place of Layers (the active view's button closes the panel).
+  Double-click adds a file as a layer; Add to scene adds the selection in order
+  through Add layer (an empty workspace opens the first file); Open replaces
+  the workspace with one file after the usual discard confirmation. The
+  folder and Include subfolders persist in the user settings file; details
+  load in the background and never dirty the project.
 - Slot batch actions (Show all, Hide all, All Auto) act on the slots shown by
   the Slots filter of the selected layer; each is one Undo step and a no-op is
   reported without dirtying.
