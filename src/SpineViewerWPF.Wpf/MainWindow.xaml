@@ -21,6 +21,11 @@
     <Window.CommandBindings>
         <CommandBinding Command="{x:Static local:MainWindow.FloatInspectorCommand}"
                         Executed="ExecuteFloatInspectorCommand" />
+        <CommandBinding Command="{x:Static local:MainWindow.ToggleFullScreenCommand}"
+                        Executed="ExecuteToggleFullScreenCommand" />
+        <CommandBinding Command="{x:Static local:MainWindow.FocusLayerCommand}"
+                        CanExecute="CanExecuteFocusLayerCommand"
+                        Executed="ExecuteFocusLayerCommand" />
     </Window.CommandBindings>
     <Window.InputBindings>
         <KeyBinding Key="O" Modifiers="Control" Command="{Binding OpenAssetCommand}" />
@@ -40,6 +45,11 @@
         <KeyBinding Key="C" Modifiers="Control+Alt" Command="{Binding CopyAllLayerParametersCommand}" />
         <KeyBinding Key="V" Modifiers="Control+Alt" Command="{Binding PasteLayerParametersCommand}" />
         <KeyBinding Key="I" Modifiers="Control+Shift" Command="{x:Static local:MainWindow.FloatInspectorCommand}" />
+        <KeyBinding Key="Left" Modifiers="Control" Command="{Binding PreviousFrameCommand}" />
+        <KeyBinding Key="Right" Modifiers="Control" Command="{Binding NextFrameCommand}" />
+        <KeyBinding Key="Left" Modifiers="Control+Shift" Command="{Binding BackTenFramesCommand}" />
+        <KeyBinding Key="Right" Modifiers="Control+Shift" Command="{Binding ForwardTenFramesCommand}" />
+        <KeyBinding Key="F11" Command="{x:Static local:MainWindow.ToggleFullScreenCommand}" />
     </Window.InputBindings>
 
     <Window.Resources>
@@ -730,7 +740,7 @@
         </DrawingBrush>
     </Window.Resources>
 
-    <Grid>
+    <Grid x:Name="ShellGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="26" />
             <RowDefinition Height="38" />
@@ -740,6 +750,7 @@
         </Grid.RowDefinitions>
 
         <Menu Grid.Row="0"
+              x:Name="MainMenu"
               Background="{DynamicResource PanelRaisedBrush}"
               Foreground="{DynamicResource TextBrush}"
               BorderBrush="{DynamicResource BorderBrush}"
@@ -764,6 +775,7 @@
                     <MenuItem Header="{DynamicResource Text.CopyTransformParameters}" Command="{Binding CopyTransformParametersCommand}" />
                     <MenuItem Header="{DynamicResource Text.CopyRenderParameters}" Command="{Binding CopyRenderParametersCommand}" />
                     <MenuItem Header="{DynamicResource Text.CopyAppearanceParameters}" Command="{Binding CopyAppearanceParametersCommand}" />
+                    <MenuItem Header="{DynamicResource Text.CopySlotParameters}" Command="{Binding CopySlotParametersCommand}" />
                 </MenuItem>
                 <MenuItem Header="{DynamicResource Text.PasteParameters}" InputGestureText="Ctrl+Alt+V" Command="{Binding PasteLayerParametersCommand}" />
             </MenuItem>
@@ -772,6 +784,7 @@
                 <MenuItem Header="{DynamicResource Text.ToggleInspector}" IsCheckable="True" IsChecked="{Binding IsInspectorVisible, Mode=OneWay}" Click="ToggleInspectorPanel" AutomationProperties.AutomationId="Main.Command.ToggleInspector" />
                 <Separator />
                 <MenuItem Header="{DynamicResource Text.Fit}" InputGestureText="F" Command="{Binding FitCommand}" />
+                <MenuItem Header="{DynamicResource Text.FullScreen}" InputGestureText="F11" Command="{x:Static local:MainWindow.ToggleFullScreenCommand}" IsChecked="{Binding IsFullScreen, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}" AutomationProperties.AutomationId="Main.Menu.View.FullScreen" />
                 <MenuItem Header="{DynamicResource Text.Diagnostics}" InputGestureText="Ctrl+D" Command="{Binding DiagnosticsCommand}" />
                 <Separator />
                 <MenuItem Header="{DynamicResource Text.Channel}" AutomationProperties.AutomationId="Main.Menu.View.Channel">
@@ -792,6 +805,12 @@
             <MenuItem Header="{DynamicResource Text.PlaybackMenu}" AutomationProperties.AutomationId="Main.Menu.Playback">
                 <MenuItem Header="{DynamicResource Text.PlayPause}" InputGestureText="Space" Command="{Binding TogglePlayCommand}" />
                 <MenuItem Header="{DynamicResource Text.Stop}" Command="{Binding StopCommand}" />
+                <MenuItem Header="{DynamicResource Text.Restart}" Command="{Binding RestartCommand}" />
+                <Separator />
+                <MenuItem Header="{DynamicResource Text.PreviousFrame}" InputGestureText="Ctrl+Left" Command="{Binding PreviousFrameCommand}" />
+                <MenuItem Header="{DynamicResource Text.NextFrame}" InputGestureText="Ctrl+Right" Command="{Binding NextFrameCommand}" />
+                <MenuItem Header="{DynamicResource Text.BackTenFrames}" InputGestureText="Ctrl+Shift+Left" Command="{Binding BackTenFramesCommand}" />
+                <MenuItem Header="{DynamicResource Text.ForwardTenFrames}" InputGestureText="Ctrl+Shift+Right" Command="{Binding ForwardTenFramesCommand}" />
                 <Separator />
                 <MenuItem Header="{DynamicResource Text.Loop}" IsCheckable="True" IsChecked="{Binding Loop}" />
             </MenuItem>
@@ -800,6 +819,7 @@
                 <MenuItem Header="{DynamicResource Text.DuplicateLayer}" InputGestureText="Ctrl+Shift+D" Command="{Binding DuplicateLayerCommand}" />
                 <MenuItem Header="{DynamicResource Text.ReloadLayer}" InputGestureText="Shift+F5" Command="{Binding ReloadLayerCommand}" />
                 <MenuItem Header="{DynamicResource Text.RemoveLayer}" InputGestureText="Delete" Command="{Binding RemoveLayerCommand}" />
+                <MenuItem Header="{DynamicResource Text.FocusLayer}" Command="{x:Static local:MainWindow.FocusLayerCommand}" AutomationProperties.AutomationId="Main.Menu.Layer.Focus" />
                 <Separator />
                 <MenuItem Header="{DynamicResource Text.LayerUp}" InputGestureText="Alt+Up" Command="{Binding MoveLayerUpCommand}" />
                 <MenuItem Header="{DynamicResource Text.LayerDown}" InputGestureText="Alt+Down" Command="{Binding MoveLayerDownCommand}" />
@@ -823,7 +843,7 @@
             </MenuItem>
         </Menu>
 
-        <Border Grid.Row="1" Background="{DynamicResource PanelRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+        <Border x:Name="CommandBar" Grid.Row="1" Background="{DynamicResource PanelRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
             <Grid Margin="8,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -1028,6 +1048,7 @@
                                  SelectedItem="{Binding SelectedSceneLayer}"
                                  Margin="6,0"
                                  PreviewMouseRightButtonDown="SceneLayerListPreviewMouseRightButtonDown"
+                                 MouseDoubleClick="SceneLayerListMouseDoubleClick"
                                  AutomationProperties.AutomationId="Main.Scene.LayerList">
                             <ListBox.InputBindings>
                                 <KeyBinding Key="Delete" Command="{Binding RemoveLayerCommand}" />
@@ -1037,6 +1058,7 @@
                                     <MenuItem Header="{DynamicResource Text.AddLayer}" Command="{Binding AddLayerCommand}" AutomationProperties.AutomationId="Main.Scene.ContextAdd" />
                                     <MenuItem Header="{DynamicResource Text.DuplicateLayer}" InputGestureText="Ctrl+Shift+D" Command="{Binding DuplicateLayerCommand}" AutomationProperties.AutomationId="Main.Scene.ContextDuplicate" />
                                     <MenuItem Header="{DynamicResource Text.ReloadLayer}" InputGestureText="Shift+F5" Command="{Binding ReloadLayerCommand}" AutomationProperties.AutomationId="Main.Scene.ContextReload" />
+                                    <MenuItem Header="{DynamicResource Text.FocusLayer}" Command="{x:Static local:MainWindow.FocusLayerCommand}" AutomationProperties.AutomationId="Main.Scene.ContextFocus" />
                                     <Separator />
                                     <MenuItem Header="{DynamicResource Text.LayerUp}" Command="{Binding MoveLayerUpCommand}" />
                                     <MenuItem Header="{DynamicResource Text.LayerDown}" Command="{Binding MoveLayerDownCommand}" />
@@ -1046,6 +1068,7 @@
                                         <MenuItem Header="{DynamicResource Text.CopyTransformParameters}" Command="{Binding CopyTransformParametersCommand}" AutomationProperties.AutomationId="Main.Scene.CopyTransformParameters" />
                                         <MenuItem Header="{DynamicResource Text.CopyRenderParameters}" Command="{Binding CopyRenderParametersCommand}" AutomationProperties.AutomationId="Main.Scene.CopyRenderParameters" />
                                         <MenuItem Header="{DynamicResource Text.CopyAppearanceParameters}" Command="{Binding CopyAppearanceParametersCommand}" AutomationProperties.AutomationId="Main.Scene.CopyAppearanceParameters" />
+                                        <MenuItem Header="{DynamicResource Text.CopySlotParameters}" Command="{Binding CopySlotParametersCommand}" AutomationProperties.AutomationId="Main.Scene.CopySlotParameters" />
                                     </MenuItem>
                                     <MenuItem Header="{DynamicResource Text.PasteParameters}" InputGestureText="Ctrl+Alt+V" Command="{Binding PasteLayerParametersCommand}" AutomationProperties.AutomationId="Main.Scene.PasteParameters" />
                                     <Separator />
@@ -1213,7 +1236,7 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <local:GpuViewport Margin="14"
+                    <local:GpuViewport x:Name="GpuPreview" Margin="14"
                                        AutomationProperties.Name="GPU asset preview"
                                        AutomationProperties.AutomationId="Main.Viewport.GpuSurface" />
 
@@ -1676,6 +1699,7 @@
                             <Grid Margin="10,12,6,12">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
                                 <Grid Margin="0,0,0,8">
@@ -1711,7 +1735,22 @@
                                         </TextBlock.Style>
                                     </TextBlock>
                                 </Grid>
-                                <ListBox Grid.Row="1" ItemsSource="{Binding SelectedSceneLayer.FilteredSlots}"
+                                <UniformGrid Grid.Row="1" Columns="3" Margin="0,0,0,8" ToolTip="{DynamicResource Text.SlotBatchHint}">
+                                    <Button Style="{StaticResource ButtonBase}" MinHeight="24" Padding="4,2" Margin="0,0,3,0" FontSize="12"
+                                            Content="{DynamicResource Text.ShowAllSlots}"
+                                            Command="{Binding ShowFilteredSlotsCommand}"
+                                            AutomationProperties.AutomationId="Main.Scene.ShowAllSlots" />
+                                    <Button Style="{StaticResource ButtonBase}" MinHeight="24" Padding="4,2" Margin="0,0,3,0" FontSize="12"
+                                            Content="{DynamicResource Text.HideAllSlots}"
+                                            Command="{Binding HideFilteredSlotsCommand}"
+                                            AutomationProperties.AutomationId="Main.Scene.HideAllSlots" />
+                                    <Button Style="{StaticResource ButtonBase}" MinHeight="24" Padding="4,2" FontSize="12"
+                                            Content="{DynamicResource Text.ClearSlotAttachments}"
+                                            ToolTip="{DynamicResource Text.ClearSlotAttachmentsHint}"
+                                            Command="{Binding ClearFilteredSlotAttachmentsCommand}"
+                                            AutomationProperties.AutomationId="Main.Scene.ClearSlotAttachments" />
+                                </UniformGrid>
+                                <ListBox Grid.Row="2" ItemsSource="{Binding SelectedSceneLayer.FilteredSlots}"
                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                     <ListBox.ItemContainerStyle>
                                         <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
@@ -1778,11 +1817,33 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button Style="{StaticResource IconButton}"
+                            ToolTip="{DynamicResource Text.Restart}"
+                            AutomationProperties.Name="{DynamicResource Text.Restart}"
+                            Command="{Binding RestartCommand}"
+                            AutomationProperties.AutomationId="Main.Playback.Restart">
+                        <Path Style="{StaticResource IconPath}" Data="M3.5,3 V13 M13,3.5 L6.5,8 L13,12.5 Z" />
+                    </Button>
+                    <Button Style="{StaticResource IconButton}"
+                            ToolTip="{DynamicResource Text.PreviousFrame}"
+                            AutomationProperties.Name="{DynamicResource Text.PreviousFrame}"
+                            Command="{Binding PreviousFrameCommand}"
+                            AutomationProperties.AutomationId="Main.Playback.PreviousFrame">
+                        <Path Style="{StaticResource IconPath}" Data="M11,3.5 L5.5,8 L11,12.5" />
+                    </Button>
                     <Button Style="{StaticResource AccentButton}"
                             Width="68"
+                            Margin="2,0"
                             Content="{Binding PlaybackLabel}"
                             Command="{Binding TogglePlayCommand}"
                             AutomationProperties.AutomationId="Main.Playback.Toggle" />
+                    <Button Style="{StaticResource IconButton}"
+                            ToolTip="{DynamicResource Text.NextFrame}"
+                            AutomationProperties.Name="{DynamicResource Text.NextFrame}"
+                            Command="{Binding NextFrameCommand}"
+                            AutomationProperties.AutomationId="Main.Playback.NextFrame">
+                        <Path Style="{StaticResource IconPath}" Data="M5,3.5 L10.5,8 L5,12.5" />
+                    </Button>
                     <Button Style="{StaticResource ButtonBase}"
                             Content="{DynamicResource Text.Stop}"
                             Margin="5,0,0,0"
@@ -1808,11 +1869,19 @@
                             Content="{DynamicResource Text.Fit}"
                             Command="{Binding FitCommand}"
                             AutomationProperties.AutomationId="Main.Viewport.Fit" />
+                    <Button Style="{StaticResource IconButton}"
+                            Margin="5,0,0,0"
+                            ToolTip="{DynamicResource Text.FullScreen}"
+                            AutomationProperties.Name="{DynamicResource Text.FullScreen}"
+                            Command="{x:Static local:MainWindow.ToggleFullScreenCommand}"
+                            AutomationProperties.AutomationId="Main.Playback.FullScreen">
+                        <Path Style="{StaticResource IconPath}" Data="M2.5,6 V2.5 H6 M10,2.5 H13.5 V6 M13.5,10 V13.5 H10 M6,13.5 H2.5 V10" />
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <Border Grid.Row="4" Background="{DynamicResource StatusBrush}">
+        <Border x:Name="StatusBar" Grid.Row="4" Background="{DynamicResource StatusBrush}">
             <Grid Margin="10,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />

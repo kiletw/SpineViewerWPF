@@ -30,6 +30,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private const double MinViewportZoom = 0.1;
     private const double MaxViewportZoom = 8;
     private const double MaxViewportPan = 20000;
+    private const int FastStepFrames = 10;
     private static readonly string[] DefaultAnimations = ["idle", "walk", "attack", "victory"];
     private static readonly string[] DefaultSkins = ["default", "armor", "shadow"];
     private static readonly IReadOnlyDictionary<WorkspaceState, StateDefinition> Definitions =
@@ -207,6 +208,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         CopyTransformParametersCommand = new RelayCommand(() => CopyLayerParameters(LayerParameterScope.Transform), () => HasSelectedSceneLayer);
         CopyRenderParametersCommand = new RelayCommand(() => CopyLayerParameters(LayerParameterScope.Render), () => HasSelectedSceneLayer);
         CopyAppearanceParametersCommand = new RelayCommand(() => CopyLayerParameters(LayerParameterScope.Appearance), () => HasSelectedSceneLayer);
+        CopySlotParametersCommand = new RelayCommand(() => CopyLayerParameters(LayerParameterScope.Slots), () => HasSelectedSceneLayer);
+        ShowFilteredSlotsCommand = new RelayCommand(() => ApplySlotBatch(SlotBatchAction.Show), () => HasSelectedSceneLayer);
+        HideFilteredSlotsCommand = new RelayCommand(() => ApplySlotBatch(SlotBatchAction.Hide), () => HasSelectedSceneLayer);
+        ClearFilteredSlotAttachmentsCommand = new RelayCommand(() => ApplySlotBatch(SlotBatchAction.ClearAttachments), () => HasSelectedSceneLayer);
         PasteLayerParametersCommand = new RelayCommand(PasteLayerParameters, () => HasSelectedSceneLayer && layerParameterClipboard is not null);
         ScreenshotCommand = new RelayCommand(
             CaptureScreenshot,
@@ -222,6 +227,15 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             IsPlaying = false;
             Position = 0;
         }, () => CanPlay);
+        RestartCommand = new RelayCommand(() =>
+        {
+            Position = 0;
+            IsPlaying = true;
+        }, () => CanPlay);
+        PreviousFrameCommand = new RelayCommand(() => StepFrames(-1), () => CanPlay);
+        NextFrameCommand = new RelayCommand(() => StepFrames(1), () => CanPlay);
+        BackTenFramesCommand = new RelayCommand(() => StepFrames(-FastStepFrames), () => CanPlay);
+        ForwardTenFramesCommand = new RelayCommand(() => StepFrames(FastStepFrames), () => CanPlay);
         FitCommand = new RelayCommand(FitViewport, () => HasPreview);
         DiagnosticsCommand = new RelayCommand(ToggleDiagnostics);
         ToggleRailCommand = new RelayCommand(() => IsRailExpanded = !IsRailExpanded);
@@ -280,10 +294,19 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public ICommand CopyTransformParametersCommand { get; }
     public ICommand CopyRenderParametersCommand { get; }
     public ICommand CopyAppearanceParametersCommand { get; }
+    public ICommand CopySlotParametersCommand { get; }
     public ICommand PasteLayerParametersCommand { get; }
+    public ICommand ShowFilteredSlotsCommand { get; }
+    public ICommand HideFilteredSlotsCommand { get; }
+    public ICommand ClearFilteredSlotAttachmentsCommand { get; }
     public ICommand ScreenshotCommand { get; }
     public ICommand TogglePlayCommand { get; }
     public ICommand StopCommand { get; }
+    public ICommand RestartCommand { get; }
+    public ICommand PreviousFrameCommand { get; }
+    public ICommand NextFrameCommand { get; }
+    public ICommand BackTenFramesCommand { get; }
+    public ICommand ForwardTenFramesCommand { get; }
     public ICommand FitCommand { get; }
     public ICommand DiagnosticsCommand { get; }
     public ICommand ToggleRailCommand { get; }
@@ -801,6 +824,58 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         viewportPanX = nextX;
         viewportPanY = nextY;
         if (changed) NotifyViewportChanged();
+    }
+
+    // TASK-065: pan so the located content center of the layer sits at the
+    // viewport center. The locator returns DIP offsets relative to the viewport
+    // center without pan, or null when the layer has no GPU scene to measure.
+    public bool FocusLayer(SceneLayerViewModel layer, Func<SceneLayerViewModel, (double X, double Y)?> locateContentCenter)
+    {
+        if (!sceneLayers.Contains(layer)) return false;
+        SelectedSceneLayer = layer;
+        if (locateContentCenter(layer) is not { } center
+            || !double.IsFinite(center.X) || !double.IsFinite(center.Y))
+        {
+            LastAction = "Layer focus needs the GPU preview";
+            return false;
+        }
+        var nextX = Math.Clamp(-center.X, -MaxViewportPan, MaxViewportPan);
+        var nextY = Math.Clamp(-center.Y, -MaxViewportPan, MaxViewportPan);
+        var changed = Math.Abs(viewportPanX - nextX) >= 0.001 || Math.Abs(viewportPanY - nextY) >= 0.001;
+        viewportPanX = nextX;
+        viewportPanY = nextY;
+        if (changed) NotifyViewportChanged();
+        LastAction = $"Focused {Path.GetFileName(layer.SkeletonPath)}";
+        return true;
+    }
+
+    // TASK-065: move by whole preview frames on the 1 / PreviewFramesPerSecond
+    // grid; stepping pauses playback and clamps without wrapping.
+    private void StepFrames(int frames)
+    {
+        if (!CanPlay || frames == 0) return;
+        IsPlaying = false;
+        var framesPerSecond = Math.Max(1, previewFramesPerSecond);
+        var exact = Position * framesPerSecond;
+        var target = frames > 0
+            ? Math.Floor(exact + 0.0001) + frames
+            : Math.Ceiling(exact - 0.0001) + frames;
+        Position = Math.Clamp(target / framesPerSecond, 0, Duration);
+    }
+
+    private void ApplySlotBatch(SlotBatchAction action)
+    {
+        if (selectedSceneLayer is null) return;
+        var count = selectedSceneLayer.ApplySlotBatch(action);
+        var slots = count == 1 ? "1 slot" : $"{count} slots";
+        LastAction = count == 0
+            ? "No slots changed"
+            : action switch
+            {
+                SlotBatchAction.Show => $"Showed {slots}",
+                SlotBatchAction.Hide => $"Hid {slots}",
+                _ => $"Cleared attachments on {slots}"
+            };
     }
 
     private void FitViewport()
@@ -2176,6 +2251,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         foreach (var command in new[]
                  {
                      OpenAssetCommand, OpenProjectCommand, ReloadCommand, ExportCommand, CancelExportCommand, ScreenshotCommand, TogglePlayCommand, StopCommand, FitCommand,
+                     RestartCommand, PreviousFrameCommand, NextFrameCommand, BackTenFramesCommand, ForwardTenFramesCommand,
+                     CopySlotParametersCommand, ShowFilteredSlotsCommand, HideFilteredSlotsCommand, ClearFilteredSlotAttachmentsCommand,
                      AddLayerCommand, AutoLayoutCommand, RemoveLayerCommand, MoveLayerUpCommand, MoveLayerDownCommand,
                      DuplicateLayerCommand, ReloadLayerCommand, CopyAllLayerParametersCommand, CopyTransformParametersCommand,
                      CopyRenderParametersCommand, CopyAppearanceParametersCommand, PasteLayerParametersCommand,
