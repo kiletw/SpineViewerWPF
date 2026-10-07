@@ -50,6 +50,25 @@ to the quick-browse and export workflow; each item still needs its own task.
 | later | Non-PNG textures, nearest filtering, PSD layers, UI language switching, file association | separate compatibility/product tasks |
 | no | Desktop wallpaper, tray residency, auto-start, WorkerW debugging, hit-slot logging | outside the viewer product scope |
 
+## Adoption Roadmap, Round 2 (2026-10-07 review)
+
+Round 1 reviewed only `ww-rm/SpineViewer`. Round 2 adds the official Spine
+Skeleton Viewer, the Spine Web Player, the Spine Editor image/video export
+dialog, game-asset Spine viewers, and general GIF/animation tools. Items already
+listed above are not repeated. Each item still needs its own task.
+
+| Order | Capability | Reference | Status / notes |
+|---|---|---|---|
+| 1 | Application icon (exe, windows, floating panels) | every desktop competitor | TASK-070 |
+| 2 | Viewport guides: world XY axes and the fixed-size export frame | Spine Editor, export tools | TASK-071; never written to screenshot/export; auto-fit frame later |
+| 3 | Export batch (several animations), frame range, Physics pre-roll | Spine Editor export | TASK-072 |
+| 4 | Auto reload on source change; recent files | Skeleton Viewer; most viewers | TASK-073; recent files is already in `14-ui-product-design.md` scope |
+| 5 | Animation mix duration on switch; Spine event display | Skeleton Viewer, Web Player | TASK-074; needs Runtime-neutral contracts across adapters |
+| 6 | Screenshot to system clipboard; custom background color | game-asset viewers | TASK-075 |
+| later | Sprite-sheet export, A-B loop range, update check | Spine Editor, GIF tools | separate tasks |
+| later | Onion skin, event audio playback | Spine Editor | low value for a viewer |
+| no | Web Player HTML export; any Spine source modification | Web Player | redistribution concerns; sources stay read-only |
+
 Existing differentiators to preserve: Runtime 2.1-4.3 coverage, RGBA/RGB/Alpha
 inspection, Undo/Redo, non-destructive sidecar projects, visible GPU/CPU
 fallback, and per-slot named attachment selection.
