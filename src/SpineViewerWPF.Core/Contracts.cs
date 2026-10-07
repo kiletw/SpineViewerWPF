@@ -40,13 +40,17 @@ public sealed record RenderRequest(
     bool Pma,
     IReadOnlyList<string> Skins,
     float TrackAlpha = 1,
-    IReadOnlyList<SlotDisplayDocument>? Slots = null);
+    IReadOnlyList<SlotDisplayDocument>? Slots = null,
+    int PhysicsWarmupLoops = 0);
 
 // Fixed framing for one rendered frame: the skeleton-space point drawn at the
 // frame center and the output pixels per skeleton unit. Null keeps the renderer's
 // automatic bounds fit.
 public sealed record RenderCamera(float CenterX, float CenterY, float Scale);
 
+// PhysicsWarmupLoops (TASK-072): Runtimes with Physics first play the animation
+// looped this many times so physics settles, then pose TimeSeconds from a restart
+// with that physics state; Runtimes without Physics ignore it.
 public sealed record FrameRenderRequest(
     string Animation,
     float TimeSeconds,
@@ -57,7 +61,8 @@ public sealed record FrameRenderRequest(
     float TrackAlpha = 1,
     bool LinearFiltering = true,
     IReadOnlyList<SlotDisplayDocument>? Slots = null,
-    RenderCamera? Camera = null);
+    RenderCamera? Camera = null,
+    int PhysicsWarmupLoops = 0);
 
 public sealed record RenderedFrame(int Width, int Height, byte[] Bgra32);
 
@@ -98,7 +103,8 @@ public sealed record PreviewSceneRequest(
     bool Pma,
     IReadOnlyList<string> Skins,
     float TrackAlpha = 1,
-    IReadOnlyList<SlotDisplayDocument>? Slots = null);
+    IReadOnlyList<SlotDisplayDocument>? Slots = null,
+    int PhysicsWarmupLoops = 0);
 
 public sealed record SceneLayerRenderRequest(
     string SkeletonPath,
@@ -161,7 +167,24 @@ public sealed record AnimationExportRequest(
     float TrackAlpha = 1,
     IReadOnlyList<SlotDisplayDocument>? Slots = null,
     IReadOnlyList<SceneLayerDocument>? SceneLayers = null,
-    ExportFraming? Framing = null);
+    ExportFraming? Framing = null,
+    float StartSeconds = 0,
+    int PhysicsWarmupLoops = 0);
+
+// TASK-072: one export per animation. The animation varies on the single-layer
+// request, or on SceneLayers[SceneLayerIndex] when the template is a scene; each
+// item exports that animation's full duration.
+public sealed record AnimationBatchExportRequest(
+    AnimationExportRequest Template,
+    IReadOnlyList<string> Animations,
+    int? SceneLayerIndex = null);
+
+public sealed record AnimationBatchItemResult(
+    string Animation,
+    IReadOnlyList<string> OutputPaths,
+    int FrameCount,
+    int Width,
+    int Height);
 
 // Auto-fit export framing: the output size follows the union of the visible
 // content bounds across every exported frame, rendered at Scale output pixels per

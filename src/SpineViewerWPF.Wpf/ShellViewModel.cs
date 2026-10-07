@@ -32,6 +32,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private const double MaxViewportPan = 20000;
     private const int FastStepFrames = 10;
     private const string PngSequenceFormat = "PNG sequence";
+    private const string CurrentAnimationScope = "Current";
+    private const string AllAnimationsScope = "All animations";
+    private const string FullRangeMode = "Full";
+    private const string CustomRangeMode = "Custom";
     private static readonly string[] DefaultAnimations = ["idle", "walk", "attack", "victory"];
     private static readonly string[] DefaultSkins = ["default", "armor", "shadow"];
     private static readonly IReadOnlyDictionary<WorkspaceState, StateDefinition> Definitions =
@@ -124,6 +128,11 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private double exportFramesPerSecond = 30;
     private string exportSizeMode = "Auto fit";
     private string exportFormat = PngSequenceFormat;
+    private string exportAnimationScope = CurrentAnimationScope;
+    private string exportRangeMode = FullRangeMode;
+    private double exportRangeStart;
+    private double exportRangeEnd;
+    private int exportPhysicsWarmupLoops;
     private string exportVideoBackground = "#000000";
     private int exportWidth = ExportSize;
     private int exportHeight = ExportSize;
@@ -614,6 +623,105 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
+    // TASK-072: animation scope and frame range are session preferences like the
+    // other export settings. A custom range applies to the current animation only;
+    // All animations exports each animation of the selected layer in full.
+    public IReadOnlyList<string> ExportAnimationScopes { get; } = [CurrentAnimationScope, AllAnimationsScope];
+
+    public string ExportAnimationScope
+    {
+        get => exportAnimationScope;
+        set
+        {
+            var next = ExportAnimationScopes.Contains(value, StringComparer.Ordinal) ? value : CurrentAnimationScope;
+            if (exportAnimationScope == next) return;
+            exportAnimationScope = next;
+            Changed();
+            Changed(nameof(IsExportAllAnimations));
+            Changed(nameof(IsExportRangeAvailable));
+            Changed(nameof(IsExportCustomRange));
+            Changed(nameof(ExportSizeSummary));
+        }
+    }
+
+    public bool IsExportAllAnimations => exportAnimationScope == AllAnimationsScope;
+    public bool IsExportRangeAvailable => !IsExportAllAnimations;
+
+    public IReadOnlyList<string> ExportRangeModes { get; } = [FullRangeMode, CustomRangeMode];
+
+    public string ExportRangeMode
+    {
+        get => exportRangeMode;
+        set
+        {
+            var next = ExportRangeModes.Contains(value, StringComparer.Ordinal) ? value : FullRangeMode;
+            if (exportRangeMode == next) return;
+            exportRangeMode = next;
+            // Start a new custom range from the whole current animation.
+            if (next == CustomRangeMode && exportRangeEnd <= exportRangeStart)
+            {
+                exportRangeStart = 0;
+                exportRangeEnd = Duration;
+                Changed(nameof(ExportRangeStart));
+                Changed(nameof(ExportRangeEnd));
+            }
+            Changed();
+            Changed(nameof(IsExportCustomRange));
+            Changed(nameof(ExportSizeSummary));
+        }
+    }
+
+    public bool IsExportCustomRange => IsExportRangeAvailable && exportRangeMode == CustomRangeMode;
+
+    public double ExportRangeStart
+    {
+        get => exportRangeStart;
+        set
+        {
+            var next = Math.Max(0, double.IsFinite(value) ? value : 0);
+            if (Math.Abs(exportRangeStart - next) < 0.0001) return;
+            exportRangeStart = next;
+            Changed();
+            Changed(nameof(ExportSizeSummary));
+        }
+    }
+
+    public double ExportRangeEnd
+    {
+        get => exportRangeEnd;
+        set
+        {
+            var next = Math.Max(0, double.IsFinite(value) ? value : 0);
+            if (Math.Abs(exportRangeEnd - next) < 0.0001) return;
+            exportRangeEnd = next;
+            Changed();
+            Changed(nameof(ExportSizeSummary));
+        }
+    }
+
+    // Loops of the animation played before frame 0 so Physics (Spine 4.2+)
+    // settles; assets without Physics ignore it.
+    public int ExportPhysicsWarmupLoops
+    {
+        get => exportPhysicsWarmupLoops;
+        set
+        {
+            var next = Math.Clamp(value, 0, 10);
+            if (exportPhysicsWarmupLoops == next) return;
+            exportPhysicsWarmupLoops = next;
+            Changed();
+        }
+    }
+
+    // The custom range clamped to the current animation: end within the duration,
+    // start no later than the end.
+    private (double Start, double End) EffectiveExportRange(double duration)
+    {
+        if (!IsExportCustomRange) return (0, duration);
+        var end = Math.Clamp(exportRangeEnd, 0, duration);
+        return (Math.Clamp(exportRangeStart, 0, end), end);
+    }
+
     public string LastExportSize
     {
         get => lastExportSize;
@@ -625,9 +733,12 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    public string ExportSizeSummary => (IsEncodedExport ? $"{exportFormat} · " : "") + (IsExportAutoFit
-        ? $"Auto fit · {exportScale:0.##}× · {exportMargin}px margin"
-        : $"{exportWidth} × {exportHeight}");
+    public string ExportSizeSummary => (IsEncodedExport ? $"{exportFormat} · " : "")
+        + (IsExportAllAnimations ? "All animations · " : "")
+        + (IsExportCustomRange ? $"{exportRangeStart:0.###}–{exportRangeEnd:0.###}s · " : "")
+        + (IsExportAutoFit
+            ? $"Auto fit · {exportScale:0.##}× · {exportMargin}px margin"
+            : $"{exportWidth} × {exportHeight}");
 
     // TASK-066: output format and MP4 background are session preferences; the
     // FFmpeg path is a user setting remembered across sessions (ADR-010).
@@ -1564,12 +1675,13 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             // not be the asset that opened the workspace (for example after the
             // original layer was removed).
             var singleLayer = sceneLayerSnapshot is null ? primaryLayer : null;
+            var (rangeStart, rangeEnd) = EffectiveExportRange(singleLayer?.Duration ?? Duration);
             var request = new AnimationExportRequest(
                 singleLayer?.SkeletonPath ?? skeletonPath,
                 singleLayer?.AtlasPath ?? atlasPath,
                 singleLayer?.RuntimeOverride ?? runtimeLine,
                 singleLayer?.Animation ?? SelectedSceneLayer?.Animation ?? SelectedAnimation ?? "",
-                (float)(singleLayer?.Duration ?? Duration),
+                (float)rangeEnd,
                 (float)ExportFramesPerSecond,
                 IsExportAutoFit ? ExportSize : ExportWidth,
                 IsExportAutoFit ? ExportSize : ExportHeight,
@@ -1583,7 +1695,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 (float)(primaryLayer?.TrackAlpha ?? 1),
                 primaryLayer?.SlotDisplaySettings,
                 sceneLayerSnapshot,
-                IsExportAutoFit ? new ExportFraming((float)ExportScale, ExportMargin) : null);
+                IsExportAutoFit ? new ExportFraming((float)ExportScale, ExportMargin) : null,
+                (float)rangeStart,
+                exportPhysicsWarmupLoops);
             var progress = new Progress<AnimationExportProgress>(value =>
             {
                 exportCompletedFrames = value.CompletedFrames;
@@ -1591,7 +1705,30 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 Changed(nameof(ExportProgress));
                 Changed(nameof(ExportProgressLabel));
             });
-            if (encodeFormat is { } format)
+            if (IsExportAllAnimations)
+            {
+                // The selected layer's animations vary; other layers keep theirs.
+                var batchLayer = sceneLayerSnapshot is null ? primaryLayer : SelectedSceneLayer ?? primaryLayer;
+                var batchAnimations = (batchLayer?.Animations ?? animations).Where(name => name != "").ToArray();
+                if (batchAnimations.Length == 0)
+                    throw new InvalidOperationException("The selected layer has no animations to export.");
+                var batch = new AnimationBatchExportRequest(
+                    request,
+                    batchAnimations,
+                    sceneLayerSnapshot is null || batchLayer is null ? null : sceneLayers.IndexOf(batchLayer));
+                var options = encodeFormat is { } batchFormat
+                    ? new AnimationEncodeOptions(batchFormat, ResolvedFfmpegPath ?? "", exportVideoBackground)
+                    : null;
+                var results = await Task.Run(
+                    () => assetService!.ExportBatch(batch, output, options, cancellation.Token, progress),
+                    cancellation.Token);
+                LastAction = $"Exported {results.Count} animations ({results.Sum(item => item.FrameCount)} frames)";
+                LastExportSize = string.Join(", ", results
+                    .Where(item => item.Width > 0 && item.Height > 0)
+                    .Select(item => $"{item.Width} × {item.Height}")
+                    .Distinct());
+            }
+            else if (encodeFormat is { } format)
             {
                 // The format-specific save dialog already confirmed replacing the file.
                 var options = new AnimationEncodeOptions(format, ResolvedFfmpegPath ?? "", exportVideoBackground);

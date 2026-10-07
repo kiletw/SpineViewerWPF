@@ -78,7 +78,8 @@ public sealed class Adapter : IRuntimeAdapter
                 request.Skins,
                 request.TrackAlpha,
                 false,
-                request.Slots), cancellationToken);
+                request.Slots,
+                PhysicsWarmupLoops: request.PhysicsWarmupLoops), cancellationToken);
             CpuRenderer.Render(skeleton, request.Width, request.Height, request.OutputPath, request.Pma, request.Overwrite);
         }
 
@@ -93,7 +94,8 @@ public sealed class Adapter : IRuntimeAdapter
         {
             cancellationToken.ThrowIfCancellationRequested();
             var skeleton = Pose(new FrameRenderRequest(
-                request.Animation, request.TimeSeconds, 1, 1, request.Pma, request.Skins, request.TrackAlpha, false, request.Slots), cancellationToken);
+                request.Animation, request.TimeSeconds, 1, 1, request.Pma, request.Skins, request.TrackAlpha, false, request.Slots,
+                PhysicsWarmupLoops: request.PhysicsWarmupLoops), cancellationToken);
             return CpuRenderer.BuildPreviewScene(skeleton, request.Pma);
         }
 
@@ -136,6 +138,26 @@ public sealed class Adapter : IRuntimeAdapter
                 skeleton.Time = 0;
                 state.Apply(skeleton);
                 skeleton.UpdateWorldTransform(Skeleton.Physics.Reset);
+
+                // TASK-072: warm-up plays whole loops so physics settles, then
+                // restarts the animation at time 0 with the physics state kept.
+                var warmup = request.PhysicsWarmupLoops > 0 ? request.PhysicsWarmupLoops * animation.Duration : 0;
+                if (warmup > 0)
+                {
+                    state.SetAnimation(0, animation, true).Alpha = request.TrackAlpha;
+                    var warmupSteps = Math.Min(MaxPhysicsSteps, Math.Max(1, (int)MathF.Ceiling(warmup / PhysicsStepSeconds)));
+                    for (var step = 0; step < warmupSteps; step++)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        state.Update(warmup / warmupSteps);
+                        skeleton.Update(warmup / warmupSteps);
+                        state.Apply(skeleton);
+                        skeleton.UpdateWorldTransform(Skeleton.Physics.Update);
+                    }
+                    state.SetAnimation(0, animation, false).Alpha = request.TrackAlpha;
+                    state.Apply(skeleton);
+                    skeleton.UpdateWorldTransform(Skeleton.Physics.Pose);
+                }
 
                 // ponytail: cap replay at 600 steps; add cached checkpoints if long physics timelines need exact 60 Hz history.
                 var stepCount = request.TimeSeconds <= PhysicsStepSeconds * MaxPhysicsSteps

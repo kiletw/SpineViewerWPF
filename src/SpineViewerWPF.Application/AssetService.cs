@@ -43,7 +43,8 @@ public sealed class AssetRenderSession : IDisposable
         IReadOnlyList<string> skins,
         CancellationToken cancellationToken = default,
         float trackAlpha = 1,
-        IReadOnlyList<SlotDisplayDocument>? slots = null)
+        IReadOnlyList<SlotDisplayDocument>? slots = null,
+        int physicsWarmupLoops = 0)
     {
         if (animation is null || animation.Length > 0 && string.IsNullOrWhiteSpace(animation))
             throw new ArgumentException("Animation must be a name or an empty setup-pose selection.");
@@ -64,7 +65,7 @@ public sealed class AssetRenderSession : IDisposable
             if (File.Exists(output) && !overwrite) throw new IOException($"Output exists: {output}");
             Directory.CreateDirectory(Path.GetDirectoryName(output) ?? ".");
             session.Render(
-                new RenderRequest(skeletonPath, atlasPath, animation, timeSeconds, width, height, output, overwrite, pma, skins, trackAlpha, slots),
+                new RenderRequest(skeletonPath, atlasPath, animation, timeSeconds, width, height, output, overwrite, pma, skins, trackAlpha, slots, physicsWarmupLoops),
                 cancellationToken);
         }
         return output;
@@ -81,7 +82,8 @@ public sealed class AssetRenderSession : IDisposable
         float trackAlpha = 1,
         bool linearFiltering = true,
         IReadOnlyList<SlotDisplayDocument>? slots = null,
-        RenderCamera? camera = null)
+        RenderCamera? camera = null,
+        int physicsWarmupLoops = 0)
     {
         if (animation is null || animation.Length > 0 && string.IsNullOrWhiteSpace(animation))
             throw new ArgumentException("Animation must be a name or an empty setup-pose selection.");
@@ -99,7 +101,7 @@ public sealed class AssetRenderSession : IDisposable
             ObjectDisposedException.ThrowIf(disposed, this);
             cancellationToken.ThrowIfCancellationRequested();
             return session.RenderFrame(
-                new FrameRenderRequest(animation, timeSeconds, width, height, pma, skins, trackAlpha, linearFiltering, slots, camera),
+                new FrameRenderRequest(animation, timeSeconds, width, height, pma, skins, trackAlpha, linearFiltering, slots, camera, physicsWarmupLoops),
                 cancellationToken);
         }
     }
@@ -111,7 +113,8 @@ public sealed class AssetRenderSession : IDisposable
         IReadOnlyList<string> skins,
         CancellationToken cancellationToken = default,
         float trackAlpha = 1,
-        IReadOnlyList<SlotDisplayDocument>? slots = null)
+        IReadOnlyList<SlotDisplayDocument>? slots = null,
+        int physicsWarmupLoops = 0)
     {
         if (animation is null || animation.Length > 0 && string.IsNullOrWhiteSpace(animation))
             throw new ArgumentException("Animation must be a name or an empty setup-pose selection.");
@@ -124,7 +127,7 @@ public sealed class AssetRenderSession : IDisposable
             ObjectDisposedException.ThrowIf(disposed, this);
             cancellationToken.ThrowIfCancellationRequested();
             return session.RenderScene(
-                new PreviewSceneRequest(animation, timeSeconds, pma, skins, trackAlpha, slots),
+                new PreviewSceneRequest(animation, timeSeconds, pma, skins, trackAlpha, slots, physicsWarmupLoops),
                 cancellationToken);
         }
     }
@@ -147,6 +150,7 @@ public sealed class AssetService
     internal const float MinExportScale = 0.01f;
     internal const float MaxExportScale = 16f;
     internal const int MaxExportMargin = 1024;
+    internal const int MaxPhysicsWarmupLoops = 10;
 
     private readonly IReadOnlyList<IRuntimeAdapter> runtimes;
 
@@ -288,6 +292,10 @@ public sealed class AssetService
             throw new ArgumentException("Animation must be a name or an empty setup-pose selection.", nameof(request));
         if (!float.IsFinite(request.DurationSeconds) || request.DurationSeconds < 0)
             throw new ArgumentOutOfRangeException(nameof(request.DurationSeconds));
+        if (!float.IsFinite(request.StartSeconds) || request.StartSeconds < 0 || request.StartSeconds > request.DurationSeconds)
+            throw new ArgumentOutOfRangeException(nameof(request.StartSeconds), "Start time must be between 0 and the end time.");
+        if (request.PhysicsWarmupLoops is < 0 or > MaxPhysicsWarmupLoops)
+            throw new ArgumentOutOfRangeException(nameof(request.PhysicsWarmupLoops), "Physics warm-up must be between 0 and 10 loops.");
         if (!float.IsFinite(request.FramesPerSecond) || request.FramesPerSecond <= 0 || request.FramesPerSecond > 240)
             throw new ArgumentOutOfRangeException(nameof(request.FramesPerSecond), "Frames per second must be between 0 and 240.");
         if (request.Width is < 1 or > 16384 || request.Height is < 1 or > 16384
@@ -313,21 +321,9 @@ public sealed class AssetService
                     "Composite frame buffers must not exceed 256 MiB.");
         }
 
-        var frameCountValue = Math.Floor(request.DurationSeconds * request.FramesPerSecond) + 1;
-        if (!double.IsFinite(frameCountValue) || frameCountValue > 10000)
-            throw new ArgumentOutOfRangeException(nameof(request.DurationSeconds), "The export is limited to 10000 frames.");
-        var frameCount = Math.Max(1, (int)frameCountValue);
+        var frameCount = FrameCount(request);
         var directory = Path.GetFullPath(request.OutputDirectory);
-        var rawPrefix = request.FilePrefix?.Trim() ?? "";
-        if (string.IsNullOrWhiteSpace(rawPrefix) || Path.GetFileName(rawPrefix) != rawPrefix)
-            throw new ArgumentException("File prefix must be a file name.", nameof(request.FilePrefix));
-        var prefix = Path.GetFileNameWithoutExtension(rawPrefix);
-        if (string.IsNullOrWhiteSpace(prefix)) throw new ArgumentException("File prefix is required.", nameof(request.FilePrefix));
-
-        var digits = Math.Max(4, frameCount.ToString().Length);
-        var outputs = Enumerable.Range(0, frameCount)
-            .Select(index => Path.Combine(directory, $"{prefix}-{index.ToString(string.Concat("D", digits))}.png"))
-            .ToArray();
+        var outputs = SequenceOutputs(request, frameCount);
         if (!request.Overwrite)
         {
             var existing = outputs.FirstOrDefault(File.Exists);
@@ -354,7 +350,7 @@ public sealed class AssetService
                 for (var index = 0; index < frameCount; index++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var time = Math.Min(request.DurationSeconds, index / request.FramesPerSecond);
+                    var time = FrameTime(request, index);
                     session.Render(
                         request.Animation,
                         time,
@@ -366,7 +362,8 @@ public sealed class AssetService
                         request.Skins ?? [],
                         cancellationToken,
                         request.TrackAlpha,
-                        request.Slots);
+                        request.Slots,
+                        request.PhysicsWarmupLoops);
                     created.Add(outputs[index]);
                     progress?.Report(new AnimationExportProgress(index + 1, frameCount));
                 }
@@ -476,6 +473,125 @@ public sealed class AssetService
         }
     }
 
+    // TASK-072: export each listed animation over its full duration. Outputs are
+    // named "<name>-<animation>" beside outputPath: PNG frames
+    // "<name>-<animation>-0000.png", or one "<name>-<animation><ext>" file when
+    // encode is set. Every target is checked before rendering starts, and a
+    // failed or canceled batch removes everything it wrote.
+    public IReadOnlyList<AnimationBatchItemResult> ExportBatch(
+        AnimationBatchExportRequest batch,
+        string outputPath,
+        AnimationEncodeOptions? encode = null,
+        CancellationToken cancellationToken = default,
+        IProgress<AnimationExportProgress>? progress = null)
+    {
+        if (batch is null) throw new ArgumentNullException(nameof(batch));
+        if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("Output path is required.", nameof(outputPath));
+        var template = batch.Template ?? throw new ArgumentException("A template request is required.", nameof(batch));
+        if (batch.Animations is null || batch.Animations.Count == 0)
+            throw new ArgumentException("At least one animation is required.", nameof(batch));
+        if (batch.Animations.Any(string.IsNullOrWhiteSpace)
+            || batch.Animations.Distinct(StringComparer.Ordinal).Count() != batch.Animations.Count)
+            throw new ArgumentException("Animations must be distinct names.", nameof(batch));
+
+        SceneLayerDocument? varied = null;
+        if (batch.SceneLayerIndex is { } layerIndex)
+        {
+            if (template.SceneLayers is null || layerIndex < 0 || layerIndex >= template.SceneLayers.Count)
+                throw new ArgumentOutOfRangeException(nameof(batch), "The scene layer index is outside the template scene.");
+            varied = template.SceneLayers[layerIndex];
+        }
+        else if (template.SceneLayers is not null)
+            throw new ArgumentException("A scene template requires the index of the layer whose animation varies.", nameof(batch));
+
+        var inspection = Inspect(
+            varied?.SkeletonPath ?? template.SkeletonPath,
+            varied is null ? template.AtlasPath : varied.AtlasPath,
+            varied is null ? template.RuntimeOverride : varied.RuntimeOverride,
+            cancellationToken);
+        var output = Path.GetFullPath(outputPath);
+        var directory = Path.GetDirectoryName(output) ?? ".";
+        var name = Path.GetFileNameWithoutExtension(output);
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Output file name is required.", nameof(outputPath));
+        var extension = encode is null ? "" : FfmpegEncoder.Extension(encode.Format);
+
+        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var items = new List<(AnimationExportRequest Request, string? EncodedPath, string[] Targets)>();
+        foreach (var animation in batch.Animations)
+        {
+            var descriptor = inspection.Animations.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Name, animation, StringComparison.Ordinal))
+                ?? throw new InvalidDataException($"Animation not found: {animation}");
+            var stem = $"{name}-{SafeFileName(animation)}";
+            for (var suffix = 2; !usedNames.Add(stem); suffix++)
+                stem = $"{name}-{SafeFileName(animation)}-{suffix}";
+            var request = template with
+            {
+                Animation = animation,
+                DurationSeconds = descriptor.DurationSeconds,
+                StartSeconds = 0,
+                OutputDirectory = directory,
+                FilePrefix = stem,
+                Overwrite = false,
+                SceneLayers = varied is null
+                    ? template.SceneLayers
+                    : template.SceneLayers!.Select((layer, index) =>
+                        index == batch.SceneLayerIndex ? layer with { Animation = animation } : layer).ToArray()
+            };
+            var frameCount = FrameCount(request);
+            var encodedPath = encode is null ? null : Path.Combine(directory, stem + extension);
+            items.Add((request, encodedPath, encodedPath is null ? SequenceOutputs(request, frameCount) : [encodedPath]));
+        }
+
+        var existing = items.SelectMany(item => item.Targets).FirstOrDefault(File.Exists);
+        if (existing is not null) throw new IOException($"Output exists: {existing}");
+
+        var weight = encode is null ? 1 : 2;
+        var total = items.Sum(item => FrameCount(item.Request) * weight);
+        var completed = 0;
+        var results = new List<AnimationBatchItemResult>(items.Count);
+        try
+        {
+            progress?.Report(new AnimationExportProgress(0, total));
+            foreach (var item in items)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var offset = completed;
+                var itemProgress = progress is null
+                    ? null
+                    : new SynchronousProgress<AnimationExportProgress>(value =>
+                        progress.Report(new AnimationExportProgress(offset + value.CompletedFrames, total)));
+                if (item.EncodedPath is { } encodedPath)
+                {
+                    var encoded = ExportEncoded(item.Request, encode!, encodedPath, false, cancellationToken, itemProgress);
+                    results.Add(new AnimationBatchItemResult(
+                        item.Request.Animation, [encoded.OutputPath], encoded.FrameCount, encoded.Width, encoded.Height));
+                    completed += encoded.FrameCount * weight;
+                }
+                else
+                {
+                    var frames = Export(item.Request, cancellationToken, itemProgress);
+                    results.Add(new AnimationBatchItemResult(
+                        item.Request.Animation, frames.OutputPaths, frames.FrameCount, frames.Width, frames.Height));
+                    completed += frames.FrameCount * weight;
+                }
+            }
+        }
+        catch
+        {
+            foreach (var path in results.SelectMany(result => result.OutputPaths)) TryDelete(path);
+            throw;
+        }
+        return results;
+    }
+
+    private static string SafeFileName(string value)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var safe = new string(value.Select(character => invalid.Contains(character) ? '_' : character).ToArray()).Trim(' ', '.');
+        return safe.Length == 0 ? "animation" : safe;
+    }
+
     private sealed class SynchronousProgress<T>(Action<T> report) : IProgress<T>
     {
         public void Report(T value) => report(value);
@@ -550,7 +666,8 @@ public sealed class AssetService
                     layer.Skins,
                     cancellationToken,
                     (float)(layer.Layer.TrackAlpha ?? 1),
-                    layer.Layer.Slots);
+                    layer.Layer.Slots,
+                    request.PhysicsWarmupLoops);
                 layer.Include(scene);
             }
 
@@ -631,7 +748,8 @@ public sealed class AssetService
                         (float)(layer.Layer.TrackAlpha ?? 1),
                         true,
                         layer.Layer.Slots,
-                        camera);
+                        camera,
+                        request.PhysicsWarmupLoops);
                     frames[layerIndex] = new SceneFrameLayer(frame, document);
                 }
 
@@ -648,9 +766,36 @@ public sealed class AssetService
         }
     }
 
+    // TASK-072: frames start at StartSeconds and include the end time.
+    private static float FrameTime(AnimationExportRequest request, int index) =>
+        Math.Min(request.DurationSeconds, request.StartSeconds + index / request.FramesPerSecond);
+
+    private static int FrameCount(AnimationExportRequest request)
+    {
+        var frameCountValue = Math.Floor((request.DurationSeconds - request.StartSeconds) * request.FramesPerSecond) + 1;
+        if (!double.IsFinite(frameCountValue) || frameCountValue > 10000)
+            throw new ArgumentOutOfRangeException(nameof(request.DurationSeconds), "The export is limited to 10000 frames.");
+        return Math.Max(1, (int)frameCountValue);
+    }
+
+    private static string[] SequenceOutputs(AnimationExportRequest request, int frameCount)
+    {
+        var directory = Path.GetFullPath(request.OutputDirectory);
+        var rawPrefix = request.FilePrefix?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(rawPrefix) || Path.GetFileName(rawPrefix) != rawPrefix)
+            throw new ArgumentException("File prefix must be a file name.", nameof(request.FilePrefix));
+        var prefix = Path.GetFileNameWithoutExtension(rawPrefix);
+        if (string.IsNullOrWhiteSpace(prefix)) throw new ArgumentException("File prefix is required.", nameof(request.FilePrefix));
+
+        var digits = Math.Max(4, frameCount.ToString().Length);
+        return Enumerable.Range(0, frameCount)
+            .Select(index => Path.Combine(directory, $"{prefix}-{index.ToString(string.Concat("D", digits))}.png"))
+            .ToArray();
+    }
+
     private static float FramedTime(AnimationExportRequest request, FramedLayer layer, int index)
     {
-        var time = Math.Min(request.DurationSeconds, index / request.FramesPerSecond);
+        var time = FrameTime(request, index);
         return request.SceneLayers is null ? time : Math.Min(time, layer.Duration);
     }
 
@@ -754,7 +899,7 @@ public sealed class AssetService
             for (var index = 0; index < outputs.Count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var time = Math.Min(request.DurationSeconds, index / request.FramesPerSecond);
+                var time = FrameTime(request, index);
                 var frames = new SceneFrameLayer[openedLayers.Count];
                 for (var layerIndex = 0; layerIndex < openedLayers.Count; layerIndex++)
                 {
@@ -769,7 +914,8 @@ public sealed class AssetService
                         cancellationToken,
                         (float)(item.Layer.TrackAlpha ?? 1),
                         true,
-                        item.Layer.Slots);
+                        item.Layer.Slots,
+                        physicsWarmupLoops: request.PhysicsWarmupLoops);
                     frames[layerIndex] = new SceneFrameLayer(frame, item.Layer);
                 }
 

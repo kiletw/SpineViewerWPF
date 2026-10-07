@@ -907,6 +907,9 @@ try
     }
     Assert(!Directory.EnumerateFiles(Path.Combine(root, "sequence-canceled"), "*.png").Any(), "Canceled export left partial frames.");
     EncodedExportSmoke.Run(pngService, sequenceRequest with { Framing = new ExportFraming(1, 3) }, root);
+    BatchExportSmoke.Run(pngService, sequenceRequest, root);
+    await BatchExportSmoke.RunShellAsync(pngService, store, sequenceRequest, root);
+    BatchExportSmoke.RunPhysicsWarmup(pngService, Path.GetDirectoryName(fixtureDirectory)!, root);
     await EncodedExportSmoke.RunShellAsync(pngService, store, pngSkeleton, root);
 
     var sceneOutputs = pngService.RenderScene(

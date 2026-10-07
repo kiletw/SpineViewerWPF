@@ -141,6 +141,14 @@
         <sys:String x:Key="Text.ExportMargin">Margin (px)</sys:String>
         <sys:String x:Key="Text.ExportWidth">Width (px)</sys:String>
         <sys:String x:Key="Text.ExportHeight">Height (px)</sys:String>
+        <sys:String x:Key="Text.ExportAnimations">Animations</sys:String>
+        <sys:String x:Key="Text.ExportAnimationsHint">All animations exports every animation of the selected layer in full, one sequence or file per animation named after the chosen file plus the animation name.</sys:String>
+        <sys:String x:Key="Text.ExportRange">Range</sys:String>
+        <sys:String x:Key="Text.ExportRangeHint">Custom exports only the time range below of the current animation.</sys:String>
+        <sys:String x:Key="Text.ExportRangeStart">Start (s)</sys:String>
+        <sys:String x:Key="Text.ExportRangeEnd">End (s)</sys:String>
+        <sys:String x:Key="Text.PhysicsWarmup">Physics warm-up</sys:String>
+        <sys:String x:Key="Text.PhysicsWarmupHint">Loops of the animation played before the first frame so Physics (Spine 4.2+) settles instead of starting at rest. 0 turns it off; assets without Physics ignore it.</sys:String>
         <sys:String x:Key="Text.ZoomHint">Viewport zoom. Wheel zooms at the cursor; drag or middle-drag pans; double-click or F fits.</sys:String>
         <sys:String x:Key="Text.PerformanceHint">Published animation updates, average preview work time, and coalesced updates during the last sample window.</sys:String>
         <sys:String x:Key="Text.Window">_Window</sys:String>

@@ -1650,6 +1650,38 @@
                                                     <TextBlock Text="{DynamicResource Text.ExportFps}" Style="{StaticResource PropertyLabel}" />
                                                     <TextBox DockPanel.Dock="Right" Style="{StaticResource NumericTextBox}" Text="{Binding ExportFramesPerSecond, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}, ValidatesOnExceptions=True}" AutomationProperties.AutomationId="Main.Inspector.ExportFps" />
                                                 </DockPanel>
+                                                <DockPanel Style="{StaticResource PropertyRow}" ToolTip="{DynamicResource Text.ExportAnimationsHint}">
+                                                    <TextBlock Text="{DynamicResource Text.ExportAnimations}" Style="{StaticResource PropertyLabel}" />
+                                                    <ComboBox DockPanel.Dock="Right" Width="108"
+                                                              ItemsSource="{Binding ExportAnimationScopes}"
+                                                              SelectedItem="{Binding ExportAnimationScope}"
+                                                              AutomationProperties.Name="{DynamicResource Text.ExportAnimations}"
+                                                              AutomationProperties.AutomationId="Main.Inspector.ExportAnimationScope" />
+                                                </DockPanel>
+                                                <DockPanel Style="{StaticResource PropertyRow}"
+                                                           ToolTip="{DynamicResource Text.ExportRangeHint}"
+                                                           Visibility="{Binding IsExportRangeAvailable, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <TextBlock Text="{DynamicResource Text.ExportRange}" Style="{StaticResource PropertyLabel}" />
+                                                    <ComboBox DockPanel.Dock="Right" Width="108"
+                                                              ItemsSource="{Binding ExportRangeModes}"
+                                                              SelectedItem="{Binding ExportRangeMode}"
+                                                              AutomationProperties.Name="{DynamicResource Text.ExportRange}"
+                                                              AutomationProperties.AutomationId="Main.Inspector.ExportRangeMode" />
+                                                </DockPanel>
+                                                <StackPanel Visibility="{Binding IsExportCustomRange, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <DockPanel Style="{StaticResource PropertyRow}">
+                                                        <TextBlock Text="{DynamicResource Text.ExportRangeStart}" Style="{StaticResource PropertyLabel}" />
+                                                        <TextBox DockPanel.Dock="Right" Style="{StaticResource NumericTextBox}" Text="{Binding ExportRangeStart, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.###}, ValidatesOnExceptions=True}" AutomationProperties.Name="{DynamicResource Text.ExportRangeStart}" AutomationProperties.AutomationId="Main.Inspector.ExportRangeStart" />
+                                                    </DockPanel>
+                                                    <DockPanel Style="{StaticResource PropertyRow}">
+                                                        <TextBlock Text="{DynamicResource Text.ExportRangeEnd}" Style="{StaticResource PropertyLabel}" />
+                                                        <TextBox DockPanel.Dock="Right" Style="{StaticResource NumericTextBox}" Text="{Binding ExportRangeEnd, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.###}, ValidatesOnExceptions=True}" AutomationProperties.Name="{DynamicResource Text.ExportRangeEnd}" AutomationProperties.AutomationId="Main.Inspector.ExportRangeEnd" />
+                                                    </DockPanel>
+                                                </StackPanel>
+                                                <DockPanel Style="{StaticResource PropertyRow}" ToolTip="{DynamicResource Text.PhysicsWarmupHint}">
+                                                    <TextBlock Text="{DynamicResource Text.PhysicsWarmup}" Style="{StaticResource PropertyLabel}" />
+                                                    <TextBox DockPanel.Dock="Right" Style="{StaticResource NumericTextBox}" Text="{Binding ExportPhysicsWarmupLoops, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0}, ValidatesOnExceptions=True}" AutomationProperties.Name="{DynamicResource Text.PhysicsWarmup}" AutomationProperties.AutomationId="Main.Inspector.PhysicsWarmup" />
+                                                </DockPanel>
                                                 <DockPanel Style="{StaticResource PropertyRow}">
                                                     <TextBlock Text="{DynamicResource Text.ExportSize}" Style="{StaticResource PropertyLabel}" />
                                                     <ComboBox DockPanel.Dock="Right" Width="108"
