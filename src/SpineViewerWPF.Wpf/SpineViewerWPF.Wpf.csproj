@@ -6,8 +6,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>SpineViewerWPF</AssemblyName>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Resource Include="Assets\AppIcon.ico" />
     <PackageReference Include="OpenTK.GLWpfControl" Version="4.3.6" />
     <ProjectReference Include="../SpineViewerWPF.Application/SpineViewerWPF.Application.csproj" />
     <ProjectReference Include="../../runtimes/SpineRuntime.V40/SpineRuntime.V40.csproj" />

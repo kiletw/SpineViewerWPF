@@ -633,6 +633,7 @@ internal sealed class FloatingPanelWindow : Window
         Title = title;
         Content = content;
         Owner = owner;
+        Icon = owner.Icon;
         DataContext = owner.DataContext;
         Width = width;
         Height = height;
