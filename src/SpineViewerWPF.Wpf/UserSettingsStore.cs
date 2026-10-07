@@ -17,6 +17,7 @@ public sealed class UserSettingsStore
     private bool autoReload = true;
     private bool showAxes = true;
     private bool showExportFrame = true;
+    private double mixDuration;
 
     private UserSettingsStore(string? path)
     {
@@ -34,6 +35,7 @@ public sealed class UserSettingsStore
             autoReload = document?.AutoReload ?? true;
             showAxes = document?.ShowAxes ?? true;
             showExportFrame = document?.ShowExportFrame ?? true;
+            mixDuration = ClampMix(document?.MixDuration ?? 0);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
         {
@@ -42,6 +44,7 @@ public sealed class UserSettingsStore
             autoReload = true;
             showAxes = true;
             showExportFrame = true;
+            mixDuration = 0;
         }
     }
 
@@ -65,6 +68,9 @@ public sealed class UserSettingsStore
     // TASK-071: viewport guides.
     public bool ShowAxes => showAxes;
     public bool ShowExportFrame => showExportFrame;
+
+    // TASK-074: preview crossfade when the animation changes, 0 to 5 seconds; 0 is off.
+    public double MixDuration => mixDuration;
 
     public bool SetFfmpegPath(string? value)
     {
@@ -114,6 +120,14 @@ public sealed class UserSettingsStore
         return Save();
     }
 
+    public bool SetMixDuration(double value)
+    {
+        mixDuration = ClampMix(value);
+        return Save();
+    }
+
+    private static double ClampMix(double value) => double.IsFinite(value) ? Math.Clamp(value, 0, 5) : 0;
+
     private bool Save()
     {
         if (path is null) return true;
@@ -123,7 +137,7 @@ public sealed class UserSettingsStore
             var temporary = path + ".tmp";
             File.WriteAllText(
                 temporary,
-                JsonSerializer.Serialize(new SettingsDocument(1, ffmpegPath, recentFiles, autoReload, showAxes, showExportFrame), JsonOptions));
+                JsonSerializer.Serialize(new SettingsDocument(1, ffmpegPath, recentFiles, autoReload, showAxes, showExportFrame, mixDuration), JsonOptions));
             File.Move(temporary, path, overwrite: true);
             return true;
         }
@@ -139,5 +153,6 @@ public sealed class UserSettingsStore
         IReadOnlyList<string>? RecentFiles = null,
         bool? AutoReload = null,
         bool? ShowAxes = null,
-        bool? ShowExportFrame = null);
+        bool? ShowExportFrame = null,
+        double? MixDuration = null);
 }

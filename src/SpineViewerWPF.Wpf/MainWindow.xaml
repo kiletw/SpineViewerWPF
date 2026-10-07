@@ -1284,6 +1284,21 @@
                                           Visibility="{Binding HasAsset, Converter={StaticResource BooleanToVisibilityConverter}}"
                                           AutomationProperties.AutomationId="Main.Viewport.Guides" />
 
+                    <!-- TASK-074: the last Spine event key passed during playback. -->
+                    <Border HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Margin="0,12,0,0"
+                            Padding="10,3"
+                            CornerRadius="10"
+                            IsHitTestVisible="False"
+                            Background="#CC17202A"
+                            BorderBrush="#F3C969"
+                            BorderThickness="1"
+                            Visibility="{Binding HasPlaybackEvent, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            AutomationProperties.AutomationId="Main.Viewport.PlaybackEvent">
+                        <TextBlock Text="{Binding PlaybackEventLabel}" Foreground="#F3C969" FontSize="12" FontWeight="SemiBold" />
+                    </Border>
+
                     <Border HorizontalAlignment="Left"
                             VerticalAlignment="Top"
                             Margin="10"
@@ -1650,6 +1665,10 @@
                                             <TextBlock Text="{DynamicResource Text.PreviewFps}" Style="{StaticResource PropertyLabel}" />
                                             <TextBox DockPanel.Dock="Right" Style="{StaticResource NumericTextBox}" Text="{Binding PreviewFramesPerSecond, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}, ValidatesOnExceptions=True}" AutomationProperties.AutomationId="Main.Inspector.PreviewFps" />
                                         </DockPanel>
+                                        <DockPanel Style="{StaticResource PropertyRow}" ToolTip="{DynamicResource Text.MixDurationHint}">
+                                            <TextBlock Text="{DynamicResource Text.MixDuration}" Style="{StaticResource PropertyLabel}" />
+                                            <TextBox DockPanel.Dock="Right" Style="{StaticResource NumericTextBox}" Text="{Binding MixDuration, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.###}, ValidatesOnExceptions=True}" AutomationProperties.Name="{DynamicResource Text.MixDuration}" AutomationProperties.AutomationId="Main.Inspector.MixDuration" />
+                                        </DockPanel>
                                         <Rectangle Height="1" Margin="0,0,0,6" Fill="{DynamicResource BorderBrush}" />
                                         <Expander IsExpanded="False"
                                                   Foreground="{DynamicResource TextBrush}"
@@ -1968,11 +1987,37 @@
                             AutomationProperties.AutomationId="Main.Playback.Stop" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
-                    <Slider Minimum="0"
-                            Maximum="{Binding Duration}"
-                            Value="{Binding Position}"
-                            IsEnabled="{Binding CanPlay}"
-                            AutomationProperties.AutomationId="Main.Playback.Timeline" />
+                    <Grid>
+                        <Slider Minimum="0"
+                                Maximum="{Binding Duration}"
+                                Value="{Binding Position}"
+                                IsEnabled="{Binding CanPlay}"
+                                AutomationProperties.AutomationId="Main.Playback.Timeline" />
+                        <!-- TASK-074: Spine event keys of the selected layer's animation. -->
+                        <ItemsControl ItemsSource="{Binding TimelineEventMarkers}"
+                                      Margin="5,0"
+                                      VerticalAlignment="Top"
+                                      Focusable="False"
+                                      AutomationProperties.AutomationId="Main.Playback.EventMarkers">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <local:FractionPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Setter Property="local:FractionPanel.Fraction" Value="{Binding Fraction}" />
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Width="6" Height="7" Background="Transparent" ToolTip="{Binding Label}">
+                                        <Rectangle Width="2" Fill="#F3C969" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
                     <TextBlock Text="{Binding PlaybackTimeLabel}" Style="{StaticResource MutedText}" FontSize="12" HorizontalAlignment="Right" />
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal">

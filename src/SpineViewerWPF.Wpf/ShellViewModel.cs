@@ -70,6 +70,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private readonly SourceFileWatcher sourceWatcher;
     private readonly DispatcherTimer deferredReloadTimer;
     private readonly HashSet<string> deferredReloadPaths = new(StringComparer.OrdinalIgnoreCase);
+    // TASK-074: animation mixes in progress (preview only) and the last event label.
+    private readonly Dictionary<SceneLayerViewModel, LayerMix> layerMixes = [];
+    private readonly DispatcherTimer eventLabelTimer;
+    private string playbackEventLabel = "";
     private readonly Func<IReadOnlyList<string>?> chooseAssetPaths;
     private readonly Func<bool> confirmDiscardChanges;
     private readonly DispatcherTimer playbackTimer;
@@ -232,6 +236,12 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             _ = ReloadChangedSourcesAsync(paths);
         };
         sceneLayers.CollectionChanged += (_, _) => RefreshSourceWatch();
+        eventLabelTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(0.9) };
+        eventLabelTimer.Tick += (_, _) =>
+        {
+            eventLabelTimer.Stop();
+            PlaybackEventLabel = "";
+        };
 
         OpenAssetCommand = new RelayCommand(
             async () => await OpenAssetAsync(),
@@ -325,6 +335,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             selectedSceneLayer = value;
             Changed();
             Changed(nameof(HasSelectedSceneLayer));
+            Changed(nameof(TimelineEventMarkers));
             Changed(nameof(FilteredAnimations));
             Changed(nameof(HasNoAnimations));
             Changed(nameof(Duration));
@@ -442,6 +453,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         {
             if (isPlaying == value) return;
             isPlaying = value;
+            if (!value) layerMixes.Clear();
             lastPlaybackTick = DateTime.UtcNow;
             ResetPreviewMetrics();
             UpdatePlaybackTimer();
@@ -468,8 +480,11 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         set
         {
             if (value is null || !animationDurations.ContainsKey(value) || selectedAnimation == value) return;
+            var primary = sceneLayers.FirstOrDefault();
+            var (mixFrom, mixFromTime) = (primary?.Animation, position);
             Edit(ref selectedAnimation, value, nameof(SelectedAnimation), nameof(Duration), nameof(PlaybackTimeLabel), nameof(StateDetail));
             SyncPrimaryLayerPlayback();
+            if (primary is not null && mixFrom is not null) StartMix(primary, mixFrom, mixFromTime);
             Position = 0;
             QueuePreviewRender();
         }
@@ -1908,6 +1923,13 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     private void SceneLayerChanged()
     {
+        foreach (var layer in sceneLayers)
+        {
+            if (layer.SwitchedFromAnimation is not { } from) continue;
+            layer.SwitchedFromAnimation = null;
+            StartMix(layer, from, position);
+        }
+        Changed(nameof(TimelineEventMarkers));
         RememberCurrentSelections();
         MarkSceneEdited();
         Changed(nameof(Duration));
@@ -1954,6 +1976,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     private void ClearSceneLayers()
     {
+        layerMixes.Clear();
         foreach (var layer in sceneLayers)
             layer.Dispose();
         sceneLayers.Clear();
@@ -2476,18 +2499,122 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         var maximumElapsed = Math.Max(0.25, 1.5 / previewFramesPerSecond);
         var elapsed = Math.Clamp((now - lastPlaybackTick).TotalSeconds, 0, maximumElapsed);
         lastPlaybackTick = now;
-        var next = Position + elapsed * Math.Max(0.01, PlaybackSpeed);
+        var step = elapsed * Math.Max(0.01, PlaybackSpeed);
+        var previous = Position;
+        var next = previous + step;
+        var wrapped = false;
         if (next >= duration)
         {
             if (Loop)
+            {
                 next %= duration;
+                wrapped = true;
+            }
             else
             {
                 next = duration;
                 IsPlaying = false;
             }
         }
+        AdvanceMixes(step, wrapped);
+        ReportCrossedEvent(previous, next, wrapped);
         Position = next;
+    }
+
+    // TASK-074: mixes advance with playback and end when finished or when the
+    // timeline wraps (the mix contract needs the target time to cover the elapsed time).
+    internal void AdvanceMixes(double step, bool wrapped)
+    {
+        if (layerMixes.Count == 0) return;
+        if (wrapped)
+        {
+            layerMixes.Clear();
+            return;
+        }
+        foreach (var (layer, mix) in layerMixes.ToArray())
+        {
+            mix.Elapsed += step;
+            if (mix.Elapsed >= MixDuration || !sceneLayers.Contains(layer)) layerMixes.Remove(layer);
+        }
+    }
+
+    private void StartMix(SceneLayerViewModel layer, string from, double fromTime)
+    {
+        if (MixDuration <= 0 || !IsPlaying || string.IsNullOrEmpty(from) || from == layer.Animation)
+        {
+            layerMixes.Remove(layer);
+            return;
+        }
+        layerMixes[layer] = new LayerMix(from, (float)Math.Clamp(fromTime, 0, layer.DurationOf(from)));
+    }
+
+    internal AnimationMix? MixFor(SceneLayerViewModel layer) =>
+        layerMixes.TryGetValue(layer, out var mix) && mix.Elapsed < MixDuration
+            ? new AnimationMix(mix.From, mix.FromTime, (float)MixDuration, (float)mix.Elapsed)
+            : null;
+
+    // Shows the last event key of the selected layer passed during this tick.
+    internal void ReportCrossedEvent(double previous, double next, bool wrapped)
+    {
+        if (selectedSceneLayer is not { } layer || layer.AnimationEvents.Count == 0) return;
+        AnimationEventKey? crossed = null;
+        foreach (var key in layer.AnimationEvents)
+        {
+            var time = key.TimeSeconds;
+            if (wrapped ? time > previous || time <= next : time > previous && time <= next)
+                crossed = key;
+        }
+        if (crossed is null) return;
+        PlaybackEventLabel = DescribeEvent(crossed);
+        eventLabelTimer.Stop();
+        eventLabelTimer.Start();
+    }
+
+    // TASK-074: preview crossfade length when an animation changes during
+    // playback, remembered in user settings; 0 turns mixing off.
+    public double MixDuration
+    {
+        get => userSettings.MixDuration;
+        set
+        {
+            var before = userSettings.MixDuration;
+            userSettings.SetMixDuration(value);
+            if (Math.Abs(before - userSettings.MixDuration) > 0.0001 && userSettings.MixDuration <= 0) layerMixes.Clear();
+            Changed();
+        }
+    }
+
+    public string PlaybackEventLabel
+    {
+        get => playbackEventLabel;
+        private set
+        {
+            if (playbackEventLabel == value) return;
+            playbackEventLabel = value;
+            Changed();
+            Changed(nameof(HasPlaybackEvent));
+        }
+    }
+
+    public bool HasPlaybackEvent => playbackEventLabel.Length > 0;
+
+    // Event keys of the selected layer's animation as timeline fractions.
+    public IReadOnlyList<TimelineEventMarker> TimelineEventMarkers =>
+        selectedSceneLayer is { } layer && layer.Duration > 0
+            ? layer.AnimationEvents
+                .Select(key => new TimelineEventMarker(
+                    Math.Clamp(key.TimeSeconds / layer.Duration, 0, 1),
+                    $"{key.TimeSeconds:0.###}s  {DescribeEvent(key)}"))
+                .ToArray()
+            : [];
+
+    private static string DescribeEvent(AnimationEventKey key)
+    {
+        var details = new List<string>();
+        if (key.Int != 0) details.Add($"int {key.Int}");
+        if (key.Float != 0) details.Add($"float {key.Float:0.###}");
+        if (!string.IsNullOrEmpty(key.String)) details.Add($"\"{key.String}\"");
+        return details.Count == 0 ? key.Name : $"{key.Name} ({string.Join(", ", details)})";
     }
 
     private void UpdatePlaybackTimer()
@@ -2559,10 +2686,11 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 .Where(layer => layer.PreviewFrame is not null && layer.IsVisible)
                 .ToArray();
             if (layers.Length == 0) return;
+            var mixes = layers.Select(MixFor).ToArray();
             if (UseGpuPreview)
             {
                 var rendered = await Task.Run(
-                    () => layers.Select(layer =>
+                    () => layers.Select((layer, index) =>
                     {
                         playbackCancellation.Token.ThrowIfCancellationRequested();
                         var scene = layer.RenderSession.RenderScene(
@@ -2572,7 +2700,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                             string.IsNullOrWhiteSpace(layer.SelectedSkin) ? [] : [layer.SelectedSkin],
                             playbackCancellation.Token,
                             (float)layer.TrackAlpha,
-                            layer.SlotDisplaySettings);
+                            layer.SlotDisplaySettings,
+                            mix: mixes[index]);
                         return (Layer: layer, Scene: scene);
                     }).ToArray(),
                     playbackCancellation.Token);
@@ -2605,7 +2734,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                             playbackCancellation.Token,
                             (float)layer.TrackAlpha,
                             slots: layer.SlotDisplaySettings,
-                            camera: cameras[index]);
+                            camera: cameras[index],
+                            mix: mixes[index]);
                         return (Layer: layer, Frame: frame);
                     }).ToArray(),
                     playbackCancellation.Token);
@@ -2869,6 +2999,13 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         float Duration,
         SceneLayerPlacement Placement);
 
+    private sealed class LayerMix(string from, float fromTime)
+    {
+        public string From { get; } = from;
+        public float FromTime { get; } = fromTime;
+        public double Elapsed { get; set; }
+    }
+
     private sealed record UndoEntry(EditorSnapshot Editor, IReadOnlyList<SceneLayerDocument> Layers, bool SceneDirty);
 
     private sealed record EditorSnapshot(
@@ -2886,6 +3023,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         string BackgroundMode,
         string BackgroundColor);
 }
+
+// TASK-074: a Spine event key on the timeline, as a fraction of the duration.
+public sealed record TimelineEventMarker(double Fraction, string Label);
 
 internal sealed class RelayCommand(Action execute, Func<bool>? canExecute = null) : ICommand
 {

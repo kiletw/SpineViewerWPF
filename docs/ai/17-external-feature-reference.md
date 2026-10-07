@@ -63,7 +63,7 @@ listed above are not repeated. Each item still needs its own task.
 | 2 | Viewport guides: world XY axes and the fixed-size export frame | Spine Editor, export tools | TASK-071 (implemented; stable scene camera approved 2026-10-07); auto-fit export frame later |
 | 3 | Export batch (all animations), frame range, Physics warm-up | Spine Editor export | TASK-072 (implemented) |
 | 4 | Auto reload on source change; recent files | Skeleton Viewer; most viewers | TASK-073 (implemented); recent files was already in `14-ui-product-design.md` scope |
-| 5 | Animation mix duration on switch; Spine event display | Skeleton Viewer, Web Player | TASK-074 pending approval: needs new two-track and event contracts implemented in all 16 Runtime adapters |
+| 5 | Animation mix duration on switch; Spine event display | Skeleton Viewer, Web Player | TASK-074 (implemented on all 16 Runtime lines; approved 2026-10-07) |
 | 6 | Screenshot to system clipboard; custom background color | game-asset viewers | TASK-075 (implemented) |
 | later | Sprite-sheet export, A-B loop range, update check | Spine Editor, GIF tools | separate tasks |
 | later | Onion skin, event audio playback | Spine Editor | low value for a viewer |

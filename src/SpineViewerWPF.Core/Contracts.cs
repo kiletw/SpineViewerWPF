@@ -2,7 +2,18 @@ namespace SpineViewerWPF.Core;
 
 public sealed record Diagnostic(string Severity, string Code, string Message, string? Path = null);
 
-public sealed record AnimationDescriptor(string Name, float DurationSeconds);
+// TASK-074: Events lists the animation's Spine event keys in time order; null
+// means the adapter did not report events.
+public sealed record AnimationDescriptor(string Name, float DurationSeconds, IReadOnlyList<AnimationEventKey>? Events = null);
+
+public sealed record AnimationEventKey(float TimeSeconds, string Name, int Int, float Float, string? String);
+
+// TASK-074: crossfade into the requested animation from FromAnimation, which was
+// at FromTimeSeconds when the switch happened ElapsedSeconds ago. The requested
+// animation stays at the request time and mixes in over DurationSeconds while the
+// source keeps playing; a mix that has finished, or names an unknown or empty
+// FromAnimation, is ignored.
+public sealed record AnimationMix(string FromAnimation, float FromTimeSeconds, float DurationSeconds, float ElapsedSeconds);
 
 public sealed record SlotDescriptor(
     string Name,
@@ -62,7 +73,8 @@ public sealed record FrameRenderRequest(
     bool LinearFiltering = true,
     IReadOnlyList<SlotDisplayDocument>? Slots = null,
     RenderCamera? Camera = null,
-    int PhysicsWarmupLoops = 0);
+    int PhysicsWarmupLoops = 0,
+    AnimationMix? Mix = null);
 
 public sealed record RenderedFrame(int Width, int Height, byte[] Bgra32);
 
@@ -104,7 +116,8 @@ public sealed record PreviewSceneRequest(
     IReadOnlyList<string> Skins,
     float TrackAlpha = 1,
     IReadOnlyList<SlotDisplayDocument>? Slots = null,
-    int PhysicsWarmupLoops = 0);
+    int PhysicsWarmupLoops = 0,
+    AnimationMix? Mix = null);
 
 public sealed record SceneLayerRenderRequest(
     string SkeletonPath,

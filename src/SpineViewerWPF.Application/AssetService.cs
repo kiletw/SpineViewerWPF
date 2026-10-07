@@ -83,7 +83,8 @@ public sealed class AssetRenderSession : IDisposable
         bool linearFiltering = true,
         IReadOnlyList<SlotDisplayDocument>? slots = null,
         RenderCamera? camera = null,
-        int physicsWarmupLoops = 0)
+        int physicsWarmupLoops = 0,
+        AnimationMix? mix = null)
     {
         if (animation is null || animation.Length > 0 && string.IsNullOrWhiteSpace(animation))
             throw new ArgumentException("Animation must be a name or an empty setup-pose selection.");
@@ -101,7 +102,7 @@ public sealed class AssetRenderSession : IDisposable
             ObjectDisposedException.ThrowIf(disposed, this);
             cancellationToken.ThrowIfCancellationRequested();
             return session.RenderFrame(
-                new FrameRenderRequest(animation, timeSeconds, width, height, pma, skins, trackAlpha, linearFiltering, slots, camera, physicsWarmupLoops),
+                new FrameRenderRequest(animation, timeSeconds, width, height, pma, skins, trackAlpha, linearFiltering, slots, camera, physicsWarmupLoops, ValidMix(mix)),
                 cancellationToken);
         }
     }
@@ -114,7 +115,8 @@ public sealed class AssetRenderSession : IDisposable
         CancellationToken cancellationToken = default,
         float trackAlpha = 1,
         IReadOnlyList<SlotDisplayDocument>? slots = null,
-        int physicsWarmupLoops = 0)
+        int physicsWarmupLoops = 0,
+        AnimationMix? mix = null)
     {
         if (animation is null || animation.Length > 0 && string.IsNullOrWhiteSpace(animation))
             throw new ArgumentException("Animation must be a name or an empty setup-pose selection.");
@@ -127,10 +129,20 @@ public sealed class AssetRenderSession : IDisposable
             ObjectDisposedException.ThrowIf(disposed, this);
             cancellationToken.ThrowIfCancellationRequested();
             return session.RenderScene(
-                new PreviewSceneRequest(animation, timeSeconds, pma, skins, trackAlpha, slots, physicsWarmupLoops),
+                new PreviewSceneRequest(animation, timeSeconds, pma, skins, trackAlpha, slots, physicsWarmupLoops, ValidMix(mix)),
                 cancellationToken);
         }
     }
+
+    // TASK-074: a mix needs a named source animation and a positive, finite
+    // duration and source time; anything else renders without a mix.
+    private static AnimationMix? ValidMix(AnimationMix? mix) =>
+        mix is { FromAnimation.Length: > 0 }
+        && float.IsFinite(mix.DurationSeconds) && mix.DurationSeconds > 0
+        && float.IsFinite(mix.FromTimeSeconds) && mix.FromTimeSeconds >= 0
+        && float.IsFinite(mix.ElapsedSeconds) && mix.ElapsedSeconds >= 0 && mix.ElapsedSeconds < mix.DurationSeconds
+            ? mix
+            : null;
 
     public void Dispose()
     {

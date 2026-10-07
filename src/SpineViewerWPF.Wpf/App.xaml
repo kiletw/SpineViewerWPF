@@ -147,6 +147,8 @@
         <sys:String x:Key="Text.ExportRangeHint">Custom exports only the time range below of the current animation.</sys:String>
         <sys:String x:Key="Text.ExportRangeStart">Start (s)</sys:String>
         <sys:String x:Key="Text.ExportRangeEnd">End (s)</sys:String>
+        <sys:String x:Key="Text.MixDuration">Mix (s)</sys:String>
+        <sys:String x:Key="Text.MixDurationHint">Crossfade from the previous animation when the animation changes during playback, in seconds (0 to 5). 0 turns mixing off. Preview only; exports are never mixed.</sys:String>
         <sys:String x:Key="Text.ShowAxes">Show Axes</sys:String>
         <sys:String x:Key="Text.ShowAxesHint">Scene X (red) and Y (green) axes through the scene origin, and the selected layer's origin. Never written to screenshots or exports.</sys:String>
         <sys:String x:Key="Text.ShowExportFrame">Show Export Frame</sys:String>
