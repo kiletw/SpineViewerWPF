@@ -62,6 +62,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private readonly Func<string, string?> chooseEncodedExportPath;
     private readonly Func<string?> chooseFfmpegPath;
     private readonly UserSettingsStore userSettings;
+    private readonly Action<RenderedFrame, string>? copyImageToClipboard;
     private readonly Dispatcher dispatcher;
     private readonly SourceFileWatcher sourceWatcher;
     private readonly DispatcherTimer deferredReloadTimer;
@@ -145,6 +146,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private string lastExportSize = "";
     private double trackAlpha = 1;
     private string backgroundMode = "Checkerboard";
+    private const string DefaultBackgroundColor = "#808080";
+    private string backgroundColor = DefaultBackgroundColor;
     private string themeMode = "Dark";
     private string previewChannel = "RGBA";
     private int previewPixelWidth = 768;
@@ -168,8 +171,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         Func<string?>? chooseProjectPathToOpen = null,
         Func<string, string?>? chooseEncodedExportPath = null,
         Func<string?>? chooseFfmpegPath = null,
-        UserSettingsStore? userSettings = null)
+        UserSettingsStore? userSettings = null,
+        Action<RenderedFrame, string>? copyImageToClipboard = null)
     {
+        this.copyImageToClipboard = copyImageToClipboard;
         state = initialState;
         if (initialState == WorkspaceState.Empty)
         {
@@ -265,6 +270,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 && Volatile.Read(ref screenshotInProgress) == 0
                 && Volatile.Read(ref exportInProgress) == 0
                 && Volatile.Read(ref sceneLayerOperationInProgress) == 0);
+        CopyScreenshotCommand = new RelayCommand(
+            CopyScreenshot,
+            () => this.copyImageToClipboard is not null && ScreenshotCommand.CanExecute(null));
         TogglePlayCommand = new RelayCommand(() => IsPlaying = !IsPlaying, () => CanPlay);
         StopCommand = new RelayCommand(() =>
         {
@@ -318,7 +326,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     }
     public bool HasSelectedSceneLayer => selectedSceneLayer is not null;
     public bool HasNoAnimations => HasSelectedSceneLayer && selectedSceneLayer!.Animations.Count == 0;
-    public IReadOnlyList<string> BackgroundModes { get; } = ["Checkerboard", "Dark", "Light"];
+    public IReadOnlyList<string> BackgroundModes { get; } = ["Checkerboard", "Dark", "Light", "Custom"];
     public IReadOnlyList<string> ThemeModes { get; } = ["Dark", "Light"];
     public IReadOnlyList<string> PreviewChannels { get; } = ["RGBA", "RGB", "Alpha"];
 
@@ -348,6 +356,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public ICommand HideFilteredSlotsCommand { get; }
     public ICommand ClearFilteredSlotAttachmentsCommand { get; }
     public ICommand ScreenshotCommand { get; }
+    public ICommand CopyScreenshotCommand { get; }
     public ICommand TogglePlayCommand { get; }
     public ICommand StopCommand { get; }
     public ICommand RestartCommand { get; }
@@ -862,7 +871,33 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public string BackgroundMode
     {
         get => backgroundMode;
-        set => Edit(ref backgroundMode, value ?? "Checkerboard", nameof(BackgroundMode));
+        set => Edit(ref backgroundMode, value ?? "Checkerboard", nameof(BackgroundMode), nameof(IsCustomBackground));
+    }
+
+    // TASK-075: #RRGGBB used when BackgroundMode is "Custom"; an invalid entry
+    // is ignored and the field shows the previous color again.
+    public string BackgroundColor
+    {
+        get => backgroundColor;
+        set
+        {
+            var next = NormalizeHexColor(value);
+            if (next is null)
+            {
+                Changed();
+                return;
+            }
+            Edit(ref backgroundColor, next, nameof(BackgroundColor));
+        }
+    }
+
+    public bool IsCustomBackground => backgroundMode == "Custom";
+
+    private static string? NormalizeHexColor(string? value)
+    {
+        var text = (value ?? "").Trim();
+        if (!text.StartsWith('#')) text = "#" + text;
+        return text.Length == 7 && text.Skip(1).All(Uri.IsHexDigit) ? text.ToUpperInvariant() : null;
     }
 
     public string ThemeMode
@@ -1164,13 +1199,19 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         return path is not null && SaveTo(path);
     }
 
-    private void CaptureScreenshot()
+    private void CaptureScreenshot() => StartScreenshot(toClipboard: false);
+
+    // TASK-075: the same capture as Screenshot, placed on the clipboard.
+    private void CopyScreenshot() => StartScreenshot(toClipboard: true);
+
+    private void StartScreenshot(bool toClipboard)
     {
+        if (toClipboard && copyImageToClipboard is null) return;
         if (!TryBeginScreenshot()) return;
         try
         {
-            var target = chooseScreenshotPath();
-            if (target is null)
+            var target = toClipboard ? null : chooseScreenshotPath();
+            if (target is null && !toClipboard)
             {
                 EndScreenshot();
                 return;
@@ -1220,12 +1261,13 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         if (!disposed) RefreshCommands();
     }
 
-    private async Task CaptureScreenshotAsync(string target, ScreenshotSnapshot snapshot)
+    // A null target copies the capture to the clipboard on the UI thread.
+    private async Task CaptureScreenshotAsync(string? target, ScreenshotSnapshot snapshot)
     {
         try
         {
-            var output = Path.GetFullPath(target);
-            await Task.Run(() =>
+            var output = target is null ? null : Path.GetFullPath(target);
+            var captured = await Task.Run(() =>
             {
                 var rendered = snapshot.Layers
                     .Where(layer => layer.Document.IsVisible && layer.Document.Opacity > 0)
@@ -1248,10 +1290,20 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 var source = rendered.Length == 1 && IsIdentityPresentation(rendered[0].Layer)
                     ? rendered[0].Frame
                     : SceneFrameCompositor.Compose(rendered, snapshot.Width, snapshot.Height);
-                Directory.CreateDirectory(Path.GetDirectoryName(output) ?? ".");
-                PreviewFrameBitmap.SavePng(source, snapshot.Channel, output);
+                if (output is not null)
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(output) ?? ".");
+                    PreviewFrameBitmap.SavePng(source, snapshot.Channel, output);
+                }
+                return source;
             }, snapshot.CancellationToken);
-            LastAction = $"Captured {Path.GetFileName(output)}";
+            if (output is null)
+            {
+                copyImageToClipboard!(captured, snapshot.Channel);
+                LastAction = "Copied screenshot to clipboard";
+            }
+            else
+                LastAction = $"Captured {Path.GetFileName(output)}";
         }
         catch (OperationCanceledException)
         {
@@ -2155,6 +2207,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         playbackSpeed = project.PlaybackSpeed;
         trackAlpha = project.TrackAlpha;
         backgroundMode = project.BackgroundMode;
+        backgroundColor = NormalizeHexColor(project.BackgroundColor) ?? DefaultBackgroundColor;
         position = 0;
         viewportZoom = 1;
         viewportPanX = viewportPanY = 0;
@@ -2521,6 +2574,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         flipX = flipY = false;
         loop = true;
         backgroundMode = "Checkerboard";
+        backgroundColor = DefaultBackgroundColor;
         projectPath = null;
         sceneDirty = false;
         SyncPrimaryLayerPlayback();
@@ -2552,7 +2606,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 PlaybackSpeed,
                 primary?.TrackAlpha ?? TrackAlpha,
                 BackgroundMode,
-                layers.Length == 0 ? null : layers));
+                layers.Length == 0 ? null : layers,
+                // Only a custom background stores its color.
+                IsCustomBackground ? backgroundColor : null));
             savedSnapshot = Capture();
             sceneDirty = false;
             LastAction = $"Saved {Path.GetFileName(projectPath)}";
@@ -2586,9 +2642,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private void Restore(UndoEntry entry)
     {
         var snapshot = entry.Editor;
-        (selectedAnimation, selectedSkin, modelX, modelY, modelScale, modelRotation, flipX, flipY, loop, playbackSpeed, trackAlpha, backgroundMode) =
+        (selectedAnimation, selectedSkin, modelX, modelY, modelScale, modelRotation, flipX, flipY, loop, playbackSpeed, trackAlpha, backgroundMode, backgroundColor) =
             (snapshot.SelectedAnimation, snapshot.SelectedSkin, snapshot.ModelX, snapshot.ModelY, snapshot.ModelScale, snapshot.ModelRotation,
-                snapshot.FlipX, snapshot.FlipY, snapshot.Loop, snapshot.PlaybackSpeed, snapshot.TrackAlpha, snapshot.BackgroundMode);
+                snapshot.FlipX, snapshot.FlipY, snapshot.Loop, snapshot.PlaybackSpeed, snapshot.TrackAlpha, snapshot.BackgroundMode, snapshot.BackgroundColor);
         if (entry.Layers.Count == sceneLayers.Count
             && entry.Layers.Select(layer => layer.SkeletonPath).SequenceEqual(
                 sceneLayers.Select(layer => layer.SkeletonPath),
@@ -2627,7 +2683,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         Loop,
         PlaybackSpeed,
         TrackAlpha,
-        BackgroundMode);
+        BackgroundMode,
+        BackgroundColor);
 
     private static bool IsIdentityPresentation(SceneLayerDocument layer) =>
         layer.IsVisible
@@ -2648,7 +2705,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         foreach (var command in new[]
                  {
-                     OpenAssetCommand, OpenProjectCommand, ReloadCommand, ExportCommand, CancelExportCommand, ScreenshotCommand, TogglePlayCommand, StopCommand, FitCommand,
+                     OpenAssetCommand, OpenProjectCommand, ReloadCommand, ExportCommand, CancelExportCommand, ScreenshotCommand, CopyScreenshotCommand, TogglePlayCommand, StopCommand, FitCommand,
                      RestartCommand, PreviousFrameCommand, NextFrameCommand, BackTenFramesCommand, ForwardTenFramesCommand,
                      UseFfmpegFromPathCommand, CopySlotParametersCommand, ShowFilteredSlotsCommand, HideFilteredSlotsCommand, ClearFilteredSlotAttachmentsCommand,
                      AddLayerCommand, AutoLayoutCommand, RemoveLayerCommand, MoveLayerUpCommand, MoveLayerDownCommand,
@@ -2694,7 +2751,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         bool Loop,
         double PlaybackSpeed,
         double TrackAlpha,
-        string BackgroundMode);
+        string BackgroundMode,
+        string BackgroundColor);
 }
 
 internal sealed class RelayCommand(Action execute, Func<bool>? canExecute = null) : ICommand

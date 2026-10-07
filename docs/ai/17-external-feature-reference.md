@@ -64,7 +64,7 @@ listed above are not repeated. Each item still needs its own task.
 | 3 | Export batch (all animations), frame range, Physics warm-up | Spine Editor export | TASK-072 (implemented) |
 | 4 | Auto reload on source change; recent files | Skeleton Viewer; most viewers | TASK-073 (implemented); recent files was already in `14-ui-product-design.md` scope |
 | 5 | Animation mix duration on switch; Spine event display | Skeleton Viewer, Web Player | TASK-074; needs Runtime-neutral contracts across adapters |
-| 6 | Screenshot to system clipboard; custom background color | game-asset viewers | TASK-075 |
+| 6 | Screenshot to system clipboard; custom background color | game-asset viewers | TASK-075 (implemented) |
 | later | Sprite-sheet export, A-B loop range, update check | Spine Editor, GIF tools | separate tasks |
 | later | Onion skin, event audio playback | Spine Editor | low value for a viewer |
 | no | Web Player HTML export; any Spine source modification | Web Player | redistribution concerns; sources stay read-only |

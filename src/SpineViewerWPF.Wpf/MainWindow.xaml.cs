@@ -744,6 +744,22 @@ internal static class PreviewFrameBitmap
         using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
         encoder.Save(stream);
     }
+
+    // TASK-075: a PNG entry keeps transparency for apps that read it; the
+    // standard bitmap entry serves the rest.
+    public static void CopyToClipboard(RenderedFrame frame, string channel)
+    {
+        var bitmap = Create(frame, channel);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        var png = new MemoryStream();
+        encoder.Save(png);
+        png.Position = 0;
+        var data = new DataObject();
+        data.SetImage(bitmap);
+        data.SetData("PNG", png, false);
+        Clipboard.SetDataObject(data, true);
+    }
 }
 
 public sealed class StringEqualsConverter : IValueConverter

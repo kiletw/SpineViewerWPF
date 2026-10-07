@@ -168,7 +168,8 @@ public partial class App : System.Windows.Application
             chooseProjectPathToOpen: ChooseProjectPathToOpen,
             chooseEncodedExportPath: ChooseEncodedExportPath,
             chooseFfmpegPath: ChooseFfmpegPath,
-            userSettings: UserSettingsStore.Load(string.IsNullOrWhiteSpace(settingsPath) ? null : settingsPath));
+            userSettings: UserSettingsStore.Load(string.IsNullOrWhiteSpace(settingsPath) ? null : settingsPath),
+            copyImageToClipboard: PreviewFrameBitmap.CopyToClipboard);
         MainWindow = new MainWindow
         {
             DataContext = viewModel

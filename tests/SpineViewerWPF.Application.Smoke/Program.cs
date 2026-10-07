@@ -911,6 +911,7 @@ try
     await BatchExportSmoke.RunShellAsync(pngService, store, sequenceRequest, root);
     BatchExportSmoke.RunPhysicsWarmup(pngService, Path.GetDirectoryName(fixtureDirectory)!, root);
     await AutoReloadSmoke.RunAsync(pngService, store, sequenceRequest, root);
+    await ClipboardBackgroundSmoke.RunAsync(pngService, store, sequenceRequest, root);
     await EncodedExportSmoke.RunShellAsync(pngService, store, pngSkeleton, root);
 
     var sceneOutputs = pngService.RenderScene(

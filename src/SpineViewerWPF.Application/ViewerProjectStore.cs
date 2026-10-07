@@ -70,8 +70,11 @@ public sealed class ViewerProjectStore
             throw new InvalidDataException("Playback speed must be greater than 0 and at most 10.");
         if (document.TrackAlpha is < 0 or > 1)
             throw new InvalidDataException("Track alpha must be between 0 and 1.");
-        if (document.BackgroundMode is not ("Checkerboard" or "Dark" or "Light"))
+        if (document.BackgroundMode is not ("Checkerboard" or "Dark" or "Light" or "Custom"))
             throw new InvalidDataException($"Unsupported background mode: {document.BackgroundMode}.");
+        if (document.BackgroundColor is { } color && !IsHexColor(color)
+            || document.BackgroundMode == "Custom" && document.BackgroundColor is null)
+            throw new InvalidDataException("A custom background requires a #RRGGBB background color.");
         if (document.SceneLayers is not null)
         {
             if (document.SceneLayers.Count is < 1 or > 8)
@@ -99,4 +102,7 @@ public sealed class ViewerProjectStore
     }
 
     private static bool Finite(params double[] values) => values.All(double.IsFinite);
+
+    private static bool IsHexColor(string value) =>
+        value.Length == 7 && value[0] == '#' && value.Skip(1).All(Uri.IsHexDigit);
 }

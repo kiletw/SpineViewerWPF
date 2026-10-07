@@ -819,6 +819,7 @@
                     <MenuItem Header="{DynamicResource Text.BackgroundCheckerboard}" Tag="Background:Checkerboard" Click="SelectViewOption" IsChecked="{Binding BackgroundMode, Mode=OneWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Checkerboard}" />
                     <MenuItem Header="{DynamicResource Text.BackgroundDark}" Tag="Background:Dark" Click="SelectViewOption" IsChecked="{Binding BackgroundMode, Mode=OneWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Dark}" />
                     <MenuItem Header="{DynamicResource Text.BackgroundLight}" Tag="Background:Light" Click="SelectViewOption" IsChecked="{Binding BackgroundMode, Mode=OneWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Light}" />
+                    <MenuItem Header="{DynamicResource Text.BackgroundCustom}" Tag="Background:Custom" Click="SelectViewOption" IsChecked="{Binding BackgroundMode, Mode=OneWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Custom}" ToolTip="{DynamicResource Text.BackgroundColorHint}" />
                 </MenuItem>
                 <MenuItem Header="{DynamicResource Text.Theme}" AutomationProperties.AutomationId="Main.Inspector.Theme">
                     <MenuItem Header="{DynamicResource Text.ThemeDark}" Tag="Theme:Dark" Click="SelectViewOption" IsChecked="{Binding ThemeMode, Mode=OneWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Dark}" />
@@ -850,6 +851,7 @@
             </MenuItem>
             <MenuItem Header="{DynamicResource Text.ExportMenu}" AutomationProperties.AutomationId="Main.Menu.Export">
                 <MenuItem Header="{DynamicResource Text.Screenshot}" InputGestureText="Ctrl+Shift+C" Command="{Binding ScreenshotCommand}" />
+                <MenuItem Header="{DynamicResource Text.CopyScreenshot}" Command="{Binding CopyScreenshotCommand}" ToolTip="{DynamicResource Text.CopyScreenshotHint}" AutomationProperties.AutomationId="Main.Menu.Export.CopyScreenshot" />
                 <MenuItem Header="{DynamicResource Text.Export}" InputGestureText="Ctrl+E" Command="{Binding ExportCommand}" />
             </MenuItem>
             <MenuItem Header="{DynamicResource Text.Window}" AutomationProperties.AutomationId="Main.Command.Window">
@@ -1211,6 +1213,9 @@
                                 <DataTrigger Binding="{Binding BackgroundMode}" Value="Light">
                                     <Setter Property="Background" Value="#DCE1E8" />
                                 </DataTrigger>
+                                <DataTrigger Binding="{Binding BackgroundMode}" Value="Custom">
+                                    <Setter Property="Background" Value="{Binding BackgroundColor}" />
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Border.Style>
@@ -1287,6 +1292,13 @@
                                       ToolTip="{DynamicResource Text.Background}"
                                       AutomationProperties.Name="{DynamicResource Text.Background}"
                                       AutomationProperties.AutomationId="Main.Inspector.Background" />
+                            <TextBox Width="74" MinHeight="24" Margin="4,0,0,0"
+                                     Style="{StaticResource NumericTextBox}"
+                                     Text="{Binding BackgroundColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                     Visibility="{Binding IsCustomBackground, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                     ToolTip="{DynamicResource Text.BackgroundColorHint}"
+                                     AutomationProperties.Name="{DynamicResource Text.BackgroundCustom}"
+                                     AutomationProperties.AutomationId="Main.Viewport.BackgroundColor" />
                             <TextBlock Margin="8,0,4,0"
                                        VerticalAlignment="Center"
                                        FontSize="11.5"

@@ -239,4 +239,6 @@ public sealed record ViewerProjectDocument(
     double PlaybackSpeed,
     double TrackAlpha,
     string BackgroundMode,
-    IReadOnlyList<SceneLayerDocument>? SceneLayers = null);
+    IReadOnlyList<SceneLayerDocument>? SceneLayers = null,
+    // TASK-075: #RRGGBB, required when BackgroundMode is "Custom".
+    string? BackgroundColor = null);
