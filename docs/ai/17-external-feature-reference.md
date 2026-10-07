@@ -60,10 +60,10 @@ listed above are not repeated. Each item still needs its own task.
 | Order | Capability | Reference | Status / notes |
 |---|---|---|---|
 | 1 | Application icon (exe, windows, floating panels) | every desktop competitor | TASK-070 (implemented) |
-| 2 | Viewport guides: world XY axes and the fixed-size export frame | Spine Editor, export tools | TASK-071; never written to screenshot/export; auto-fit frame later |
+| 2 | Viewport guides: world XY axes and the fixed-size export frame | Spine Editor, export tools | TASK-071 blocked: preview and fixed-size export re-fit large poses every frame, so no stable world space exists yet; needs a product decision on a stable preview camera |
 | 3 | Export batch (all animations), frame range, Physics warm-up | Spine Editor export | TASK-072 (implemented) |
 | 4 | Auto reload on source change; recent files | Skeleton Viewer; most viewers | TASK-073 (implemented); recent files was already in `14-ui-product-design.md` scope |
-| 5 | Animation mix duration on switch; Spine event display | Skeleton Viewer, Web Player | TASK-074; needs Runtime-neutral contracts across adapters |
+| 5 | Animation mix duration on switch; Spine event display | Skeleton Viewer, Web Player | TASK-074 pending approval: needs new two-track and event contracts implemented in all 16 Runtime adapters |
 | 6 | Screenshot to system clipboard; custom background color | game-asset viewers | TASK-075 (implemented) |
 | later | Sprite-sheet export, A-B loop range, update check | Spine Editor, GIF tools | separate tasks |
 | later | Onion skin, event audio playback | Spine Editor | low value for a viewer |
