@@ -105,6 +105,8 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
 - Selecting a scene layer changes the Properties editing context and the timeline duration reference; it does not reorder the scene.
 - Duplicate opens an independent render session and preserves the source layer's editable settings without changing source files.
 - Reload replaces only the selected layer after the replacement render session succeeds; failure preserves the existing scene.
+- Auto Reload (File menu, on by default, remembered in user settings) watches each layer's skeleton, atlas, and the atlas page images named in the atlas. Once writes have been quiet for 0.6 s, every layer reading a changed file reloads with its current settings; the selection is kept, and a busy workspace (loading, exporting, capturing, or another layer operation) retries after 1 s. Turning it off stops watching (TASK-073).
+- Open Recent lists up to 10 successfully opened assets and Viewer projects, most recent first, remembered in user settings; a missing entry is removed with a warning, and Clear Recent Files empties the list. `--settings=<path>` points user settings at another file for tests (TASK-073).
 - Parameter copy/paste never copies source paths or z-order. The supported scopes are all, transform, render, appearance, and slots (slot visibility, opacity, and attachment choices only).
 - Numeric transform input accepts finite coordinates beyond the earlier slider limits; scale remains finite and greater than zero.
 - Slot attachment selection applies after animation posing. An unavailable saved name falls back to animation/setup behavior without unloading the asset.

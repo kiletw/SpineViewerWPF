@@ -62,6 +62,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private readonly Func<string, string?> chooseEncodedExportPath;
     private readonly Func<string?> chooseFfmpegPath;
     private readonly UserSettingsStore userSettings;
+    private readonly Dispatcher dispatcher;
+    private readonly SourceFileWatcher sourceWatcher;
+    private readonly DispatcherTimer deferredReloadTimer;
+    private readonly HashSet<string> deferredReloadPaths = new(StringComparer.OrdinalIgnoreCase);
     private readonly Func<IReadOnlyList<string>?> chooseAssetPaths;
     private readonly Func<bool> confirmDiscardChanges;
     private readonly DispatcherTimer playbackTimer;
@@ -203,6 +207,18 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         playbackTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1d / previewFramesPerSecond) };
         playbackTimer.Tick += AdvancePlayback;
         savedSnapshot = Capture();
+        // TASK-073: source changes reload the affected layers once writes settle.
+        dispatcher = Dispatcher.CurrentDispatcher;
+        sourceWatcher = new SourceFileWatcher(OnSourcesChanged, TimeSpan.FromMilliseconds(600));
+        deferredReloadTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        deferredReloadTimer.Tick += (_, _) =>
+        {
+            deferredReloadTimer.Stop();
+            var paths = deferredReloadPaths.ToArray();
+            deferredReloadPaths.Clear();
+            _ = ReloadChangedSourcesAsync(paths);
+        };
+        sceneLayers.CollectionChanged += (_, _) => RefreshSourceWatch();
 
         OpenAssetCommand = new RelayCommand(
             async () => await OpenAssetAsync(),
@@ -217,6 +233,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             else
                 await OpenAssetAsync(skeletonPath);
         }, () => HasAsset && !IsLoading && Volatile.Read(ref screenshotInProgress) == 0);
+        OpenRecentCommand = new ParameterCommand(
+            parameter => _ = OpenRecentAsync(parameter as string),
+            () => !IsLoading && Volatile.Read(ref screenshotInProgress) == 0);
+        ClearRecentFilesCommand = new RelayCommand(ClearRecentFiles, () => HasRecentFiles);
         ExportCommand = new RelayCommand(StartExport, () => CanExport);
         BrowseFfmpegCommand = new RelayCommand(BrowseFfmpeg);
         UseFfmpegFromPathCommand = new RelayCommand(() => SetFfmpegPath(null), () => HasCustomFfmpegPath);
@@ -305,6 +325,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public ICommand OpenAssetCommand { get; }
     public ICommand OpenProjectCommand { get; }
     public ICommand ReloadCommand { get; }
+    public ICommand OpenRecentCommand { get; }
+    public ICommand ClearRecentFilesCommand { get; }
     public ICommand ExportCommand { get; }
     public ICommand BrowseFfmpegCommand { get; }
     public ICommand UseFfmpegFromPathCommand { get; }
@@ -1341,34 +1363,152 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         try
         {
-            var document = source.ToDocument();
-            var replacement = await Task.Run(() => OpenLayerFromDocument(document, source.ZIndex));
-            var index = sceneLayers.IndexOf(source);
-            if (index < 0)
-            {
-                replacement.Dispose();
-                return;
-            }
-
-            sceneLayers[index] = replacement;
-            source.Dispose();
-            SelectedSceneLayer = replacement;
-            Changed(nameof(SceneLayers));
-            Changed(nameof(PreviewFrame));
-            Changed(nameof(HasRenderedPreview));
-            QueuePreviewRender();
-            LastAction = $"Reloaded layer {replacement.DisplayName}";
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            SetDiagnostics([new Diagnostic("error", "LAYER_RELOAD_FAILED", exception.Message, source.SkeletonPath)]);
-            LastAction = "Layer reload failed";
+            if (await ReloadLayerCoreAsync(source, select: true) is { } replacement)
+                LastAction = $"Reloaded layer {replacement.DisplayName}";
         }
         finally
         {
             Interlocked.Exchange(ref sceneLayerOperationInProgress, 0);
             RefreshCommands();
         }
+    }
+
+    // Reopens a layer's sources with its current settings and swaps it in place.
+    // The caller owns the scene-layer operation flag.
+    private async Task<SceneLayerViewModel?> ReloadLayerCoreAsync(SceneLayerViewModel source, bool select)
+    {
+        try
+        {
+            var document = source.ToDocument();
+            var replacement = await Task.Run(() => OpenLayerFromDocument(document, source.ZIndex));
+            var index = sceneLayers.IndexOf(source);
+            if (index < 0 || disposed)
+            {
+                replacement.Dispose();
+                return null;
+            }
+
+            var wasSelected = ReferenceEquals(selectedSceneLayer, source);
+            sceneLayers[index] = replacement;
+            source.Dispose();
+            if (select || wasSelected) SelectedSceneLayer = replacement;
+            Changed(nameof(SceneLayers));
+            Changed(nameof(PreviewFrame));
+            Changed(nameof(HasRenderedPreview));
+            QueuePreviewRender();
+            return replacement;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            SetDiagnostics([new Diagnostic("error", "LAYER_RELOAD_FAILED", exception.Message, source.SkeletonPath)]);
+            LastAction = "Layer reload failed";
+            return null;
+        }
+    }
+
+    // TASK-073: auto reload. Off, the watcher watches nothing.
+    public bool IsAutoReloadEnabled
+    {
+        get => userSettings.AutoReload;
+        set
+        {
+            if (userSettings.AutoReload == value) return;
+            userSettings.SetAutoReload(value);
+            Changed();
+            RefreshSourceWatch();
+        }
+    }
+
+    internal IReadOnlyCollection<string> WatchedSourceFiles => sourceWatcher.WatchedFiles;
+
+    private void RefreshSourceWatch()
+    {
+        if (disposed) return;
+        sourceWatcher.Watch(IsAutoReloadEnabled && assetService is not null
+            ? sceneLayers.SelectMany(layer => SourceFileWatcher.SourceFiles(layer.SkeletonPath, layer.AtlasPath)).ToArray()
+            : []);
+    }
+
+    private void OnSourcesChanged(IReadOnlyCollection<string> paths)
+    {
+        if (disposed) return;
+        dispatcher.BeginInvoke(() => _ = ReloadChangedSourcesAsync(paths));
+    }
+
+    // Reloads every layer that reads one of the changed files, keeping its
+    // settings and the selection. While busy, the paths are retried shortly.
+    internal async Task ReloadChangedSourcesAsync(IReadOnlyCollection<string> paths)
+    {
+        if (disposed || assetService is null || !IsAutoReloadEnabled || paths.Count == 0) return;
+        var changedFiles = new HashSet<string>(paths.Select(Path.GetFullPath), StringComparer.OrdinalIgnoreCase);
+        var affected = sceneLayers
+            .Where(layer => SourceFileWatcher.SourceFiles(layer.SkeletonPath, layer.AtlasPath)
+                .Any(file => changedFiles.Contains(Path.GetFullPath(file))))
+            .ToArray();
+        if (affected.Length == 0) return;
+        if (IsLoading || IsExporting
+            || Volatile.Read(ref screenshotInProgress) != 0
+            || Interlocked.Exchange(ref sceneLayerOperationInProgress, 1) != 0)
+        {
+            deferredReloadPaths.UnionWith(changedFiles);
+            deferredReloadTimer.Start();
+            return;
+        }
+
+        RefreshCommands();
+        try
+        {
+            var reloaded = new List<string>();
+            foreach (var layer in affected)
+                if (await ReloadLayerCoreAsync(layer, select: false) is { } replacement)
+                    reloaded.Add(replacement.DisplayName);
+            if (reloaded.Count > 0)
+                LastAction = $"Auto-reloaded {string.Join(", ", reloaded.Distinct())}";
+        }
+        finally
+        {
+            Interlocked.Exchange(ref sceneLayerOperationInProgress, 0);
+            RefreshCommands();
+        }
+    }
+
+    // TASK-073: recent files, most recent first, remembered across sessions.
+    public IReadOnlyList<string> RecentFiles => userSettings.RecentFiles;
+    public bool HasRecentFiles => userSettings.RecentFiles.Count > 0;
+
+    private void RecordRecentFile(string path)
+    {
+        userSettings.AddRecentFile(path);
+        Changed(nameof(RecentFiles));
+        Changed(nameof(HasRecentFiles));
+        RefreshCommands();
+    }
+
+    private void ClearRecentFiles()
+    {
+        userSettings.ClearRecentFiles();
+        Changed(nameof(RecentFiles));
+        Changed(nameof(HasRecentFiles));
+        RefreshCommands();
+    }
+
+    internal async Task OpenRecentAsync(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return;
+        if (!File.Exists(path))
+        {
+            userSettings.RemoveRecentFile(path);
+            Changed(nameof(RecentFiles));
+            Changed(nameof(HasRecentFiles));
+            RefreshCommands();
+            SetDiagnostics([new Diagnostic("warning", "RECENT_FILE_MISSING", "The file no longer exists and was removed from recent files.", path)]);
+            LastAction = $"Missing {Path.GetFileName(path)}";
+            return;
+        }
+        if (path.EndsWith(ViewerProjectStore.Extension, StringComparison.OrdinalIgnoreCase))
+            await OpenProjectAsync(path);
+        else
+            await OpenAssetAsync(path);
     }
 
     private SceneLayerViewModel OpenLayerFromDocument(SceneLayerDocument document, int zIndex)
@@ -1825,6 +1965,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             }
             ApplyAsset(opened.Result, opened.Session, opened.Frame, opened.RenderError, opened.Animation, opened.Skin);
             RememberCurrentSelections();
+            RecordRecentFile(opened.Result.Asset.SkeletonPath);
         }
         catch (NotSupportedException exception)
         {
@@ -1885,6 +2026,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             }
             ApplyProject(path, loaded.Project, loaded.Layers);
             RememberCurrentSelections();
+            RecordRecentFile(path);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -2364,6 +2506,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         exportCancellation?.Cancel();
         playbackCancellation.Cancel();
         playbackCancellation.Dispose();
+        deferredReloadTimer.Stop();
+        sourceWatcher.Dispose();
         ClearSceneLayers();
     }
 
@@ -2510,9 +2654,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                      AddLayerCommand, AutoLayoutCommand, RemoveLayerCommand, MoveLayerUpCommand, MoveLayerDownCommand,
                      DuplicateLayerCommand, ReloadLayerCommand, CopyAllLayerParametersCommand, CopyTransformParametersCommand,
                      CopyRenderParametersCommand, CopyAppearanceParametersCommand, PasteLayerParametersCommand,
-                     SaveCommand, SaveAsCommand, UndoCommand, RedoCommand
+                     SaveCommand, SaveAsCommand, UndoCommand, RedoCommand, ClearRecentFilesCommand
                  })
             ((RelayCommand)command).Refresh();
+        ((ParameterCommand)OpenRecentCommand).Refresh();
     }
 
     private void Changed([CallerMemberName] string? propertyName = null) =>
@@ -2557,5 +2702,13 @@ internal sealed class RelayCommand(Action execute, Func<bool>? canExecute = null
     public event EventHandler? CanExecuteChanged;
     public bool CanExecute(object? parameter) => canExecute?.Invoke() ?? true;
     public void Execute(object? parameter) => execute();
+    public void Refresh() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+}
+
+internal sealed class ParameterCommand(Action<object?> execute, Func<bool>? canExecute = null) : ICommand
+{
+    public event EventHandler? CanExecuteChanged;
+    public bool CanExecute(object? parameter) => canExecute?.Invoke() ?? true;
+    public void Execute(object? parameter) => execute(parameter);
     public void Refresh() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 }

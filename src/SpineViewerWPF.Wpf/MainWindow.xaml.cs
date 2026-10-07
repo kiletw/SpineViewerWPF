@@ -755,6 +755,16 @@ public sealed class StringEqualsConverter : IValueConverter
         throw new NotSupportedException();
 }
 
+// TASK-073: recent-file menu entries show the file name; the tooltip keeps the path.
+public sealed class FileNameConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is string path ? Path.GetFileName(path) : "";
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
 public sealed class BooleanScaleConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>

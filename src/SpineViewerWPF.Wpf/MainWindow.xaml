@@ -74,6 +74,7 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <local:BooleanScaleConverter x:Key="BooleanScaleConverter" />
         <local:StringEqualsConverter x:Key="StringEqualsConverter" />
+        <local:FileNameConverter x:Key="FileNameConverter" />
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
@@ -761,8 +762,29 @@
             <MenuItem Header="{DynamicResource Text.File}" AutomationProperties.AutomationId="Main.Menu.File">
                 <MenuItem Header="{DynamicResource Text.OpenAsset}" InputGestureText="Ctrl+O" Command="{Binding OpenAssetCommand}" AutomationProperties.AutomationId="Main.Menu.File.OpenAsset" />
                 <MenuItem Header="{DynamicResource Text.OpenProject}" InputGestureText="Ctrl+Shift+O" Command="{Binding OpenProjectCommand}" AutomationProperties.AutomationId="Main.Command.OpenProject" />
+                <MenuItem Header="{DynamicResource Text.OpenRecent}"
+                          ItemsSource="{Binding RecentFiles}"
+                          IsEnabled="{Binding HasRecentFiles}"
+                          AutomationProperties.AutomationId="Main.Menu.File.OpenRecent">
+                    <MenuItem.ItemContainerStyle>
+                        <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                            <Setter Property="Command" Value="{Binding DataContext.OpenRecentCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <Setter Property="CommandParameter" Value="{Binding}" />
+                            <Setter Property="ToolTip" Value="{Binding}" />
+                            <Setter Property="HeaderTemplate">
+                                <Setter.Value>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Converter={StaticResource FileNameConverter}}" />
+                                    </DataTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </MenuItem.ItemContainerStyle>
+                </MenuItem>
+                <MenuItem Header="{DynamicResource Text.ClearRecentFiles}" Command="{Binding ClearRecentFilesCommand}" AutomationProperties.AutomationId="Main.Menu.File.ClearRecent" />
                 <Separator />
                 <MenuItem Header="{DynamicResource Text.Reload}" InputGestureText="F5" Command="{Binding ReloadCommand}" AutomationProperties.AutomationId="Main.Command.Reload" />
+                <MenuItem Header="{DynamicResource Text.AutoReload}" IsCheckable="True" IsChecked="{Binding IsAutoReloadEnabled}" ToolTip="{DynamicResource Text.AutoReloadHint}" AutomationProperties.AutomationId="Main.Menu.File.AutoReload" />
                 <Separator />
                 <MenuItem Header="{DynamicResource Text.Save}" InputGestureText="Ctrl+S" Command="{Binding SaveCommand}" AutomationProperties.AutomationId="Main.Menu.File.Save" />
                 <MenuItem Header="{DynamicResource Text.SaveAs}" InputGestureText="Ctrl+Shift+S" Command="{Binding SaveAsCommand}" AutomationProperties.AutomationId="Main.Command.SaveProjectAs" />

@@ -17,6 +17,9 @@ public partial class App : System.Windows.Application
             Enum.TryParse(stateArgument["--state=".Length..], true, out state);
         var assetArgument = e.Args.FirstOrDefault(x => x.StartsWith("--asset=", StringComparison.OrdinalIgnoreCase));
         var startupAsset = assetArgument?["--asset=".Length..];
+        // TASK-073: tests point user settings (recent files, FFmpeg) at a scratch file.
+        var settingsArgument = e.Args.FirstOrDefault(x => x.StartsWith("--settings=", StringComparison.OrdinalIgnoreCase));
+        var settingsPath = settingsArgument?["--settings=".Length..];
 
         string? ChooseAssetPath()
             => ChooseAssetPaths()?.FirstOrDefault();
@@ -165,7 +168,7 @@ public partial class App : System.Windows.Application
             chooseProjectPathToOpen: ChooseProjectPathToOpen,
             chooseEncodedExportPath: ChooseEncodedExportPath,
             chooseFfmpegPath: ChooseFfmpegPath,
-            userSettings: UserSettingsStore.Load());
+            userSettings: UserSettingsStore.Load(string.IsNullOrWhiteSpace(settingsPath) ? null : settingsPath));
         MainWindow = new MainWindow
         {
             DataContext = viewModel

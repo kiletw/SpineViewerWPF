@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Resource Include="Assets\AppIcon.ico" />
+    <InternalsVisibleTo Include="SpineViewerWPF.Application.Smoke" />
     <PackageReference Include="OpenTK.GLWpfControl" Version="4.3.6" />
     <ProjectReference Include="../SpineViewerWPF.Application/SpineViewerWPF.Application.csproj" />
     <ProjectReference Include="../../runtimes/SpineRuntime.V40/SpineRuntime.V40.csproj" />

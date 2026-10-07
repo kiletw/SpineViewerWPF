@@ -147,6 +147,10 @@
         <sys:String x:Key="Text.ExportRangeHint">Custom exports only the time range below of the current animation.</sys:String>
         <sys:String x:Key="Text.ExportRangeStart">Start (s)</sys:String>
         <sys:String x:Key="Text.ExportRangeEnd">End (s)</sys:String>
+        <sys:String x:Key="Text.OpenRecent">Open Recent</sys:String>
+        <sys:String x:Key="Text.ClearRecentFiles">Clear Recent Files</sys:String>
+        <sys:String x:Key="Text.AutoReload">Auto Reload</sys:String>
+        <sys:String x:Key="Text.AutoReloadHint">Reload a layer, keeping its settings, when its skeleton, atlas, or atlas textures change on disk.</sys:String>
         <sys:String x:Key="Text.PhysicsWarmup">Physics warm-up</sys:String>
         <sys:String x:Key="Text.PhysicsWarmupHint">Loops of the animation played before the first frame so Physics (Spine 4.2+) settles instead of starting at rest. 0 turns it off; assets without Physics ignore it.</sys:String>
         <sys:String x:Key="Text.ZoomHint">Viewport zoom. Wheel zooms at the cursor; drag or middle-drag pans; double-click or F fits.</sys:String>
