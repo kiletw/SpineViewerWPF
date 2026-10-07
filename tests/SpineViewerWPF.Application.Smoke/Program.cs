@@ -679,18 +679,19 @@ try
     Assert(!previewViewModel.FocusLayer(focusLayer, _ => null) && previewViewModel.ViewportPanX == -40,
         "Layer focus without a GPU scene changed the viewport.");
     previewViewModel.FitCommand.Execute(null);
+    // TASK-071: scene space, no per-frame fit; translation scales with zoom.
     var smallScene = new PreviewSceneFrame(-50, 0, 100, 200, []);
-    Assert(ViewportMath.TryGetLayerContentCenter(smallScene, 10, 5, 1, 0, false, false, 800, 800, 2, 1.5, 1.5, out var focusX, out var focusY)
-        && Math.Abs(focusX - 10) < 0.001 && Math.Abs(focusY + 128.333333) < 0.001,
-        "Unfitted layer focus center did not follow zoom, DPI, and translation.");
-    Assert(ViewportMath.TryGetLayerContentCenter(smallScene, 10, 5, 1, 90, false, false, 800, 800, 2, 1.5, 1.5, out focusX, out focusY)
-        && Math.Abs(focusX - 143.333333) < 0.001 && Math.Abs(focusY - 5) < 0.001,
-        "Layer focus center did not follow rotation.");
+    Assert(ViewportMath.TryGetLayerContentCenter(smallScene, 10, 5, 1, 0, false, false, 2, out var focusX, out var focusY)
+        && Math.Abs(focusX - 20) < 0.001 && Math.Abs(focusY + 190) < 0.001,
+        "Layer focus center did not follow zoom and translation.");
+    Assert(ViewportMath.TryGetLayerContentCenter(smallScene, 10, 5, 1, 90, false, false, 2, out focusX, out focusY)
+        && Math.Abs(focusX - 220) < 0.001 && Math.Abs(focusY - 10) < 0.001,
+        "Layer focus center did not follow clockwise rotation.");
     var largeScene = new PreviewSceneFrame(-200, 0, 400, 400, []);
-    Assert(ViewportMath.TryGetLayerContentCenter(largeScene, 10, 5, 2, 30, true, false, 800, 800, 3, 1.25, 1.25, out focusX, out focusY)
-        && Math.Abs(focusX - 10) < 0.001 && Math.Abs(focusY - 5) < 0.001,
-        "Fitted layer focus center did not resolve to the layer translation.");
-    Assert(!ViewportMath.TryGetLayerContentCenter(new PreviewSceneFrame(0, 0, 0, 0, []), 0, 0, 1, 0, false, false, 800, 800, 1, 1, 1, out _, out _),
+    Assert(ViewportMath.TryGetLayerContentCenter(largeScene, 10, 5, 2, 30, true, false, 3, out focusX, out focusY)
+        && Math.Abs(focusX - 630) < 0.001 && Math.Abs(focusY + 1024.2307) < 0.001,
+        "Large layer focus center was re-fitted instead of following scale, flip, and rotation.");
+    Assert(!ViewportMath.TryGetLayerContentCenter(new PreviewSceneFrame(0, 0, 0, 0, []), 0, 0, 1, 0, false, false, 1, out _, out _),
         "Layer focus accepted a scene without bounds.");
     previewViewModel.ScreenshotCommand.Execute(null);
     for (var attempt = 0; attempt < 200
@@ -912,6 +913,7 @@ try
     BatchExportSmoke.RunPhysicsWarmup(pngService, Path.GetDirectoryName(fixtureDirectory)!, root);
     await AutoReloadSmoke.RunAsync(pngService, store, sequenceRequest, root);
     await ClipboardBackgroundSmoke.RunAsync(pngService, store, sequenceRequest, root);
+    await ViewportCameraSmoke.RunAsync(pngService, store, sequenceRequest, root);
     await EncodedExportSmoke.RunShellAsync(pngService, store, pngSkeleton, root);
 
     var sceneOutputs = pngService.RenderScene(

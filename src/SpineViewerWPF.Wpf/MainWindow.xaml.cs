@@ -140,9 +140,8 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private void FocusLayer(ShellViewModel viewModel, SceneLayerViewModel layer) =>
-        viewModel.FocusLayer(layer, target =>
-            GpuPreview.TryGetLayerContentCenter(target, out var x, out var y) ? (x, y) : null);
+    private static void FocusLayer(ShellViewModel viewModel, SceneLayerViewModel layer) =>
+        viewModel.FocusLayer(layer);
 
     private void MainWindowDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
@@ -224,7 +223,8 @@ public partial class MainWindow : Window
                     var dpi = VisualTreeHelper.GetDpi(ViewportSurface);
                     viewModel.SetViewportSize(
                         ViewportSurface.ActualWidth * dpi.DpiScaleX,
-                        ViewportSurface.ActualHeight * dpi.DpiScaleY);
+                        ViewportSurface.ActualHeight * dpi.DpiScaleY,
+                        dpi.DpiScaleX);
                 }
             }));
         }
@@ -516,7 +516,7 @@ public partial class MainWindow : Window
     {
         if (sender is not Visual visual || DataContext is not ShellViewModel viewModel) return;
         var dpi = VisualTreeHelper.GetDpi(visual);
-        viewModel.SetViewportSize(e.NewSize.Width * dpi.DpiScaleX, e.NewSize.Height * dpi.DpiScaleY);
+        viewModel.SetViewportSize(e.NewSize.Width * dpi.DpiScaleX, e.NewSize.Height * dpi.DpiScaleY, dpi.DpiScaleX);
     }
 
     // TASK-060: left-drag or middle-drag pans without a modifier; a left

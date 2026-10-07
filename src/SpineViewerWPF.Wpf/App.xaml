@@ -147,6 +147,10 @@
         <sys:String x:Key="Text.ExportRangeHint">Custom exports only the time range below of the current animation.</sys:String>
         <sys:String x:Key="Text.ExportRangeStart">Start (s)</sys:String>
         <sys:String x:Key="Text.ExportRangeEnd">End (s)</sys:String>
+        <sys:String x:Key="Text.ShowAxes">Show Axes</sys:String>
+        <sys:String x:Key="Text.ShowAxesHint">Scene X (red) and Y (green) axes through the scene origin, and the selected layer's origin. Never written to screenshots or exports.</sys:String>
+        <sys:String x:Key="Text.ShowExportFrame">Show Export Frame</sys:String>
+        <sys:String x:Key="Text.ShowExportFrameHint">With Fixed size export, outline the exported area around the scene origin and dim the rest. Never written to screenshots or exports.</sys:String>
         <sys:String x:Key="Text.CopyScreenshot">Copy Screenshot</sys:String>
         <sys:String x:Key="Text.CopyScreenshotHint">Copy the same image as Screenshot to the clipboard, with transparency for apps that accept PNG.</sys:String>
         <sys:String x:Key="Text.BackgroundCustom">Custom color</sys:String>

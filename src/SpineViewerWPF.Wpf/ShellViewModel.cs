@@ -27,7 +27,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private const int ExportSize = 512;
     private const int MaxPreviewWidth = 1536;
     private const int MaxPreviewHeight = 1024;
-    private const double MinViewportZoom = 0.1;
+    private const double MinViewportZoom = 0.01;
+    // Inset of the preview surfaces inside the viewport (XAML Margin="14").
+    private const double ViewportContentInset = 14;
+    private const double FitPadding = 16;
     private const double MaxViewportZoom = 8;
     private const double MaxViewportPan = 20000;
     private const int FastStepFrames = 10;
@@ -152,6 +155,11 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private string previewChannel = "RGBA";
     private int previewPixelWidth = 768;
     private int previewPixelHeight = 768;
+    // TASK-071: the preview content area in DIPs, and whether the next published
+    // scene should fit the view (set when an asset or project opens).
+    private double viewportContentWidth = 768 - ViewportContentInset * 2;
+    private double viewportContentHeight = 768 - ViewportContentInset * 2;
+    private bool fitPending;
     private string? projectPath;
     private bool isPrototypePreview = true;
     private string lastAction = "Ready";
@@ -595,6 +603,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             Changed();
             Changed(nameof(IsExportAutoFit));
             Changed(nameof(IsExportFixedSize));
+            Changed(nameof(IsExportFrameVisible));
             Changed(nameof(ExportSizeSummary));
         }
     }
@@ -1039,12 +1048,17 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         QueuePreviewRender();
     }
 
-    public void SetViewportSize(double physicalWidth, double physicalHeight)
+    public void SetViewportSize(double physicalWidth, double physicalHeight, double dpiScale = 1)
     {
         if (!double.IsFinite(physicalWidth) || !double.IsFinite(physicalHeight)
             || physicalWidth < 1 || physicalHeight < 1)
             return;
 
+        if (double.IsFinite(dpiScale) && dpiScale > 0)
+        {
+            viewportContentWidth = Math.Max(1, physicalWidth / dpiScale - ViewportContentInset * 2);
+            viewportContentHeight = Math.Max(1, physicalHeight / dpiScale - ViewportContentInset * 2);
+        }
         var scale = Math.Min(1, Math.Min(MaxPreviewWidth / physicalWidth, MaxPreviewHeight / physicalHeight));
         var width = Math.Clamp((int)Math.Round(physicalWidth * scale), 256, MaxPreviewWidth);
         var height = Math.Clamp((int)Math.Round(physicalHeight * scale), 256, MaxPreviewHeight);
@@ -1103,7 +1117,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         if (locateContentCenter(layer) is not { } center
             || !double.IsFinite(center.X) || !double.IsFinite(center.Y))
         {
-            LastAction = "Layer focus needs the GPU preview";
+            LastAction = "Layer focus needs a rendered layer";
             return false;
         }
         var nextX = Math.Clamp(-center.X, -MaxViewportPan, MaxViewportPan);
@@ -1147,17 +1161,92 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     private void FitViewport()
     {
-        var changed = Math.Abs(viewportZoom - 1) >= 0.001 || Math.Abs(viewportPanX) >= 0.001 || Math.Abs(viewportPanY) >= 0.001;
-        viewportZoom = 1;
-        viewportPanX = viewportPanY = 0;
-        if (changed) NotifyViewportChanged();
+        FitToContent();
         LastAction = "Viewport fitted";
     }
 
+    // TASK-071: zoom (never above 100%) and pan so the visible layers' current
+    // content fits the preview area with padding; no content resets the view.
+    private void FitToContent()
+    {
+        var bounds = SceneContentBounds();
+        double zoom = 1, panX = 0, panY = 0;
+        if (bounds is { } box)
+        {
+            var width = Math.Max(1e-6, box.MaxX - box.MinX);
+            var height = Math.Max(1e-6, box.MaxY - box.MinY);
+            zoom = Math.Clamp(
+                Math.Min(1, Math.Min(
+                    Math.Max(1, viewportContentWidth - FitPadding * 2) / width,
+                    Math.Max(1, viewportContentHeight - FitPadding * 2) / height)),
+                MinViewportZoom,
+                MaxViewportZoom);
+            panX = Math.Clamp(-(box.MinX + box.MaxX) / 2 * zoom, -MaxViewportPan, MaxViewportPan);
+            panY = Math.Clamp(-(box.MinY + box.MaxY) / 2 * zoom, -MaxViewportPan, MaxViewportPan);
+        }
+        var changed = Math.Abs(viewportZoom - zoom) >= 0.0001 || Math.Abs(viewportPanX - panX) >= 0.001 || Math.Abs(viewportPanY - panY) >= 0.001;
+        viewportZoom = zoom;
+        viewportPanX = panX;
+        viewportPanY = panY;
+        if (changed) NotifyViewportChanged();
+    }
+
+    // Scene-space union of the visible layers' last published content bounds.
+    private (double MinX, double MinY, double MaxX, double MaxY)? SceneContentBounds()
+    {
+        (double MinX, double MinY, double MaxX, double MaxY)? union = null;
+        foreach (var layer in sceneLayers)
+        {
+            if (!layer.IsVisible || layer.PreviewScene is not { } scene || !ViewportMath.HasBounds(scene)) continue;
+            if (SceneCamera.BoundsToScene(layer.ToDocument(), scene.BoundsX, scene.BoundsY, scene.BoundsWidth, scene.BoundsHeight) is not { } box)
+                continue;
+            union = union is { } current
+                ? (Math.Min(current.MinX, box.MinX), Math.Min(current.MinY, box.MinY), Math.Max(current.MaxX, box.MaxX), Math.Max(current.MaxY, box.MaxY))
+                : box;
+        }
+        return union;
+    }
+
+    // An open asset or project fits once every visible layer has a scene.
+    private void FitIfPending()
+    {
+        if (!fitPending || disposed) return;
+        if (sceneLayers.Any(layer => layer.IsVisible && layer.PreviewScene is null)) return;
+        fitPending = false;
+        FitToContent();
+        // The CPU frames rendered while opening predate the camera.
+        if (!UseGpuPreview) QueuePreviewRender();
+    }
+
+    // TASK-071: CPU preview and Screenshot rasters cover the preview content
+    // area; scene point (x, y) appears at zoom * (x, y) + pan DIPs from its center.
+    private double CpuPixelsPerDip(int width, int height) =>
+        Math.Max(width / viewportContentWidth, height / viewportContentHeight);
+
+    private SceneLayerPlacement PlaceInView(SceneLayerDocument layer, int width, int height) =>
+        SceneCamera.Place(
+            layer,
+            -viewportPanX / viewportZoom,
+            -viewportPanY / viewportZoom,
+            viewportZoom * CpuPixelsPerDip(width, height),
+            width,
+            height);
+
+    // TASK-065 / TASK-071: focus from the layer's last published scene bounds.
+    public bool FocusLayer(SceneLayerViewModel layer) =>
+        FocusLayer(layer, target => target.PreviewScene is { } scene
+            && ViewportMath.TryGetLayerContentCenter(
+                scene, target.ModelX, target.ModelY, target.ModelScale, target.ModelRotation,
+                target.FlipX, target.FlipY, viewportZoom, out var x, out var y)
+                ? (x, y)
+                : null);
+
     // Raise only viewport-derived properties instead of refreshing every binding
-    // on each wheel or drag step.
+    // on each wheel or drag step. The CPU preview renders through the camera, so
+    // it re-renders; the GPU preview only redraws.
     private void NotifyViewportChanged()
     {
+        if (!UseGpuPreview) QueuePreviewRender();
         Changed(nameof(ViewportZoom));
         Changed(nameof(ViewportZoomLabel));
         Changed(nameof(ViewportPanX));
@@ -1223,10 +1312,16 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 previewPixelHeight,
                 PreviewChannel,
                 playbackCancellation.Token,
-                sceneLayers.Select(layer => new ScreenshotLayerSnapshot(
-                    layer.RenderSession,
-                    layer.ToDocument(),
-                    (float)layer.Duration)).ToArray());
+                // TASK-071: what the viewport shows, through the shared scene camera.
+                sceneLayers.Select(layer =>
+                {
+                    var document = layer.ToDocument();
+                    return new ScreenshotLayerSnapshot(
+                        layer.RenderSession,
+                        document,
+                        (float)layer.Duration,
+                        PlaceInView(document, previewPixelWidth, previewPixelHeight));
+                }).ToArray());
             _ = CaptureScreenshotAsync(target, snapshot);
         }
         catch
@@ -1278,14 +1373,15 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                         var frame = layer.RenderSession.RenderFrame(
                             document.Animation,
                             Math.Min(snapshot.TimeSeconds, layer.Duration),
-                            snapshot.Width,
-                            snapshot.Height,
+                            layer.Placement.FrameWidth,
+                            layer.Placement.FrameHeight,
                             document.Pma ?? false,
                             string.IsNullOrWhiteSpace(document.SelectedSkin) ? [] : [document.SelectedSkin],
                             snapshot.CancellationToken,
                             (float)(document.TrackAlpha ?? 1),
-                            slots: document.Slots);
-                        return new SceneFrameLayer(frame, document);
+                            slots: document.Slots,
+                            camera: layer.Placement.Camera);
+                        return new SceneFrameLayer(frame, layer.Placement.Layer);
                     }).ToArray();
                 var source = rendered.Length == 1 && IsIdentityPresentation(rendered[0].Layer)
                     ? rendered[0].Frame
@@ -1472,6 +1568,33 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     }
 
     internal IReadOnlyCollection<string> WatchedSourceFiles => sourceWatcher.WatchedFiles;
+
+    // TASK-071: viewport guides, remembered in user settings. The export frame
+    // shows only for Fixed size, the size it describes exactly.
+    public bool ShowAxes
+    {
+        get => userSettings.ShowAxes;
+        set
+        {
+            if (userSettings.ShowAxes == value) return;
+            userSettings.SetShowAxes(value);
+            Changed();
+        }
+    }
+
+    public bool ShowExportFrame
+    {
+        get => userSettings.ShowExportFrame;
+        set
+        {
+            if (userSettings.ShowExportFrame == value) return;
+            userSettings.SetShowExportFrame(value);
+            Changed();
+            Changed(nameof(IsExportFrameVisible));
+        }
+    }
+
+    public bool IsExportFrameVisible => ShowExportFrame && IsExportFixedSize;
 
     private void RefreshSourceWatch()
     {
@@ -2211,6 +2334,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         position = 0;
         viewportZoom = 1;
         viewportPanX = viewportPanY = 0;
+        fitPending = true;
         foreach (var loadedLayer in loaded)
             sceneLayers.Add(loadedLayer.Layer);
         SelectedSceneLayer = sceneLayers[0];
@@ -2412,6 +2536,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             layer.PublishScene(scene);
             Changed(nameof(HasGpuPreview));
             Changed(nameof(IsCpuPreviewVisible));
+            FitIfPending();
         }
         catch (OperationCanceledException)
         {
@@ -2458,12 +2583,16 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                     Changed(nameof(HasGpuPreview));
                     Changed(nameof(IsCpuPreviewVisible));
                     RecordPreviewPublished(workStarted);
+                    FitIfPending();
                 }
             }
             else
             {
+                // Each raster is centered on the scene point at the view center;
+                // the view applies only the layer's flips and rotation.
+                var cameras = layers.Select(layer => PlaceInView(layer.ToDocument(), width, height).Camera).ToArray();
                 var rendered = await Task.Run(
-                    () => layers.Select(layer =>
+                    () => layers.Select((layer, index) =>
                     {
                         playbackCancellation.Token.ThrowIfCancellationRequested();
                         var frame = layer.RenderSession.RenderFrame(
@@ -2475,7 +2604,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                             string.IsNullOrWhiteSpace(layer.SelectedSkin) ? [] : [layer.SelectedSkin],
                             playbackCancellation.Token,
                             (float)layer.TrackAlpha,
-                            slots: layer.SlotDisplaySettings);
+                            slots: layer.SlotDisplaySettings,
+                            camera: cameras[index]);
                         return (Layer: layer, Frame: frame);
                     }).ToArray(),
                     playbackCancellation.Token);
@@ -2570,6 +2700,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         modelScale = playbackSpeed = trackAlpha = 1;
         viewportZoom = 1;
         viewportPanX = viewportPanY = 0;
+        fitPending = true;
         position = 0;
         flipX = flipY = false;
         loop = true;
@@ -2735,7 +2866,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private sealed record ScreenshotLayerSnapshot(
         AssetRenderSession RenderSession,
         SceneLayerDocument Document,
-        float Duration);
+        float Duration,
+        SceneLayerPlacement Placement);
 
     private sealed record UndoEntry(EditorSnapshot Editor, IReadOnlyList<SceneLayerDocument> Layers, bool SceneDirty);
 

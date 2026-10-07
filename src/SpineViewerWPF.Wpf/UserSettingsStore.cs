@@ -15,6 +15,8 @@ public sealed class UserSettingsStore
     private string? ffmpegPath;
     private List<string> recentFiles = [];
     private bool autoReload = true;
+    private bool showAxes = true;
+    private bool showExportFrame = true;
 
     private UserSettingsStore(string? path)
     {
@@ -30,12 +32,16 @@ public sealed class UserSettingsStore
                 .Take(MaxRecentFiles)
                 .ToList();
             autoReload = document?.AutoReload ?? true;
+            showAxes = document?.ShowAxes ?? true;
+            showExportFrame = document?.ShowExportFrame ?? true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
         {
             ffmpegPath = null;
             recentFiles = [];
             autoReload = true;
+            showAxes = true;
+            showExportFrame = true;
         }
     }
 
@@ -55,6 +61,10 @@ public sealed class UserSettingsStore
     public IReadOnlyList<string> RecentFiles => recentFiles;
 
     public bool AutoReload => autoReload;
+
+    // TASK-071: viewport guides.
+    public bool ShowAxes => showAxes;
+    public bool ShowExportFrame => showExportFrame;
 
     public bool SetFfmpegPath(string? value)
     {
@@ -92,6 +102,18 @@ public sealed class UserSettingsStore
         return Save();
     }
 
+    public bool SetShowAxes(bool value)
+    {
+        showAxes = value;
+        return Save();
+    }
+
+    public bool SetShowExportFrame(bool value)
+    {
+        showExportFrame = value;
+        return Save();
+    }
+
     private bool Save()
     {
         if (path is null) return true;
@@ -101,7 +123,7 @@ public sealed class UserSettingsStore
             var temporary = path + ".tmp";
             File.WriteAllText(
                 temporary,
-                JsonSerializer.Serialize(new SettingsDocument(1, ffmpegPath, recentFiles, autoReload), JsonOptions));
+                JsonSerializer.Serialize(new SettingsDocument(1, ffmpegPath, recentFiles, autoReload, showAxes, showExportFrame), JsonOptions));
             File.Move(temporary, path, overwrite: true);
             return true;
         }
@@ -115,5 +137,7 @@ public sealed class UserSettingsStore
         int SchemaVersion,
         string? FfmpegPath,
         IReadOnlyList<string>? RecentFiles = null,
-        bool? AutoReload = null);
+        bool? AutoReload = null,
+        bool? ShowAxes = null,
+        bool? ShowExportFrame = null);
 }

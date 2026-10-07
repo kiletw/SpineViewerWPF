@@ -309,10 +309,10 @@ public sealed class AssetService
             throw new ArgumentOutOfRangeException(
                 nameof(request.Framing),
                 "Export scale must be between 0.01 and 16 and margin between 0 and 1024 pixels.");
+        if ((request.SceneLayers is not null || request.Framing is null) && (request.Width > 4096 || request.Height > 4096))
+            throw new ArgumentOutOfRangeException(nameof(request.Width), "Composite dimensions must be between 1 and 4096.");
         if (request.SceneLayers is not null)
         {
-            if (request.Width > 4096 || request.Height > 4096)
-                throw new ArgumentOutOfRangeException(nameof(request.Width), "Composite dimensions must be between 1 and 4096.");
             ValidateSceneLayers(request.SceneLayers);
             var retainedFrameCount = request.SceneLayers.Count(layer => layer.IsVisible && layer.Opacity > 0) + 1L;
             if ((long)request.Width * request.Height * 4 * retainedFrameCount > MaxCompositeBufferBytes)
@@ -339,35 +339,6 @@ public sealed class AssetService
         {
             if (request.Framing is not null)
                 (outputWidth, outputHeight) = ExportFramedFrames(request, request.Framing, outputs, created, progress, cancellationToken);
-            else if (request.SceneLayers is null)
-            {
-                var opened = OpenRenderSession(
-                    request.SkeletonPath,
-                    request.AtlasPath,
-                    request.RuntimeOverride,
-                    cancellationToken);
-                using var session = opened.Session;
-                for (var index = 0; index < frameCount; index++)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var time = FrameTime(request, index);
-                    session.Render(
-                        request.Animation,
-                        time,
-                        request.Width,
-                        request.Height,
-                        outputs[index],
-                        request.Overwrite,
-                        request.Pma,
-                        request.Skins ?? [],
-                        cancellationToken,
-                        request.TrackAlpha,
-                        request.Slots,
-                        request.PhysicsWarmupLoops);
-                    created.Add(outputs[index]);
-                    progress?.Report(new AnimationExportProgress(index + 1, frameCount));
-                }
-            }
             else
                 ExportSceneFrames(request, outputs, created, progress, cancellationToken);
         }
@@ -608,25 +579,7 @@ public sealed class AssetService
         IProgress<AnimationExportProgress>? progress,
         CancellationToken cancellationToken)
     {
-        IReadOnlyList<SceneLayerDocument> sources = request.SceneLayers
-            ?? [new SceneLayerDocument(
-                request.SkeletonPath,
-                request.AtlasPath,
-                request.RuntimeOverride,
-                request.Animation,
-                "",
-                0,
-                0,
-                1,
-                0,
-                false,
-                false,
-                true,
-                1,
-                0,
-                request.TrackAlpha,
-                request.Pma,
-                request.Slots)];
+        IReadOnlyList<SceneLayerDocument> sources = request.SceneLayers ?? [SingleLayerDocument(request)];
         var opened = new List<FramedLayer>();
         try
         {
@@ -871,10 +824,13 @@ public sealed class AssetService
         IProgress<AnimationExportProgress>? progress,
         CancellationToken cancellationToken)
     {
-        var openedLayers = new List<(SceneLayerDocument Layer, AssetRenderSession Session, float Duration)>();
+        // TASK-071: fixed-size export frames the scene origin at the canvas
+        // center, one output pixel per scene unit, through the shared scene camera.
+        var single = request.SceneLayers is null;
+        var openedLayers = new List<(SceneLayerDocument Layer, AssetRenderSession Session, float Duration, IReadOnlyList<string> Skins, SceneLayerPlacement Placement)>();
         try
         {
-            foreach (var item in request.SceneLayers!
+            foreach (var item in (request.SceneLayers ?? [SingleLayerDocument(request)])
                          .Select((layer, index) => (Layer: layer, Index: index))
                          .Where(item => item.Layer.IsVisible && item.Layer.Opacity > 0)
                          .OrderBy(item => item.Layer.ZIndex)
@@ -893,7 +849,11 @@ public sealed class AssetService
                     opened.Session.Dispose();
                     throw new InvalidDataException($"Animation not found: {item.Layer.Animation}");
                 }
-                openedLayers.Add((item.Layer, opened.Session, animation?.DurationSeconds ?? 0));
+                IReadOnlyList<string> skins = single
+                    ? request.Skins ?? []
+                    : string.IsNullOrWhiteSpace(item.Layer.SelectedSkin) ? [] : [item.Layer.SelectedSkin];
+                openedLayers.Add((item.Layer, opened.Session, animation?.DurationSeconds ?? 0, skins,
+                    SceneCamera.Place(item.Layer, 0, 0, 1, request.Width, request.Height)));
             }
 
             for (var index = 0; index < outputs.Count; index++)
@@ -906,20 +866,23 @@ public sealed class AssetService
                     var item = openedLayers[layerIndex];
                     var frame = item.Session.RenderFrame(
                         item.Layer.Animation,
-                        Math.Min(time, item.Duration),
-                        request.Width,
-                        request.Height,
+                        single ? time : Math.Min(time, item.Duration),
+                        item.Placement.FrameWidth,
+                        item.Placement.FrameHeight,
                         item.Layer.Pma ?? false,
-                        string.IsNullOrWhiteSpace(item.Layer.SelectedSkin) ? [] : [item.Layer.SelectedSkin],
+                        item.Skins,
                         cancellationToken,
                         (float)(item.Layer.TrackAlpha ?? 1),
                         true,
                         item.Layer.Slots,
-                        physicsWarmupLoops: request.PhysicsWarmupLoops);
-                    frames[layerIndex] = new SceneFrameLayer(frame, item.Layer);
+                        item.Placement.Camera,
+                        request.PhysicsWarmupLoops);
+                    frames[layerIndex] = new SceneFrameLayer(frame, item.Placement.Layer);
                 }
 
-                var composite = SceneFrameCompositor.Compose(frames, request.Width, request.Height);
+                var composite = frames.Length == 1 && IsPassThrough(frames[0], request.Width, request.Height)
+                    ? frames[0].Frame
+                    : SceneFrameCompositor.Compose(frames, request.Width, request.Height);
                 PngFrameWriter.Write(outputs[index], composite, request.Overwrite);
                 created.Add(outputs[index]);
                 progress?.Report(new AnimationExportProgress(index + 1, outputs.Count));
@@ -930,6 +893,34 @@ public sealed class AssetService
             foreach (var item in openedLayers) item.Session.Dispose();
         }
     }
+
+    // A canvas-sized, unflipped, unrotated, opaque layer needs no compositing.
+    private static bool IsPassThrough(SceneFrameLayer item, int width, int height) =>
+        item.Frame.Width == width && item.Frame.Height == height
+        && item.Layer.IsVisible && item.Layer.Opacity >= 1
+        && !item.Layer.FlipX && !item.Layer.FlipY
+        && item.Layer.ModelRotation % 360 == 0
+        && item.Layer.ModelX == 0 && item.Layer.ModelY == 0 && item.Layer.ModelScale == 1;
+
+    private static SceneLayerDocument SingleLayerDocument(AnimationExportRequest request) =>
+        new(
+            request.SkeletonPath,
+            request.AtlasPath,
+            request.RuntimeOverride,
+            request.Animation,
+            "",
+            0,
+            0,
+            1,
+            0,
+            false,
+            false,
+            true,
+            1,
+            0,
+            request.TrackAlpha,
+            request.Pma,
+            request.Slots);
 
     private static void ValidateSceneLayers(IReadOnlyList<SceneLayerDocument> layers)
     {

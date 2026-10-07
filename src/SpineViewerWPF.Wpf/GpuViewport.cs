@@ -280,10 +280,11 @@ public sealed class GpuViewport : Grid, IDisposable
 
     private void DrawLayer(PreviewSceneFrame scene, SceneLayerViewModel layer, int width, int height, float opacity)
     {
-        var (centerX, centerY, fitScale) = ViewportMath.ComputeFit(scene, width, height);
-
-        GL.Uniform2(GL.GetUniformLocation(program, "uCenter"), centerX, centerY);
-        GL.Uniform1(GL.GetUniformLocation(program, "uFitScale"), fitScale);
+        // TASK-071: scene space (SceneCamera), one DIP per unit before zoom; no
+        // per-frame fit, and layer offsets scale with the viewport zoom.
+        var zoom = ViewModel?.ViewportZoom ?? 1;
+        GL.Uniform2(GL.GetUniformLocation(program, "uCenter"), 0f, 0f);
+        GL.Uniform1(GL.GetUniformLocation(program, "uFitScale"), (float)DpiScaleX);
         GL.Uniform2(
             GL.GetUniformLocation(program, "uLayerScale"),
             (float)(layer.ModelScale * (layer.FlipX ? -1 : 1)),
@@ -293,8 +294,8 @@ public sealed class GpuViewport : Grid, IDisposable
             MathHelper.DegreesToRadians((float)layer.ModelRotation));
         GL.Uniform2(
             GL.GetUniformLocation(program, "uTranslation"),
-            (float)(layer.ModelX * DpiScaleX),
-            (float)(-layer.ModelY * DpiScaleY));
+            (float)(layer.ModelX * DpiScaleX * zoom),
+            (float)(-layer.ModelY * DpiScaleY * zoom));
         foreach (var command in scene.DrawCommands)
         {
             GL.BindBuffer(BufferTarget.ArrayBuffer, vertexBuffer);
@@ -443,11 +444,7 @@ public sealed class GpuViewport : Grid, IDisposable
             layer.ModelRotation,
             layer.FlipX,
             layer.FlipY,
-            control.FrameBufferWidth,
-            control.FrameBufferHeight,
             viewModel.ViewportZoom,
-            DpiScaleX,
-            DpiScaleY,
             out centerX,
             out centerY);
     }

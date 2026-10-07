@@ -807,6 +807,8 @@
                 <MenuItem Header="{DynamicResource Text.ToggleInspector}" IsCheckable="True" IsChecked="{Binding IsInspectorVisible, Mode=OneWay}" Click="ToggleInspectorPanel" AutomationProperties.AutomationId="Main.Command.ToggleInspector" />
                 <Separator />
                 <MenuItem Header="{DynamicResource Text.Fit}" InputGestureText="F" Command="{Binding FitCommand}" />
+                <MenuItem Header="{DynamicResource Text.ShowAxes}" IsCheckable="True" IsChecked="{Binding ShowAxes}" ToolTip="{DynamicResource Text.ShowAxesHint}" AutomationProperties.AutomationId="Main.Menu.View.ShowAxes" />
+                <MenuItem Header="{DynamicResource Text.ShowExportFrame}" IsCheckable="True" IsChecked="{Binding ShowExportFrame}" ToolTip="{DynamicResource Text.ShowExportFrameHint}" AutomationProperties.AutomationId="Main.Menu.View.ShowExportFrame" />
                 <MenuItem Header="{DynamicResource Text.FullScreen}" InputGestureText="F11" Command="{x:Static local:MainWindow.ToggleFullScreenCommand}" IsChecked="{Binding IsFullScreen, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}" AutomationProperties.AutomationId="Main.Menu.View.FullScreen" />
                 <MenuItem Header="{DynamicResource Text.Diagnostics}" InputGestureText="Ctrl+D" Command="{Binding DiagnosticsCommand}" />
                 <Separator />
@@ -1250,13 +1252,13 @@
                                                      RelativeSource="{RelativeSource AncestorType=Window}" />
                                         </MultiBinding>
                                     </Image.Source>
+                                    <!-- TASK-071: the raster is rendered through the scene camera
+                                         (translation, scale, zoom, pan); only flips and rotation remain. -->
                                     <Image.RenderTransform>
                                         <TransformGroup>
-                                            <ScaleTransform ScaleX="{Binding ModelScale}" ScaleY="{Binding ModelScale}" />
                                             <ScaleTransform ScaleX="{Binding FlipX, Converter={StaticResource BooleanScaleConverter}}"
                                                             ScaleY="{Binding FlipY, Converter={StaticResource BooleanScaleConverter}}" />
                                             <RotateTransform Angle="{Binding ModelRotation}" />
-                                            <TranslateTransform X="{Binding ModelX}" Y="{Binding ModelY}" />
                                         </TransformGroup>
                                     </Image.RenderTransform>
                                 </Image>
@@ -1267,6 +1269,20 @@
                     <local:GpuViewport x:Name="GpuPreview" Margin="14"
                                        AutomationProperties.Name="GPU asset preview"
                                        AutomationProperties.AutomationId="Main.Viewport.GpuSurface" />
+
+                    <local:ViewportGuides Margin="14"
+                                          Zoom="{Binding ViewportZoom}"
+                                          PanX="{Binding ViewportPanX}"
+                                          PanY="{Binding ViewportPanY}"
+                                          ShowAxes="{Binding ShowAxes}"
+                                          ShowOrigin="{Binding ShowAxes}"
+                                          OriginX="{Binding SelectedSceneLayer.ModelX, FallbackValue=0}"
+                                          OriginY="{Binding SelectedSceneLayer.ModelY, FallbackValue=0}"
+                                          ShowFrame="{Binding IsExportFrameVisible}"
+                                          FrameWidth="{Binding ExportWidth}"
+                                          FrameHeight="{Binding ExportHeight}"
+                                          Visibility="{Binding HasAsset, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                          AutomationProperties.AutomationId="Main.Viewport.Guides" />
 
                     <Border HorizontalAlignment="Left"
                             VerticalAlignment="Top"
