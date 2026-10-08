@@ -25,6 +25,14 @@ Runtime 版本匯出的檔案。
   儲存在版本化的 `*.spineviewer.json` sidecar。
 - 桌面版可將目前動畫匯出為 GIF、動態 WebP、APNG 或 MP4（H.264），以使用者
   自行安裝的 [FFmpeg](https://ffmpeg.org/) 編碼同一組可重現的畫格。
+- 可一次批次匯出選中圖層的所有動畫、匯出自訂時間範圍，並可在匯出前預熱
+  Spine 4.2+ Physics 數圈。
+- 預覽、截圖與固定尺寸匯出共用同一個固定場景鏡頭；Viewport 可顯示 XY 基準線
+  與固定尺寸匯出範圍框（不會寫入輸出）。
+- 播放中切換動畫可淡入過渡（可設定 Mix 秒數），並在時間軸與播放經過時顯示
+  Spine 事件。
+- Skeleton、atlas 或貼圖在磁碟上變更時自動重新載入圖層，並記住最近開啟的檔案。
+- 可將截圖複製到剪貼簿，並支援自訂 Viewport 背景色。
 
 支援的 Runtime 選項：
 
@@ -129,7 +137,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/publish-release.ps1 
   及 Slot 設定。Viewport 背景不寫入輸出；全部圖層隱藏時輸出透明畫面。GIF、
   WebP 與 APNG 保留透明並無限循環；GIF 每幀時間以 1/100 秒為單位取整。MP4
   不支援透明，會合成在選定的背景色（預設黑色）上，並補齊為偶數寬高。
-- 多 Track 動畫混合、Attachment 製作、完整 Adobe 式拖曳 Dock、執行期間語言
+- 固定尺寸匯出以場景原點為畫布中心、1:1 輸出：比畫布大的姿勢會被裁切而不會
+  縮小，請調整圖層位置把角色放進框內（View > Show Export Frame 會顯示範圍）。
+  Auto fit 不受影響。
+- 動畫過渡只用於播放中切換動畫的預覽；匯出永遠不會混合，也不播放事件音效。
+- 多 Track 動畫疊加、Attachment 製作、完整 Adobe 式拖曳 Dock、執行期間語言
   切換及 MCP 工具仍為 deferred。
 
 官方 Spine Runtime 原始碼的授權與 commit metadata 保留在 `runtimes/`。
