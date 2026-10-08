@@ -27,7 +27,7 @@ public sealed class Adapter : IRuntimeAdapter
             true,
             new AssetDescriptor(skeletonPath, atlasPath, asset.TexturePaths),
             new RuntimeDescriptor(asset.Data.Version, RuntimeLine, "4.2@b81e5a58", overridden),
-            asset.Data.Animations.Select(x => new AnimationDescriptor(x.Name, x.Duration)).ToArray(),
+            asset.Data.Animations.Select(x => new AnimationDescriptor(x.Name, x.Duration, Events(x))).ToArray(),
             asset.Data.Skins.Select(x => x.Name).ToArray(),
             Array.Empty<Diagnostic>(),
             BuildSlots(asset.Data));
@@ -43,6 +43,22 @@ public sealed class Adapter : IRuntimeAdapter
             if (!string.IsNullOrWhiteSpace(slot.AttachmentName)) names.Add(slot.AttachmentName);
             return new SlotDescriptor(slot.Name, slot.AttachmentName, names.OrderBy(x => x, StringComparer.Ordinal).ToArray());
         }).ToArray();
+
+    // TASK-074: Spine event keys of an animation, in time order.
+    private static IReadOnlyList<AnimationEventKey> Events(Animation animation)
+    {
+        var keys = new List<AnimationEventKey>();
+        foreach (var timeline in animation.Timelines)
+        {
+            if (timeline is not EventTimeline events) continue;
+            for (var index = 0; index < events.Events.Length; index++)
+            {
+                var key = events.Events[index];
+                keys.Add(new AnimationEventKey(events.Frames[index], key.Data.Name, key.Int, key.Float, key.String));
+            }
+        }
+        return keys.OrderBy(key => key.TimeSeconds).ToArray();
+    }
 
     public IRuntimeRenderSession OpenSession(string skeletonPath, string atlasPath, CancellationToken cancellationToken)
     {
@@ -78,7 +94,8 @@ public sealed class Adapter : IRuntimeAdapter
                 request.Skins,
                 request.TrackAlpha,
                 false,
-                request.Slots), cancellationToken);
+                request.Slots,
+                PhysicsWarmupLoops: request.PhysicsWarmupLoops), cancellationToken);
             CpuRenderer.Render(skeleton, request.Width, request.Height, request.OutputPath, request.Pma, request.Overwrite);
         }
 
@@ -93,7 +110,8 @@ public sealed class Adapter : IRuntimeAdapter
         {
             cancellationToken.ThrowIfCancellationRequested();
             var skeleton = Pose(new FrameRenderRequest(
-                request.Animation, request.TimeSeconds, 1, 1, request.Pma, request.Skins, request.TrackAlpha, false, request.Slots), cancellationToken);
+                request.Animation, request.TimeSeconds, 1, 1, request.Pma, request.Skins, request.TrackAlpha, false, request.Slots,
+                PhysicsWarmupLoops: request.PhysicsWarmupLoops, Mix: request.Mix), cancellationToken);
             return CpuRenderer.BuildPreviewScene(skeleton, request.Pma);
         }
 
@@ -123,10 +141,23 @@ public sealed class Adapter : IRuntimeAdapter
             }
 
             var state = new AnimationState(stateData);
-            state.SetAnimation(0, animation, false).Alpha = request.TrackAlpha;
+            // TASK-074: an optional mix source plays first; the requested
+            // animation then mixes in from it over the mix duration.
+            var mixFrom = MixSource(loaded, request.Mix);
+            var first = mixFrom ?? animation;
+            state.SetAnimation(0, first, mixFrom is not null).Alpha = request.TrackAlpha;
             if (skeleton.PhysicsConstraints.Count == 0)
             {
-                state.Update(request.TimeSeconds);
+                if (mixFrom is not null)
+                {
+                    state.Update(request.Mix.FromTimeSeconds);
+                    state.Apply(skeleton);
+                    skeleton.SetToSetupPose();
+                    MixInto(state, animation, request);
+                    state.Update(request.Mix.ElapsedSeconds);
+                }
+                else
+                    state.Update(request.TimeSeconds);
                 state.Apply(skeleton);
                 skeleton.Time = request.TimeSeconds;
                 skeleton.UpdateWorldTransform(Skeleton.Physics.None);
@@ -137,22 +168,61 @@ public sealed class Adapter : IRuntimeAdapter
                 state.Apply(skeleton);
                 skeleton.UpdateWorldTransform(Skeleton.Physics.Reset);
 
-                // ponytail: cap replay at 600 steps; add cached checkpoints if long physics timelines need exact 60 Hz history.
-                var stepCount = request.TimeSeconds <= PhysicsStepSeconds * MaxPhysicsSteps
-                    ? Math.Max(1, (int)MathF.Ceiling(request.TimeSeconds / PhysicsStepSeconds))
-                    : MaxPhysicsSteps;
-                var delta = request.TimeSeconds / stepCount;
-                for (var step = 0; step < stepCount && request.TimeSeconds > 0; step++)
+                // TASK-072: warm-up plays whole loops so physics settles, then
+                // restarts the first animation at time 0 with the physics state kept.
+                var warmup = request.PhysicsWarmupLoops > 0 ? request.PhysicsWarmupLoops * first.Duration : 0;
+                if (warmup > 0)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    state.Update(delta);
-                    skeleton.Update(delta);
+                    state.SetAnimation(0, first, true).Alpha = request.TrackAlpha;
+                    Replay(state, warmup, cancellationToken);
+                    state.SetAnimation(0, first, mixFrom is not null).Alpha = request.TrackAlpha;
                     state.Apply(skeleton);
-                    skeleton.UpdateWorldTransform(Skeleton.Physics.Update);
+                    skeleton.UpdateWorldTransform(Skeleton.Physics.Pose);
                 }
+                if (mixFrom is not null)
+                {
+                    Replay(state, request.Mix.FromTimeSeconds, cancellationToken);
+                    MixInto(state, animation, request);
+                    Replay(state, request.Mix.ElapsedSeconds, cancellationToken);
+                }
+                else
+                    Replay(state, request.TimeSeconds, cancellationToken);
             }
             ApplySlotDisplaySettings(skeleton, request.Slots);
             return skeleton;
+        }
+
+        // Steps animation and physics together at about 60 Hz.
+        // ponytail: cap replay at 600 steps; add cached checkpoints if long physics timelines need exact 60 Hz history.
+        private void Replay(AnimationState state, float seconds, CancellationToken cancellationToken)
+        {
+            if (!(seconds > 0)) return;
+            var stepCount = seconds <= PhysicsStepSeconds * MaxPhysicsSteps
+                ? Math.Max(1, (int)MathF.Ceiling(seconds / PhysicsStepSeconds))
+                : MaxPhysicsSteps;
+            var delta = seconds / stepCount;
+            for (var step = 0; step < stepCount; step++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                state.Update(delta);
+                skeleton.Update(delta);
+                state.Apply(skeleton);
+                skeleton.UpdateWorldTransform(Skeleton.Physics.Update);
+            }
+        }
+
+        // TASK-074: the animation to mix from, or null when there is no usable mix.
+        private static Animation MixSource(LoadedAsset loaded, AnimationMix mix) =>
+            mix is null || string.IsNullOrEmpty(mix.FromAnimation) || !(mix.DurationSeconds > 0) ? null : loaded.Data.FindAnimation(mix.FromAnimation);
+
+        // Starts the requested animation so it mixes in from the current entry.
+        private void MixInto(AnimationState state, Animation animation, FrameRenderRequest request)
+        {
+            stateData.DefaultMix = request.Mix.DurationSeconds;
+            var entry = state.SetAnimation(0, animation, false);
+            stateData.DefaultMix = 0;
+            entry.Alpha = request.TrackAlpha;
+            entry.TrackTime = Math.Max(0, request.TimeSeconds - request.Mix.ElapsedSeconds);
         }
 
         private static void ApplySlotDisplaySettings(Skeleton skeleton, IReadOnlyList<SlotDisplayDocument> settings)

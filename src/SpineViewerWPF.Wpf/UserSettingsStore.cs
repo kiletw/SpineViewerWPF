@@ -6,11 +6,18 @@ namespace SpineViewerWPF.Wpf;
 // TASK-066 / ADR-010: cross-session user preferences, kept apart from the
 // Viewer project sidecar. A missing or unreadable file means defaults; a
 // failed write keeps the in-memory value for the current session.
+// TASK-073 adds recent files and the auto-reload preference.
 public sealed class UserSettingsStore
 {
+    public const int MaxRecentFiles = 10;
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private readonly string? path;
     private string? ffmpegPath;
+    private List<string> recentFiles = [];
+    private bool autoReload = true;
+    private bool showAxes = true;
+    private bool showExportFrame = true;
+    private double mixDuration;
 
     private UserSettingsStore(string? path)
     {
@@ -20,10 +27,24 @@ public sealed class UserSettingsStore
         {
             var document = JsonSerializer.Deserialize<SettingsDocument>(File.ReadAllText(path));
             ffmpegPath = string.IsNullOrWhiteSpace(document?.FfmpegPath) ? null : document.FfmpegPath;
+            recentFiles = (document?.RecentFiles ?? [])
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(MaxRecentFiles)
+                .ToList();
+            autoReload = document?.AutoReload ?? true;
+            showAxes = document?.ShowAxes ?? true;
+            showExportFrame = document?.ShowExportFrame ?? true;
+            mixDuration = ClampMix(document?.MixDuration ?? 0);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
         {
             ffmpegPath = null;
+            recentFiles = [];
+            autoReload = true;
+            showAxes = true;
+            showExportFrame = true;
+            mixDuration = 0;
         }
     }
 
@@ -39,15 +60,84 @@ public sealed class UserSettingsStore
 
     public string? FfmpegPath => ffmpegPath;
 
+    // Most recent first, unique ignoring case.
+    public IReadOnlyList<string> RecentFiles => recentFiles;
+
+    public bool AutoReload => autoReload;
+
+    // TASK-071: viewport guides.
+    public bool ShowAxes => showAxes;
+    public bool ShowExportFrame => showExportFrame;
+
+    // TASK-074: preview crossfade when the animation changes, 0 to 5 seconds; 0 is off.
+    public double MixDuration => mixDuration;
+
     public bool SetFfmpegPath(string? value)
     {
         ffmpegPath = string.IsNullOrWhiteSpace(value) ? null : value;
+        return Save();
+    }
+
+    public bool AddRecentFile(string file)
+    {
+        if (string.IsNullOrWhiteSpace(file)) return true;
+        var full = Path.GetFullPath(file);
+        recentFiles = recentFiles
+            .Where(item => !string.Equals(item, full, StringComparison.OrdinalIgnoreCase))
+            .Prepend(full)
+            .Take(MaxRecentFiles)
+            .ToList();
+        return Save();
+    }
+
+    public bool RemoveRecentFile(string file)
+    {
+        recentFiles = recentFiles.Where(item => !string.Equals(item, file, StringComparison.OrdinalIgnoreCase)).ToList();
+        return Save();
+    }
+
+    public bool ClearRecentFiles()
+    {
+        recentFiles = [];
+        return Save();
+    }
+
+    public bool SetAutoReload(bool value)
+    {
+        autoReload = value;
+        return Save();
+    }
+
+    public bool SetShowAxes(bool value)
+    {
+        showAxes = value;
+        return Save();
+    }
+
+    public bool SetShowExportFrame(bool value)
+    {
+        showExportFrame = value;
+        return Save();
+    }
+
+    public bool SetMixDuration(double value)
+    {
+        mixDuration = ClampMix(value);
+        return Save();
+    }
+
+    private static double ClampMix(double value) => double.IsFinite(value) ? Math.Clamp(value, 0, 5) : 0;
+
+    private bool Save()
+    {
         if (path is null) return true;
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             var temporary = path + ".tmp";
-            File.WriteAllText(temporary, JsonSerializer.Serialize(new SettingsDocument(1, ffmpegPath), JsonOptions));
+            File.WriteAllText(
+                temporary,
+                JsonSerializer.Serialize(new SettingsDocument(1, ffmpegPath, recentFiles, autoReload, showAxes, showExportFrame, mixDuration), JsonOptions));
             File.Move(temporary, path, overwrite: true);
             return true;
         }
@@ -57,5 +147,12 @@ public sealed class UserSettingsStore
         }
     }
 
-    private sealed record SettingsDocument(int SchemaVersion, string? FfmpegPath);
+    private sealed record SettingsDocument(
+        int SchemaVersion,
+        string? FfmpegPath,
+        IReadOnlyList<string>? RecentFiles = null,
+        bool? AutoReload = null,
+        bool? ShowAxes = null,
+        bool? ShowExportFrame = null,
+        double? MixDuration = null);
 }

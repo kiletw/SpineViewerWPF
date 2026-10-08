@@ -23,7 +23,7 @@ public sealed class SpineV40Adapter : IRuntimeAdapter
             true,
             new AssetDescriptor(skeletonPath, atlasPath, asset.TexturePaths),
             new RuntimeDescriptor(asset.Data.Version, RuntimeLine, "4.0.64@01524d4", overridden),
-            asset.Data.Animations.Select(item => new AnimationDescriptor(item.Name, item.Duration)).ToArray(),
+            asset.Data.Animations.Select(item => new AnimationDescriptor(item.Name, item.Duration, Events(item))).ToArray(),
             asset.Data.Skins.Select(item => item.Name).ToArray(),
             Array.Empty<Diagnostic>(),
             BuildSlots(asset.Data));
@@ -39,6 +39,22 @@ public sealed class SpineV40Adapter : IRuntimeAdapter
             if (!string.IsNullOrWhiteSpace(slot.AttachmentName)) names.Add(slot.AttachmentName);
             return new SlotDescriptor(slot.Name, slot.AttachmentName, names.OrderBy(x => x, StringComparer.Ordinal).ToArray());
         }).ToArray();
+
+    // TASK-074: Spine event keys of an animation, in time order.
+    private static IReadOnlyList<AnimationEventKey> Events(Spine.Animation animation)
+    {
+        var keys = new List<AnimationEventKey>();
+        foreach (var timeline in animation.Timelines)
+        {
+            if (timeline is not Spine.EventTimeline events) continue;
+            for (var index = 0; index < events.Events.Length; index++)
+            {
+                var key = events.Events[index];
+                keys.Add(new AnimationEventKey(events.Frames[index], key.Data.Name, key.Int, key.Float, key.String));
+            }
+        }
+        return keys.OrderBy(key => key.TimeSeconds).ToArray();
+    }
 
     public IRuntimeRenderSession OpenSession(string skeletonPath, string atlasPath, CancellationToken cancellationToken)
     {
@@ -87,7 +103,8 @@ public sealed class SpineV40Adapter : IRuntimeAdapter
         {
             cancellationToken.ThrowIfCancellationRequested();
             var skeleton = Pose(new FrameRenderRequest(
-                request.Animation, request.TimeSeconds, 1, 1, request.Pma, request.Skins, request.TrackAlpha, false, request.Slots));
+                request.Animation, request.TimeSeconds, 1, 1, request.Pma, request.Skins, request.TrackAlpha, false, request.Slots,
+                Mix: request.Mix));
             return CpuRenderer.BuildPreviewScene(skeleton, request.Pma);
         }
 
@@ -111,13 +128,40 @@ public sealed class SpineV40Adapter : IRuntimeAdapter
             if (animation is not null)
             {
                 var state = new Spine.AnimationState(stateData);
-                state.SetAnimation(0, animation, false).Alpha = request.TrackAlpha;
-                state.Update(request.TimeSeconds);
+                // TASK-074: pose the previous animation, then mix into this one.
+                if (MixSource(loaded, request.Mix) is { } from)
+                {
+                    state.SetAnimation(0, from, true).Alpha = request.TrackAlpha;
+                    state.Update(request.Mix.FromTimeSeconds);
+                    state.Apply(skeleton);
+                    skeleton.SetToSetupPose();
+                    MixInto(state, animation, request);
+                    state.Update(request.Mix.ElapsedSeconds);
+                }
+                else
+                {
+                    state.SetAnimation(0, animation, false).Alpha = request.TrackAlpha;
+                    state.Update(request.TimeSeconds);
+                }
                 state.Apply(skeleton);
             }
             ApplySlotDisplaySettings(skeleton, request.Slots);
             skeleton.UpdateWorldTransform();
             return skeleton;
+        }
+
+        // TASK-074: the animation to mix from, or null when there is no usable mix.
+        private static Spine.Animation MixSource(LoadedAsset loaded, AnimationMix mix) =>
+            mix is null || string.IsNullOrEmpty(mix.FromAnimation) || !(mix.DurationSeconds > 0) ? null : loaded.Data.FindAnimation(mix.FromAnimation);
+
+        // Starts the requested animation so it mixes in from the current entry.
+        private void MixInto(Spine.AnimationState state, Spine.Animation animation, FrameRenderRequest request)
+        {
+            stateData.DefaultMix = request.Mix.DurationSeconds;
+            var entry = state.SetAnimation(0, animation, false);
+            stateData.DefaultMix = 0;
+            entry.Alpha = request.TrackAlpha;
+            entry.TrackTime = Math.Max(0, request.TimeSeconds - request.Mix.ElapsedSeconds);
         }
 
         private static void ApplySlotDisplaySettings(Spine.Skeleton skeleton, IReadOnlyList<SlotDisplayDocument> settings)

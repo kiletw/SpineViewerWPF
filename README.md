@@ -26,6 +26,17 @@ multiple historical Runtime versions.
 - Exports the current animation as GIF, animated WebP, APNG, or MP4 (H.264) in
   the desktop app by encoding the same deterministic frames with a
   user-installed [FFmpeg](https://ffmpeg.org/).
+- Exports every animation of the selected layer in one batch, a custom time
+  range, and Spine 4.2+ Physics after optional warm-up loops.
+- Shares one stable scene camera between the preview, screenshots, and
+  fixed-size export, with optional XY axes and a fixed-size export frame in the
+  viewport (never written to output).
+- Crossfades animation switches during playback (optional Mix duration) and
+  shows Spine event keys on the timeline and as playback passes them.
+- Reloads layers automatically when their skeleton, atlas, or textures change on
+  disk, and remembers recent files.
+- Copies screenshots to the clipboard and supports a custom viewport background
+  color.
 
 Supported Runtime selections:
 
@@ -139,7 +150,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/publish-release.ps1 
   keep transparency and loop forever; GIF frame delays are rounded to 1/100 s.
   MP4 has no alpha: frames are composited over the chosen background color
   (default black) and padded to even dimensions.
-- Multi-track animation mixing, attachment authoring, unrestricted Adobe-style
+- Fixed-size export frames the scene origin at the canvas center 1:1: poses
+  larger than the canvas are clipped, not shrunk, so position layers to frame
+  them (the View > Show Export Frame outline shows the area). Auto fit is
+  unaffected.
+- Animation mixing is a preview feature for switches during playback; exports
+  are never mixed, and event audio is not played.
+- Multi-track animation layering, attachment authoring, unrestricted Adobe-style
   drag docking, runtime language switching, and MCP tools remain deferred.
 
 Official Spine Runtime sources retain their upstream license files and commit

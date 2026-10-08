@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:SpineViewerWPF.Wpf"
         Title="{Binding WindowTitle}"
+        Icon="Assets/AppIcon.ico"
         Width="1280"
         Height="800"
         MinWidth="760"
@@ -73,6 +74,7 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <local:BooleanScaleConverter x:Key="BooleanScaleConverter" />
         <local:StringEqualsConverter x:Key="StringEqualsConverter" />
+        <local:FileNameConverter x:Key="FileNameConverter" />
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
@@ -760,8 +762,29 @@
             <MenuItem Header="{DynamicResource Text.File}" AutomationProperties.AutomationId="Main.Menu.File">
                 <MenuItem Header="{DynamicResource Text.OpenAsset}" InputGestureText="Ctrl+O" Command="{Binding OpenAssetCommand}" AutomationProperties.AutomationId="Main.Menu.File.OpenAsset" />
                 <MenuItem Header="{DynamicResource Text.OpenProject}" InputGestureText="Ctrl+Shift+O" Command="{Binding OpenProjectCommand}" AutomationProperties.AutomationId="Main.Command.OpenProject" />
+                <MenuItem Header="{DynamicResource Text.OpenRecent}"
+                          ItemsSource="{Binding RecentFiles}"
+                          IsEnabled="{Binding HasRecentFiles}"
+                          AutomationProperties.AutomationId="Main.Menu.File.OpenRecent">
+                    <MenuItem.ItemContainerStyle>
+                        <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                            <Setter Property="Command" Value="{Binding DataContext.OpenRecentCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <Setter Property="CommandParameter" Value="{Binding}" />
+                            <Setter Property="ToolTip" Value="{Binding}" />
+                            <Setter Property="HeaderTemplate">
+                                <Setter.Value>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Converter={StaticResource FileNameConverter}}" />
+                                    </DataTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </MenuItem.ItemContainerStyle>
+                </MenuItem>
+                <MenuItem Header="{DynamicResource Text.ClearRecentFiles}" Command="{Binding ClearRecentFilesCommand}" AutomationProperties.AutomationId="Main.Menu.File.ClearRecent" />
                 <Separator />
                 <MenuItem Header="{DynamicResource Text.Reload}" InputGestureText="F5" Command="{Binding ReloadCommand}" AutomationProperties.AutomationId="Main.Command.Reload" />
+                <MenuItem Header="{DynamicResource Text.AutoReload}" IsCheckable="True" IsChecked="{Binding IsAutoReloadEnabled}" ToolTip="{DynamicResource Text.AutoReloadHint}" AutomationProperties.AutomationId="Main.Menu.File.AutoReload" />
                 <Separator />
                 <MenuItem Header="{DynamicResource Text.Save}" InputGestureText="Ctrl+S" Command="{Binding SaveCommand}" AutomationProperties.AutomationId="Main.Menu.File.Save" />
                 <MenuItem Header="{DynamicResource Text.SaveAs}" InputGestureText="Ctrl+Shift+S" Command="{Binding SaveAsCommand}" AutomationProperties.AutomationId="Main.Command.SaveProjectAs" />
@@ -784,6 +807,8 @@
                 <MenuItem Header="{DynamicResource Text.ToggleInspector}" IsCheckable="True" IsChecked="{Binding IsInspectorVisible, Mode=OneWay}" Click="ToggleInspectorPanel" AutomationProperties.AutomationId="Main.Command.ToggleInspector" />
                 <Separator />
                 <MenuItem Header="{DynamicResource Text.Fit}" InputGestureText="F" Command="{Binding FitCommand}" />
+                <MenuItem Header="{DynamicResource Text.ShowAxes}" IsCheckable="True" IsChecked="{Binding ShowAxes}" ToolTip="{DynamicResource Text.ShowAxesHint}" AutomationProperties.AutomationId="Main.Menu.View.ShowAxes" />
+                <MenuItem Header="{DynamicResource Text.ShowExportFrame}" IsCheckable="True" IsChecked="{Binding ShowExportFrame}" ToolTip="{DynamicResource Text.ShowExportFrameHint}" AutomationProperties.AutomationId="Main.Menu.View.ShowExportFrame" />
                 <MenuItem Header="{DynamicResource Text.FullScreen}" InputGestureText="F11" Command="{x:Static local:MainWindow.ToggleFullScreenCommand}" IsChecked="{Binding IsFullScreen, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}" AutomationProperties.AutomationId="Main.Menu.View.FullScreen" />
                 <MenuItem Header="{DynamicResource Text.Diagnostics}" InputGestureText="Ctrl+D" Command="{Binding DiagnosticsCommand}" />
                 <Separator />
@@ -796,6 +821,7 @@
                     <MenuItem Header="{DynamicResource Text.BackgroundCheckerboard}" Tag="Background:Checkerboard" Click="SelectViewOption" IsChecked="{Binding BackgroundMode, Mode=OneWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Checkerboard}" />
                     <MenuItem Header="{DynamicResource Text.BackgroundDark}" Tag="Background:Dark" Click="SelectViewOption" IsChecked="{Binding BackgroundMode, Mode=OneWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Dark}" />
                     <MenuItem Header="{DynamicResource Text.BackgroundLight}" Tag="Background:Light" Click="SelectViewOption" IsChecked="{Binding BackgroundMode, Mode=OneWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Light}" />
+                    <MenuItem Header="{DynamicResource Text.BackgroundCustom}" Tag="Background:Custom" Click="SelectViewOption" IsChecked="{Binding BackgroundMode, Mode=OneWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Custom}" ToolTip="{DynamicResource Text.BackgroundColorHint}" />
                 </MenuItem>
                 <MenuItem Header="{DynamicResource Text.Theme}" AutomationProperties.AutomationId="Main.Inspector.Theme">
                     <MenuItem Header="{DynamicResource Text.ThemeDark}" Tag="Theme:Dark" Click="SelectViewOption" IsChecked="{Binding ThemeMode, Mode=OneWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Dark}" />
@@ -827,6 +853,7 @@
             </MenuItem>
             <MenuItem Header="{DynamicResource Text.ExportMenu}" AutomationProperties.AutomationId="Main.Menu.Export">
                 <MenuItem Header="{DynamicResource Text.Screenshot}" InputGestureText="Ctrl+Shift+C" Command="{Binding ScreenshotCommand}" />
+                <MenuItem Header="{DynamicResource Text.CopyScreenshot}" Command="{Binding CopyScreenshotCommand}" ToolTip="{DynamicResource Text.CopyScreenshotHint}" AutomationProperties.AutomationId="Main.Menu.Export.CopyScreenshot" />
                 <MenuItem Header="{DynamicResource Text.Export}" InputGestureText="Ctrl+E" Command="{Binding ExportCommand}" />
             </MenuItem>
             <MenuItem Header="{DynamicResource Text.Window}" AutomationProperties.AutomationId="Main.Command.Window">
@@ -1188,6 +1215,9 @@
                                 <DataTrigger Binding="{Binding BackgroundMode}" Value="Light">
                                     <Setter Property="Background" Value="#DCE1E8" />
                                 </DataTrigger>
+                                <DataTrigger Binding="{Binding BackgroundMode}" Value="Custom">
+                                    <Setter Property="Background" Value="{Binding BackgroundColor}" />
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Border.Style>
@@ -1222,13 +1252,13 @@
                                                      RelativeSource="{RelativeSource AncestorType=Window}" />
                                         </MultiBinding>
                                     </Image.Source>
+                                    <!-- TASK-071: the raster is rendered through the scene camera
+                                         (translation, scale, zoom, pan); only flips and rotation remain. -->
                                     <Image.RenderTransform>
                                         <TransformGroup>
-                                            <ScaleTransform ScaleX="{Binding ModelScale}" ScaleY="{Binding ModelScale}" />
                                             <ScaleTransform ScaleX="{Binding FlipX, Converter={StaticResource BooleanScaleConverter}}"
                                                             ScaleY="{Binding FlipY, Converter={StaticResource BooleanScaleConverter}}" />
                                             <RotateTransform Angle="{Binding ModelRotation}" />
-                                            <TranslateTransform X="{Binding ModelX}" Y="{Binding ModelY}" />
                                         </TransformGroup>
                                     </Image.RenderTransform>
                                 </Image>
@@ -1239,6 +1269,35 @@
                     <local:GpuViewport x:Name="GpuPreview" Margin="14"
                                        AutomationProperties.Name="GPU asset preview"
                                        AutomationProperties.AutomationId="Main.Viewport.GpuSurface" />
+
+                    <local:ViewportGuides Margin="14"
+                                          Zoom="{Binding ViewportZoom}"
+                                          PanX="{Binding ViewportPanX}"
+                                          PanY="{Binding ViewportPanY}"
+                                          ShowAxes="{Binding ShowAxes}"
+                                          ShowOrigin="{Binding ShowAxes}"
+                                          OriginX="{Binding SelectedSceneLayer.ModelX, FallbackValue=0}"
+                                          OriginY="{Binding SelectedSceneLayer.ModelY, FallbackValue=0}"
+                                          ShowFrame="{Binding IsExportFrameVisible}"
+                                          FrameWidth="{Binding ExportWidth}"
+                                          FrameHeight="{Binding ExportHeight}"
+                                          Visibility="{Binding HasAsset, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                          AutomationProperties.AutomationId="Main.Viewport.Guides" />
+
+                    <!-- TASK-074: the last Spine event key passed during playback. -->
+                    <Border HorizontalAlignment="Center"
+                            VerticalAlignment="Top"
+                            Margin="0,12,0,0"
+                            Padding="10,3"
+                            CornerRadius="10"
+                            IsHitTestVisible="False"
+                            Background="#CC17202A"
+                            BorderBrush="#F3C969"
+                            BorderThickness="1"
+                            Visibility="{Binding HasPlaybackEvent, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            AutomationProperties.AutomationId="Main.Viewport.PlaybackEvent">
+                        <TextBlock Text="{Binding PlaybackEventLabel}" Foreground="#F3C969" FontSize="12" FontWeight="SemiBold" />
+                    </Border>
 
                     <Border HorizontalAlignment="Left"
                             VerticalAlignment="Top"
@@ -1264,6 +1323,13 @@
                                       ToolTip="{DynamicResource Text.Background}"
                                       AutomationProperties.Name="{DynamicResource Text.Background}"
                                       AutomationProperties.AutomationId="Main.Inspector.Background" />
+                            <TextBox Width="74" MinHeight="24" Margin="4,0,0,0"
+                                     Style="{StaticResource NumericTextBox}"
+                                     Text="{Binding BackgroundColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                     Visibility="{Binding IsCustomBackground, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                     ToolTip="{DynamicResource Text.BackgroundColorHint}"
+                                     AutomationProperties.Name="{DynamicResource Text.BackgroundCustom}"
+                                     AutomationProperties.AutomationId="Main.Viewport.BackgroundColor" />
                             <TextBlock Margin="8,0,4,0"
                                        VerticalAlignment="Center"
                                        FontSize="11.5"
@@ -1599,6 +1665,10 @@
                                             <TextBlock Text="{DynamicResource Text.PreviewFps}" Style="{StaticResource PropertyLabel}" />
                                             <TextBox DockPanel.Dock="Right" Style="{StaticResource NumericTextBox}" Text="{Binding PreviewFramesPerSecond, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}, ValidatesOnExceptions=True}" AutomationProperties.AutomationId="Main.Inspector.PreviewFps" />
                                         </DockPanel>
+                                        <DockPanel Style="{StaticResource PropertyRow}" ToolTip="{DynamicResource Text.MixDurationHint}">
+                                            <TextBlock Text="{DynamicResource Text.MixDuration}" Style="{StaticResource PropertyLabel}" />
+                                            <TextBox DockPanel.Dock="Right" Style="{StaticResource NumericTextBox}" Text="{Binding MixDuration, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.###}, ValidatesOnExceptions=True}" AutomationProperties.Name="{DynamicResource Text.MixDuration}" AutomationProperties.AutomationId="Main.Inspector.MixDuration" />
+                                        </DockPanel>
                                         <Rectangle Height="1" Margin="0,0,0,6" Fill="{DynamicResource BorderBrush}" />
                                         <Expander IsExpanded="False"
                                                   Foreground="{DynamicResource TextBrush}"
@@ -1648,6 +1718,38 @@
                                                 <DockPanel Style="{StaticResource PropertyRow}">
                                                     <TextBlock Text="{DynamicResource Text.ExportFps}" Style="{StaticResource PropertyLabel}" />
                                                     <TextBox DockPanel.Dock="Right" Style="{StaticResource NumericTextBox}" Text="{Binding ExportFramesPerSecond, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}, ValidatesOnExceptions=True}" AutomationProperties.AutomationId="Main.Inspector.ExportFps" />
+                                                </DockPanel>
+                                                <DockPanel Style="{StaticResource PropertyRow}" ToolTip="{DynamicResource Text.ExportAnimationsHint}">
+                                                    <TextBlock Text="{DynamicResource Text.ExportAnimations}" Style="{StaticResource PropertyLabel}" />
+                                                    <ComboBox DockPanel.Dock="Right" Width="108"
+                                                              ItemsSource="{Binding ExportAnimationScopes}"
+                                                              SelectedItem="{Binding ExportAnimationScope}"
+                                                              AutomationProperties.Name="{DynamicResource Text.ExportAnimations}"
+                                                              AutomationProperties.AutomationId="Main.Inspector.ExportAnimationScope" />
+                                                </DockPanel>
+                                                <DockPanel Style="{StaticResource PropertyRow}"
+                                                           ToolTip="{DynamicResource Text.ExportRangeHint}"
+                                                           Visibility="{Binding IsExportRangeAvailable, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <TextBlock Text="{DynamicResource Text.ExportRange}" Style="{StaticResource PropertyLabel}" />
+                                                    <ComboBox DockPanel.Dock="Right" Width="108"
+                                                              ItemsSource="{Binding ExportRangeModes}"
+                                                              SelectedItem="{Binding ExportRangeMode}"
+                                                              AutomationProperties.Name="{DynamicResource Text.ExportRange}"
+                                                              AutomationProperties.AutomationId="Main.Inspector.ExportRangeMode" />
+                                                </DockPanel>
+                                                <StackPanel Visibility="{Binding IsExportCustomRange, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <DockPanel Style="{StaticResource PropertyRow}">
+                                                        <TextBlock Text="{DynamicResource Text.ExportRangeStart}" Style="{StaticResource PropertyLabel}" />
+                                                        <TextBox DockPanel.Dock="Right" Style="{StaticResource NumericTextBox}" Text="{Binding ExportRangeStart, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.###}, ValidatesOnExceptions=True}" AutomationProperties.Name="{DynamicResource Text.ExportRangeStart}" AutomationProperties.AutomationId="Main.Inspector.ExportRangeStart" />
+                                                    </DockPanel>
+                                                    <DockPanel Style="{StaticResource PropertyRow}">
+                                                        <TextBlock Text="{DynamicResource Text.ExportRangeEnd}" Style="{StaticResource PropertyLabel}" />
+                                                        <TextBox DockPanel.Dock="Right" Style="{StaticResource NumericTextBox}" Text="{Binding ExportRangeEnd, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.###}, ValidatesOnExceptions=True}" AutomationProperties.Name="{DynamicResource Text.ExportRangeEnd}" AutomationProperties.AutomationId="Main.Inspector.ExportRangeEnd" />
+                                                    </DockPanel>
+                                                </StackPanel>
+                                                <DockPanel Style="{StaticResource PropertyRow}" ToolTip="{DynamicResource Text.PhysicsWarmupHint}">
+                                                    <TextBlock Text="{DynamicResource Text.PhysicsWarmup}" Style="{StaticResource PropertyLabel}" />
+                                                    <TextBox DockPanel.Dock="Right" Style="{StaticResource NumericTextBox}" Text="{Binding ExportPhysicsWarmupLoops, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0}, ValidatesOnExceptions=True}" AutomationProperties.Name="{DynamicResource Text.PhysicsWarmup}" AutomationProperties.AutomationId="Main.Inspector.PhysicsWarmup" />
                                                 </DockPanel>
                                                 <DockPanel Style="{StaticResource PropertyRow}">
                                                     <TextBlock Text="{DynamicResource Text.ExportSize}" Style="{StaticResource PropertyLabel}" />
@@ -1885,11 +1987,37 @@
                             AutomationProperties.AutomationId="Main.Playback.Stop" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
-                    <Slider Minimum="0"
-                            Maximum="{Binding Duration}"
-                            Value="{Binding Position}"
-                            IsEnabled="{Binding CanPlay}"
-                            AutomationProperties.AutomationId="Main.Playback.Timeline" />
+                    <Grid>
+                        <Slider Minimum="0"
+                                Maximum="{Binding Duration}"
+                                Value="{Binding Position}"
+                                IsEnabled="{Binding CanPlay}"
+                                AutomationProperties.AutomationId="Main.Playback.Timeline" />
+                        <!-- TASK-074: Spine event keys of the selected layer's animation. -->
+                        <ItemsControl ItemsSource="{Binding TimelineEventMarkers}"
+                                      Margin="5,0"
+                                      VerticalAlignment="Top"
+                                      Focusable="False"
+                                      AutomationProperties.AutomationId="Main.Playback.EventMarkers">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <local:FractionPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Setter Property="local:FractionPanel.Fraction" Value="{Binding Fraction}" />
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Width="6" Height="7" Background="Transparent" ToolTip="{Binding Label}">
+                                        <Rectangle Width="2" Fill="#F3C969" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
                     <TextBlock Text="{Binding PlaybackTimeLabel}" Style="{StaticResource MutedText}" FontSize="12" HorizontalAlignment="Right" />
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal">

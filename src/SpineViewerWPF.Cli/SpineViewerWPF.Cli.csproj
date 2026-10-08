@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>spineviewerwpf</AssemblyName>
+    <ApplicationIcon>..\SpineViewerWPF.Wpf\Assets\AppIcon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../SpineViewerWPF.Application/SpineViewerWPF.Application.csproj" />

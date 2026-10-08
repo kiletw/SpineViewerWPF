@@ -140,9 +140,8 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private void FocusLayer(ShellViewModel viewModel, SceneLayerViewModel layer) =>
-        viewModel.FocusLayer(layer, target =>
-            GpuPreview.TryGetLayerContentCenter(target, out var x, out var y) ? (x, y) : null);
+    private static void FocusLayer(ShellViewModel viewModel, SceneLayerViewModel layer) =>
+        viewModel.FocusLayer(layer);
 
     private void MainWindowDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
@@ -224,7 +223,8 @@ public partial class MainWindow : Window
                     var dpi = VisualTreeHelper.GetDpi(ViewportSurface);
                     viewModel.SetViewportSize(
                         ViewportSurface.ActualWidth * dpi.DpiScaleX,
-                        ViewportSurface.ActualHeight * dpi.DpiScaleY);
+                        ViewportSurface.ActualHeight * dpi.DpiScaleY,
+                        dpi.DpiScaleX);
                 }
             }));
         }
@@ -516,7 +516,7 @@ public partial class MainWindow : Window
     {
         if (sender is not Visual visual || DataContext is not ShellViewModel viewModel) return;
         var dpi = VisualTreeHelper.GetDpi(visual);
-        viewModel.SetViewportSize(e.NewSize.Width * dpi.DpiScaleX, e.NewSize.Height * dpi.DpiScaleY);
+        viewModel.SetViewportSize(e.NewSize.Width * dpi.DpiScaleX, e.NewSize.Height * dpi.DpiScaleY, dpi.DpiScaleX);
     }
 
     // TASK-060: left-drag or middle-drag pans without a modifier; a left
@@ -633,6 +633,7 @@ internal sealed class FloatingPanelWindow : Window
         Title = title;
         Content = content;
         Owner = owner;
+        Icon = owner.Icon;
         DataContext = owner.DataContext;
         Width = width;
         Height = height;
@@ -743,12 +744,38 @@ internal static class PreviewFrameBitmap
         using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
         encoder.Save(stream);
     }
+
+    // TASK-075: a PNG entry keeps transparency for apps that read it; the
+    // standard bitmap entry serves the rest.
+    public static void CopyToClipboard(RenderedFrame frame, string channel)
+    {
+        var bitmap = Create(frame, channel);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        var png = new MemoryStream();
+        encoder.Save(png);
+        png.Position = 0;
+        var data = new DataObject();
+        data.SetImage(bitmap);
+        data.SetData("PNG", png, false);
+        Clipboard.SetDataObject(data, true);
+    }
 }
 
 public sealed class StringEqualsConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         string.Equals(value as string, parameter as string, StringComparison.Ordinal);
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+// TASK-073: recent-file menu entries show the file name; the tooltip keeps the path.
+public sealed class FileNameConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is string path ? Path.GetFileName(path) : "";
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();
