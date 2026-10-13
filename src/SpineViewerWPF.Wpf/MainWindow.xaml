@@ -75,6 +75,11 @@
         <local:BooleanScaleConverter x:Key="BooleanScaleConverter" />
         <local:StringEqualsConverter x:Key="StringEqualsConverter" />
         <local:FileNameConverter x:Key="FileNameConverter" />
+        <!-- TASK-077: option values stay stable; only their display is localized. -->
+        <local:OptionTextConverter x:Key="OptionTextConverter" />
+        <DataTemplate x:Key="OptionItemTemplate">
+            <TextBlock Text="{Binding Converter={StaticResource OptionTextConverter}}" />
+        </DataTemplate>
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
@@ -827,6 +832,11 @@
                     <MenuItem Header="{DynamicResource Text.ThemeDark}" Tag="Theme:Dark" Click="SelectViewOption" IsChecked="{Binding ThemeMode, Mode=OneWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Dark}" />
                     <MenuItem Header="{DynamicResource Text.ThemeLight}" Tag="Theme:Light" Click="SelectViewOption" IsChecked="{Binding ThemeMode, Mode=OneWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Light}" />
                 </MenuItem>
+                <MenuItem Header="{DynamicResource Text.Language}" ToolTip="{DynamicResource Text.LanguageHint}" AutomationProperties.AutomationId="Main.Menu.View.Language">
+                    <MenuItem Header="{DynamicResource Text.LanguageSystem}" Tag="Language:system" Click="SelectViewOption" IsChecked="{Binding UiLanguageSetting, Mode=OneWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=system}" />
+                    <MenuItem Header="English" Tag="Language:en" Click="SelectViewOption" IsChecked="{Binding UiLanguageSetting, Mode=OneWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=en}" />
+                    <MenuItem Header="繁體中文" Tag="Language:zh-TW" Click="SelectViewOption" IsChecked="{Binding UiLanguageSetting, Mode=OneWay, Converter={StaticResource StringEqualsConverter}, ConverterParameter=zh-TW}" />
+                </MenuItem>
             </MenuItem>
             <MenuItem Header="{DynamicResource Text.PlaybackMenu}" AutomationProperties.AutomationId="Main.Menu.Playback">
                 <MenuItem Header="{DynamicResource Text.PlayPause}" InputGestureText="Space" Command="{Binding TogglePlayCommand}" />
@@ -867,6 +877,8 @@
             </MenuItem>
             <MenuItem Header="{DynamicResource Text.Help}" AutomationProperties.AutomationId="Main.Menu.Help">
                 <MenuItem Header="{DynamicResource Text.Diagnostics}" InputGestureText="Ctrl+D" Command="{Binding DiagnosticsCommand}" />
+                <Separator />
+                <MenuItem Header="{DynamicResource Text.About}" Click="ShowAbout" AutomationProperties.AutomationId="Main.Menu.Help.About" />
             </MenuItem>
         </Menu>
 
@@ -1146,7 +1158,7 @@
                                         </Grid.ColumnDefinitions>
                                         <CheckBox Grid.Column="0"
                                                   IsChecked="{Binding IsVisible, Mode=TwoWay}"
-                                                  ToolTip="Visible"
+                                                  ToolTip="{DynamicResource Text.Visible}"
                                                   AutomationProperties.AutomationId="Main.Scene.LayerVisibility" />
                                         <TextBlock Grid.Column="1" Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                         <Border Grid.Column="2" Background="{DynamicResource ControlBrush}" CornerRadius="3" Padding="5,2" Margin="6,0,0,0">
@@ -1489,6 +1501,7 @@
                                       AutomationProperties.AutomationId="Main.Viewport.Channel" />
                             <ComboBox Width="112" MinHeight="24" Padding="6,2" Margin="4,0,0,0"
                                       ItemsSource="{Binding BackgroundModes}"
+                                      ItemTemplate="{StaticResource OptionItemTemplate}"
                                       SelectedItem="{Binding BackgroundMode}"
                                       ToolTip="{DynamicResource Text.Background}"
                                       AutomationProperties.Name="{DynamicResource Text.Background}"
@@ -1563,7 +1576,7 @@
                                 </Style.Triggers>
                             </Style>
                         </Border.Style>
-                        <TextBlock Text="Viewport ready · 1 non-blocking warning" Foreground="#171109" FontWeight="SemiBold" />
+                        <TextBlock Text="{DynamicResource Text.WarningBanner}" Foreground="#171109" FontWeight="SemiBold" />
                     </Border>
 
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="420">
@@ -1583,7 +1596,7 @@
                         <TextBlock Text="{Binding StateTitle}" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,18,0,6" />
                         <TextBlock Text="{Binding StateDetail}" Style="{StaticResource MutedText}" TextAlignment="Center" />
                         <Button Style="{StaticResource AccentButton}"
-                                Content="Open asset"
+                                Content="{DynamicResource Text.OpenAsset}"
                                 HorizontalAlignment="Center"
                                 Margin="0,20,0,0"
                                 Command="{Binding OpenAssetCommand}"
@@ -1629,7 +1642,7 @@
                             <TextBlock Text="{Binding StateTitle}" FontSize="22" FontWeight="SemiBold" TextAlignment="Center" />
                             <TextBlock Text="{Binding StateDetail}" Style="{StaticResource MutedText}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,16" />
                             <Button Style="{StaticResource ButtonBase}"
-                                    Content="View diagnostics"
+                                    Content="{DynamicResource Text.ViewDiagnostics}"
                                     HorizontalAlignment="Center"
                                     Command="{Binding DiagnosticsCommand}"
                                     AutomationProperties.AutomationId="Main.Status.DiagnosticsAction" />
@@ -1855,6 +1868,7 @@
                                                     <TextBlock Text="{DynamicResource Text.ExportFormat}" Style="{StaticResource PropertyLabel}" />
                                                     <ComboBox DockPanel.Dock="Right" Width="108"
                                                               ItemsSource="{Binding ExportFormats}"
+                                      ItemTemplate="{StaticResource OptionItemTemplate}"
                                                               SelectedItem="{Binding ExportFormat}"
                                                               AutomationProperties.Name="{DynamicResource Text.ExportFormat}"
                                                               AutomationProperties.AutomationId="Main.Inspector.ExportFormat" />
@@ -1893,6 +1907,7 @@
                                                     <TextBlock Text="{DynamicResource Text.ExportAnimations}" Style="{StaticResource PropertyLabel}" />
                                                     <ComboBox DockPanel.Dock="Right" Width="108"
                                                               ItemsSource="{Binding ExportAnimationScopes}"
+                                      ItemTemplate="{StaticResource OptionItemTemplate}"
                                                               SelectedItem="{Binding ExportAnimationScope}"
                                                               AutomationProperties.Name="{DynamicResource Text.ExportAnimations}"
                                                               AutomationProperties.AutomationId="Main.Inspector.ExportAnimationScope" />
@@ -1903,6 +1918,7 @@
                                                     <TextBlock Text="{DynamicResource Text.ExportRange}" Style="{StaticResource PropertyLabel}" />
                                                     <ComboBox DockPanel.Dock="Right" Width="108"
                                                               ItemsSource="{Binding ExportRangeModes}"
+                                      ItemTemplate="{StaticResource OptionItemTemplate}"
                                                               SelectedItem="{Binding ExportRangeMode}"
                                                               AutomationProperties.Name="{DynamicResource Text.ExportRange}"
                                                               AutomationProperties.AutomationId="Main.Inspector.ExportRangeMode" />
@@ -1925,6 +1941,7 @@
                                                     <TextBlock Text="{DynamicResource Text.ExportSize}" Style="{StaticResource PropertyLabel}" />
                                                     <ComboBox DockPanel.Dock="Right" Width="108"
                                                               ItemsSource="{Binding ExportSizeModes}"
+                                      ItemTemplate="{StaticResource OptionItemTemplate}"
                                                               SelectedItem="{Binding ExportSizeMode}"
                                                               ToolTip="{DynamicResource Text.ExportSizeHint}"
                                                               AutomationProperties.Name="{DynamicResource Text.ExportSize}"

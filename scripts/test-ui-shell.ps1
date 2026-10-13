@@ -9,6 +9,8 @@ $output = Join-Path $repository 'artifacts\ui-shell-smoke'
 $executable = Join-Path $output 'bin\Release\net8.0-windows\SpineViewerWPF.exe'
 # TASK-073: keep recent files and other user settings out of the real %APPDATA% file.
 $settingsArgument = '"--settings=' + (Join-Path $output 'user-settings.json') + '"'
+# TASK-077: checks below are language-independent, but keep the UI deterministic.
+$languageArgument = '--language=en'
 
 # Clear only a stale copy of this smoke executable before MSBuild tries to replace its DLLs.
 Get-Process -ErrorAction SilentlyContinue |
@@ -300,7 +302,7 @@ function Invoke-AutomationElement {
 
 $process = $null
 try {
-    $process = Start-Process -FilePath $executable -ArgumentList @('--state=ReadyWithWarnings', $settingsArgument) -PassThru
+    $process = Start-Process -FilePath $executable -ArgumentList @('--state=ReadyWithWarnings', $settingsArgument, $languageArgument) -PassThru
     # GLWpfControl can register a native helper window first; locate the titled
     # WPF window instead of trusting Process.MainWindowHandle.
     $mainWindow = $null
@@ -339,7 +341,7 @@ finally {
 $assetProcess = $null
 try {
     $fixture = Join-Path $repository 'tests\fixtures\v42-minimal\minimal.json'
-    $assetProcess = Start-Process -FilePath $executable -ArgumentList @("--asset=$fixture", $settingsArgument) -PassThru
+    $assetProcess = Start-Process -FilePath $executable -ArgumentList @("--asset=$fixture", $settingsArgument, $languageArgument) -PassThru
     $assetWindow = $null
     foreach ($attempt in 1..60) {
         Start-Sleep -Milliseconds 200
@@ -400,7 +402,7 @@ $setupProcess = $null
 $setupBackend = $null
 try {
     $setupFixture = Join-Path $repository 'tests\fixtures\v41-setup-pose\minimal.json'
-    $setupProcess = Start-Process -FilePath $executable -ArgumentList @("--asset=$setupFixture", $settingsArgument) -PassThru
+    $setupProcess = Start-Process -FilePath $executable -ArgumentList @("--asset=$setupFixture", $settingsArgument, $languageArgument) -PassThru
     $setupWindow = $null
     foreach ($attempt in 1..100) {
         Start-Sleep -Milliseconds 100
