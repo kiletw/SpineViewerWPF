@@ -2,6 +2,7 @@ using Microsoft.Win32;
 using SpineRuntime.V40;
 using SpineRuntime.V41;
 using SpineViewerWPF.Application;
+using System.Globalization;
 using System.Windows;
 
 namespace SpineViewerWPF.Wpf;
@@ -20,6 +21,15 @@ public partial class App : System.Windows.Application
         // TASK-073: tests point user settings (recent files, FFmpeg) at a scratch file.
         var settingsArgument = e.Args.FirstOrDefault(x => x.StartsWith("--settings=", StringComparison.OrdinalIgnoreCase));
         var settingsPath = settingsArgument?["--settings=".Length..];
+        var userSettings = UserSettingsStore.Load(string.IsNullOrWhiteSpace(settingsPath) ? null : settingsPath);
+
+        // TASK-077: the UI language is chosen once at startup (setting, or
+        // --language= for tests) and merged over the English dictionary.
+        var languageArgument = e.Args.FirstOrDefault(x => x.StartsWith("--language=", StringComparison.OrdinalIgnoreCase));
+        var language = UiLanguage.Resolve(languageArgument?["--language=".Length..] ?? userSettings.Language, CultureInfo.CurrentUICulture);
+        if (UiLanguage.Dictionary(language) is { } dictionary)
+            Resources.MergedDictionaries.Add(new ResourceDictionary { Source = dictionary });
+        CultureInfo.CurrentUICulture = CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo(language);
 
         string? ChooseAssetPath()
             => ChooseAssetPaths()?.FirstOrDefault();
@@ -28,8 +38,8 @@ public partial class App : System.Windows.Application
         {
             var dialog = new OpenFileDialog
             {
-                Title = "Select atlas file",
-                Filter = "Spine atlas (*.atlas)|*.atlas|All files (*.*)|*.*",
+                Title = (string)FindResource("Text.SelectAtlasTitle"),
+                Filter = (string)FindResource("Text.AtlasFilter"),
                 InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                 CheckFileExists = true,
                 Multiselect = false
@@ -137,6 +147,16 @@ public partial class App : System.Windows.Application
             return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
 
+        string? ChooseBrowserFolder()
+        {
+            var dialog = new OpenFolderDialog
+            {
+                Title = (string)FindResource("Text.ChooseFolderTitle"),
+                Multiselect = false
+            };
+            return dialog.ShowDialog() == true ? dialog.FolderName : null;
+        }
+
         bool ConfirmDiscardChanges() => MessageBox.Show(
             (string)FindResource("Text.DiscardPrompt"),
             (string)FindResource("Text.UnsavedTitle"),
@@ -168,8 +188,9 @@ public partial class App : System.Windows.Application
             chooseProjectPathToOpen: ChooseProjectPathToOpen,
             chooseEncodedExportPath: ChooseEncodedExportPath,
             chooseFfmpegPath: ChooseFfmpegPath,
-            userSettings: UserSettingsStore.Load(string.IsNullOrWhiteSpace(settingsPath) ? null : settingsPath),
-            copyImageToClipboard: PreviewFrameBitmap.CopyToClipboard);
+            userSettings: userSettings,
+            copyImageToClipboard: PreviewFrameBitmap.CopyToClipboard,
+            chooseBrowserFolder: ChooseBrowserFolder);
         MainWindow = new MainWindow
         {
             DataContext = viewModel

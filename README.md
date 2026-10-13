@@ -33,10 +33,14 @@ multiple historical Runtime versions.
   viewport (never written to output).
 - Crossfades animation switches during playback (optional Mix duration) and
   shows Spine event keys on the timeline and as playback passes them.
+- Browses a remembered folder of Spine skeletons (optionally with subfolders),
+  filters by name, and adds selected files to the scene or opens one.
 - Reloads layers automatically when their skeleton, atlas, or textures change on
   disk, and remembers recent files.
 - Copies screenshots to the clipboard and supports a custom viewport background
   color.
+- Shows its interface in English or Traditional Chinese (View > Language,
+  applied at the next start), with Help > About for version and license facts.
 
 Supported Runtime selections:
 
@@ -157,7 +161,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/publish-release.ps1 
 - Animation mixing is a preview feature for switches during playback; exports
   are never mixed, and event audio is not played.
 - Multi-track animation layering, attachment authoring, unrestricted Adobe-style
-  drag docking, runtime language switching, and MCP tools remain deferred.
+  drag docking, live language switching (changes apply after a restart), and
+  MCP tools remain deferred.
 
 Official Spine Runtime sources retain their upstream license files and commit
 metadata under `runtimes/`.

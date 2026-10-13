@@ -106,7 +106,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private int previewMetricPublishedFrames;
     private int previewMetricCoalescedFrames;
     private double previewMetricWorkMilliseconds;
-    private string previewPerformanceLabel = "Paused";
+    private string previewPerformanceLabel = Localized.Text("Status.Paused", "Paused");
     private bool gpuPreviewAvailable;
     private string? gpuPreviewFailure;
     private int screenshotInProgress;
@@ -120,6 +120,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private CancellationTokenSource? exportCancellation;
     private bool disposed;
     private bool sceneDirty;
+    private bool isAssetBrowserActive;
     private SceneLayerViewModel? selectedSceneLayer;
     private string animationFilter = "";
     private string? selectedAnimation = DefaultAnimations[0];
@@ -166,7 +167,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private bool fitPending;
     private string? projectPath;
     private bool isPrototypePreview = true;
-    private string lastAction = "Ready";
+    private string lastAction = Localized.Text("Status.Ready", "Ready");
 
     public ShellViewModel(
         WorkspaceState initialState,
@@ -184,7 +185,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         Func<string, string?>? chooseEncodedExportPath = null,
         Func<string?>? chooseFfmpegPath = null,
         UserSettingsStore? userSettings = null,
-        Action<RenderedFrame, string>? copyImageToClipboard = null)
+        Action<RenderedFrame, string>? copyImageToClipboard = null,
+        Func<string?>? chooseBrowserFolder = null)
     {
         this.copyImageToClipboard = copyImageToClipboard;
         state = initialState;
@@ -199,7 +201,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             selectedAnimation = null;
             selectedSkin = "default";
             isPrototypePreview = false;
-            lastAction = "Ready";
+            lastAction = Localized.Text("Status.Ready", "Ready");
         }
         isRailExpanded = expandedWorkspace;
         isInspectorVisible = expandedWorkspace;
@@ -212,6 +214,12 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         this.chooseEncodedExportPath = chooseEncodedExportPath ?? (_ => null);
         this.chooseFfmpegPath = chooseFfmpegPath ?? (() => null);
         this.userSettings = userSettings ?? UserSettingsStore.InMemory();
+        AssetBrowser = new AssetBrowserViewModel(
+            assetService,
+            this.userSettings,
+            chooseBrowserFolder ?? (() => null),
+            AddLayerPathsAsync,
+            path => OpenAssetAsync(path));
         this.chooseAssetPaths = chooseAssetPaths ?? (() =>
         {
             var path = chooseAssetPath ?? (() => null);
@@ -252,13 +260,13 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         ReloadCommand = new RelayCommand(async () =>
         {
             if (assetService is null)
-                LastAction = "Fake asset reloaded";
+                LastAction = Localized.Text("Status.FakeAssetReloaded", "Fake asset reloaded");
             else
                 await OpenAssetAsync(skeletonPath);
         }, () => HasAsset && !IsLoading && Volatile.Read(ref screenshotInProgress) == 0);
         OpenRecentCommand = new ParameterCommand(
             parameter => _ = OpenRecentAsync(parameter as string),
-            () => !IsLoading && Volatile.Read(ref screenshotInProgress) == 0);
+            _ => !IsLoading && Volatile.Read(ref screenshotInProgress) == 0);
         ClearRecentFilesCommand = new RelayCommand(ClearRecentFiles, () => HasRecentFiles);
         ExportCommand = new RelayCommand(StartExport, () => CanExport);
         BrowseFfmpegCommand = new RelayCommand(BrowseFfmpeg);
@@ -423,6 +431,24 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             Changed();
         }
     }
+
+    public AssetBrowserViewModel AssetBrowser { get; }
+
+    // TASK-068: the left panel shows either the scene Layers or the asset browser.
+    public bool IsAssetBrowserActive
+    {
+        get => isAssetBrowserActive;
+        set
+        {
+            if (isAssetBrowserActive == value) return;
+            isAssetBrowserActive = value;
+            if (value) AssetBrowser.EnsureLoaded();
+            Changed();
+            Changed(nameof(IsLayersPanelActive));
+        }
+    }
+
+    public bool IsLayersPanelActive => !isAssetBrowserActive;
 
     public bool IsBrowsePanelVisible
     {
@@ -789,10 +815,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     }
 
     public string ExportSizeSummary => (IsEncodedExport ? $"{exportFormat} · " : "")
-        + (IsExportAllAnimations ? "All animations · " : "")
+        + (IsExportAllAnimations ? Localized.Text("Option.Allanimations", "All animations") + " · " : "")
         + (IsExportCustomRange ? $"{exportRangeStart:0.###}–{exportRangeEnd:0.###}s · " : "")
         + (IsExportAutoFit
-            ? $"Auto fit · {exportScale:0.##}× · {exportMargin}px margin"
+            ? Localized.Format("Summary.AutoFit", "Auto fit · {0:0.##}× · {1}px margin", exportScale, exportMargin)
             : $"{exportWidth} × {exportHeight}");
 
     // TASK-066: output format and MP4 background are session preferences; the
@@ -840,7 +866,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public bool HasCustomFfmpegPath => !string.IsNullOrWhiteSpace(userSettings.FfmpegPath);
 
     public string FfmpegStatus => ResolvedFfmpegPath is not { } resolved
-        ? HasCustomFfmpegPath ? $"Not found: {userSettings.FfmpegPath}" : "Not found on PATH"
+        ? HasCustomFfmpegPath
+            ? Localized.Format("Status.FfmpegNotFoundAt", "Not found: {0}", userSettings.FfmpegPath)
+            : Localized.Text("Status.FfmpegNotOnPath", "Not found on PATH")
         : HasCustomFfmpegPath && string.Equals(resolved, Path.GetFullPath(userSettings.FfmpegPath!), StringComparison.OrdinalIgnoreCase)
             ? resolved
             : $"PATH: {resolved}";
@@ -863,9 +891,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     private void SetFfmpegPath(string? path)
     {
         if (!userSettings.SetFfmpegPath(path))
-            LastAction = "FFmpeg path could not be saved; using it for this session";
+            LastAction = Localized.Text("Status.FFmpegPathCouldNotBeSaved", "FFmpeg path could not be saved; using it for this session");
         else
-            LastAction = path is null ? "Using FFmpeg from PATH" : "FFmpeg path saved";
+            LastAction = path is null ? Localized.Text("Status.UsingFFmpegFromPATH", "Using FFmpeg from PATH") : Localized.Text("Status.FFmpegPathSaved", "FFmpeg path saved");
         Changed(nameof(CustomFfmpegPath));
         Changed(nameof(ResolvedFfmpegPath));
         Changed(nameof(HasCustomFfmpegPath));
@@ -974,7 +1002,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     public bool UseGpuPreview => gpuPreviewAvailable && PreviewChannel == "RGBA";
     public bool HasGpuPreview => UseGpuPreview && sceneLayers.Any(layer => layer.PreviewScene is not null);
     public bool IsCpuPreviewVisible => !HasGpuPreview;
-    public string PreviewBackendLabel => UseGpuPreview ? "GPU" : "CPU fallback";
+    public string PreviewBackendLabel => UseGpuPreview ? "GPU" : Localized.Text("Status.CpuFallback", "CPU fallback");
     public string PreviewPerformanceLabel => previewPerformanceLabel;
     public bool HasPrototypePreview => HasPreview && isPrototypePreview;
     public bool CanPlay => Definition.CanPlay && sceneLayers.Count > 0 && Duration > 0;
@@ -996,37 +1024,63 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         && Volatile.Read(ref sceneLayerOperationInProgress) == 0;
     public double ExportProgress => exportTotalFrames == 0 ? 0 : (double)exportCompletedFrames / exportTotalFrames;
     public string ExportProgressLabel => exportTotalFrames == 0
-        ? "Exporting…"
+        ? Localized.Text("Status.ExportingEllipsis", "Exporting…")
         : !exportEncoding
-            ? $"Exporting {exportCompletedFrames}/{exportTotalFrames}"
+            ? Localized.Format("Status.ExportingProgress", "Exporting {0}/{1}", exportCompletedFrames, exportTotalFrames)
             : exportCompletedFrames < exportTotalFrames / 2
-                ? $"Rendering {exportCompletedFrames}/{exportTotalFrames / 2}"
-                : $"Encoding {exportCompletedFrames - exportTotalFrames / 2}/{exportTotalFrames / 2}";
+                ? Localized.Format("Status.RenderingProgress", "Rendering {0}/{1}", exportCompletedFrames, exportTotalFrames / 2)
+                : Localized.Format("Status.EncodingProgress", "Encoding {0}/{1}", exportCompletedFrames - exportTotalFrames / 2, exportTotalFrames / 2);
     public bool IsDirty => sceneDirty || Capture() != savedSnapshot;
     public bool HasBlockingOverlay => State is WorkspaceState.Unsupported or WorkspaceState.Failed or WorkspaceState.RendererUnavailable;
-    public string StateTitle => stateTitleOverride ?? Definition.Title;
+    // TASK-077: state text is keyed by state ("State.<State>.Title" / ".Detail").
+    public string StateTitle => stateTitleOverride ?? Localized.Text($"State.{State}.Title", Definition.Title);
     public string StateDetail => stateDetailOverride
         ?? (State is WorkspaceState.Ready or WorkspaceState.ReadyWithWarnings
-            ? $"{SkeletonFileName} · {SelectedAnimation ?? "setup pose"}"
-            : Definition.Detail);
+            ? $"{SkeletonFileName} · {SelectedAnimation ?? Localized.Text("Status.SetupPose", "setup pose")}"
+            : Localized.Text($"State.{State}.Detail", Definition.Detail));
     public string RuntimeLabel => HasAsset ? $"Runtime {runtimeLine}" : "Runtime —";
     public string DiagnosticLabel => IsWarning
-        ? $"{diagnostics.Count} warning{(diagnostics.Count == 1 ? "" : "s")}"
+        ? Count("Status.Warning", "{0} warning", "Status.Warnings", "{0} warnings", diagnostics.Count)
         : State is WorkspaceState.Unsupported or WorkspaceState.Failed or WorkspaceState.RendererUnavailable
-            ? $"{Math.Max(1, diagnostics.Count)} error{(diagnostics.Count == 1 ? "" : "s")}"
-            : diagnostics.Count == 0 ? "No issues" : $"{diagnostics.Count} issue{(diagnostics.Count == 1 ? "" : "s")}";
+            ? Count("Status.Error", "{0} error", "Status.Errors", "{0} errors", Math.Max(1, diagnostics.Count))
+            : diagnostics.Count == 0
+                ? Localized.Text("Status.NoIssues", "No issues")
+                : Count("Status.Issue", "{0} issue", "Status.Issues", "{0} issues", diagnostics.Count);
+
+    private static string ScopeText(LayerParameterScope scope) =>
+        Localized.Text($"Option.Scope{scope}", scope.ToString().ToLowerInvariant());
+
+    // TASK-077: UI language setting ("system", "en", "zh-TW"), applied at the next start.
+    public IReadOnlyList<string> UiLanguages => UiLanguage.Choices;
+
+    public string UiLanguageSetting
+    {
+        get => userSettings.Language;
+        set
+        {
+            var next = UiLanguage.Normalize(value);
+            if (userSettings.Language == next) return;
+            userSettings.SetLanguage(next);
+            Changed();
+            LastAction = Localized.Text("Status.LanguageRestart", "Restart SpineViewerWPF to apply the language");
+        }
+    }
+
+    // English singular/plural; languages without plurals give both keys one text.
+    private static string Count(string oneKey, string one, string manyKey, string many, int count) =>
+        count == 1 ? Localized.Format(oneKey, one, count) : Localized.Format(manyKey, many, count);
     public IReadOnlyList<Diagnostic> Diagnostics => diagnostics;
     public bool IsDiagnosticsVisible => isDiagnosticsVisible;
     public string DiagnosticsSummary => diagnostics.Count == 0
-        ? "No diagnostics."
+        ? Localized.Text("Status.NoDiagnostics", "No diagnostics.")
         : string.Join(Environment.NewLine, diagnostics.Select(d =>
             $"{d.Severity.ToUpperInvariant()} {d.Code}: {d.Message}{(d.Path is null ? "" : $" ({d.Path})")}"));
-    public string PlaybackLabel => IsPlaying ? "Pause" : "Play";
+    public string PlaybackLabel => IsPlaying ? Localized.Text("Status.Pause", "Pause") : Localized.Text("Status.Play", "Play");
     public string SkeletonFileName => Path.GetFileName(skeletonPath);
     public string AssetSummary => $"{Path.GetFileName(atlasPath)} · Runtime {runtimeLine}";
-    public string DocumentTitle => HasAsset ? $"{SkeletonFileName}{(IsDirty ? " *" : "")}" : "No document";
+    public string DocumentTitle => HasAsset ? $"{SkeletonFileName}{(IsDirty ? " *" : "")}" : Localized.Text("Status.NoDocument", "No document");
     public string WindowTitle => $"Spine Viewer · {DocumentTitle}";
-    public string ProjectPathLabel => ProjectPath ?? "Not saved";
+    public string ProjectPathLabel => ProjectPath ?? Localized.Text("Status.NotSaved", "Not saved");
     public string? ProjectPath => projectPath;
     public RenderedFrame? PreviewFrame => sceneLayers.FirstOrDefault()?.PreviewFrame;
     public int PreviewPixelWidth => previewPixelWidth;
@@ -1052,7 +1106,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         SetDiagnostics(diagnostics.Where(item => item.Code != "GPU_FALLBACK").ToArray());
         if (!available && !string.IsNullOrWhiteSpace(gpuPreviewFailure))
         {
-            LastAction = "GPU unavailable; using CPU preview";
+            LastAction = Localized.Text("Status.GPUUnavailableUsingCPUPreview", "GPU unavailable; using CPU preview");
         }
         Changed(nameof(UseGpuPreview));
         Changed(nameof(HasGpuPreview));
@@ -1132,7 +1186,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         if (locateContentCenter(layer) is not { } center
             || !double.IsFinite(center.X) || !double.IsFinite(center.Y))
         {
-            LastAction = "Layer focus needs a rendered layer";
+            LastAction = Localized.Text("Status.LayerFocusNeedsARenderedLayer", "Layer focus needs a rendered layer");
             return false;
         }
         var nextX = Math.Clamp(-center.X, -MaxViewportPan, MaxViewportPan);
@@ -1141,7 +1195,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         viewportPanX = nextX;
         viewportPanY = nextY;
         if (changed) NotifyViewportChanged();
-        LastAction = $"Focused {Path.GetFileName(layer.SkeletonPath)}";
+        LastAction = Localized.Format("Status.Focused", "Focused {0}", Path.GetFileName(layer.SkeletonPath));
         return true;
     }
 
@@ -1163,21 +1217,21 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         if (selectedSceneLayer is null) return;
         var count = selectedSceneLayer.ApplySlotBatch(action);
-        var slots = count == 1 ? "1 slot" : $"{count} slots";
+        var slots = Count("Status.Slot", "{0} slot", "Status.Slots", "{0} slots", count);
         LastAction = count == 0
-            ? "No slots changed"
+            ? Localized.Text("Status.NoSlotsChanged", "No slots changed")
             : action switch
             {
-                SlotBatchAction.Show => $"Showed {slots}",
-                SlotBatchAction.Hide => $"Hid {slots}",
-                _ => $"Cleared attachments on {slots}"
+                SlotBatchAction.Show => Localized.Format("Status.ShowedSlots", "Showed {0}", slots),
+                SlotBatchAction.Hide => Localized.Format("Status.HidSlots", "Hid {0}", slots),
+                _ => Localized.Format("Status.ClearedAttachmentsOn", "Cleared attachments on {0}", slots)
             };
     }
 
     private void FitViewport()
     {
         FitToContent();
-        LastAction = "Viewport fitted";
+        LastAction = Localized.Text("Status.ViewportFitted", "Viewport fitted");
     }
 
     // TASK-071: zoom (never above 100%) and pan so the visible layers' current
@@ -1411,10 +1465,10 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             if (output is null)
             {
                 copyImageToClipboard!(captured, snapshot.Channel);
-                LastAction = "Copied screenshot to clipboard";
+                LastAction = Localized.Text("Status.CopiedScreenshotToClipboard", "Copied screenshot to clipboard");
             }
             else
-                LastAction = $"Captured {Path.GetFileName(output)}";
+                LastAction = Localized.Format("Status.Captured", "Captured {0}", Path.GetFileName(output));
         }
         catch (OperationCanceledException)
         {
@@ -1425,7 +1479,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 .. diagnostics.Where(item => item.Code != "CAPTURE_FAILED"),
                 new Diagnostic("error", "CAPTURE_FAILED", exception.Message, target)
             ]);
-            LastAction = "Screenshot failed";
+            LastAction = Localized.Text("Status.ScreenshotFailed", "Screenshot failed");
         }
         finally
         {
@@ -1450,6 +1504,18 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             ? null
             : layers;
         _ = ExportSequenceAsync(target, sceneLayerSnapshot, encodeFormat);
+    }
+
+    // TASK-068: layers chosen in the asset browser use the same path as Add layer;
+    // with no open asset the first file opens the workspace.
+    public Task AddLayerPathsAsync(IReadOnlyList<string> paths)
+    {
+        var targets = paths.Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (disposed || targets.Length == 0 || Interlocked.Exchange(ref sceneLayerOperationInProgress, 1) != 0)
+            return Task.CompletedTask;
+        return AddLayersAsync(targets);
     }
 
     private void StartAddLayer()
@@ -1491,12 +1557,12 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             SelectedSceneLayer = duplicate;
             MarkSceneEditWithoutUndo();
             QueuePreviewRender();
-            LastAction = $"Duplicated layer {source.DisplayName}";
+            LastAction = Localized.Format("Status.DuplicatedLayer", "Duplicated layer {0}", source.DisplayName);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             SetDiagnostics([new Diagnostic("error", "LAYER_DUPLICATE_FAILED", exception.Message, source.SkeletonPath)]);
-            LastAction = "Layer duplicate failed";
+            LastAction = Localized.Text("Status.LayerDuplicateFailed", "Layer duplicate failed");
         }
         finally
         {
@@ -1527,7 +1593,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         try
         {
             if (await ReloadLayerCoreAsync(source, select: true) is { } replacement)
-                LastAction = $"Reloaded layer {replacement.DisplayName}";
+                LastAction = Localized.Format("Status.ReloadedLayer", "Reloaded layer {0}", replacement.DisplayName);
         }
         finally
         {
@@ -1564,7 +1630,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             SetDiagnostics([new Diagnostic("error", "LAYER_RELOAD_FAILED", exception.Message, source.SkeletonPath)]);
-            LastAction = "Layer reload failed";
+            LastAction = Localized.Text("Status.LayerReloadFailed", "Layer reload failed");
             return null;
         }
     }
@@ -1611,6 +1677,13 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     public bool IsExportFrameVisible => ShowExportFrame && IsExportFixedSize;
 
+    // TASK-076: facts for Help > About.
+    public AboutInfo CreateAboutInfo() => AboutInfo.Create(
+        typeof(ShellViewModel).Assembly,
+        assetService?.RuntimeLines ?? [],
+        PreviewBackendLabel,
+        FfmpegStatus);
+
     private void RefreshSourceWatch()
     {
         if (disposed) return;
@@ -1653,7 +1726,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 if (await ReloadLayerCoreAsync(layer, select: false) is { } replacement)
                     reloaded.Add(replacement.DisplayName);
             if (reloaded.Count > 0)
-                LastAction = $"Auto-reloaded {string.Join(", ", reloaded.Distinct())}";
+                LastAction = Localized.Format("Status.AutoReloaded", "Auto-reloaded {0}", string.Join(", ", reloaded.Distinct()));
         }
         finally
         {
@@ -1691,8 +1764,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             Changed(nameof(RecentFiles));
             Changed(nameof(HasRecentFiles));
             RefreshCommands();
-            SetDiagnostics([new Diagnostic("warning", "RECENT_FILE_MISSING", "The file no longer exists and was removed from recent files.", path)]);
-            LastAction = $"Missing {Path.GetFileName(path)}";
+            SetDiagnostics([new Diagnostic("warning", "RECENT_FILE_MISSING", Localized.Text("Diagnostic.RecentFileMissing", "The file no longer exists and was removed from recent files."), path)]);
+            LastAction = Localized.Format("Status.Missing", "Missing {0}", Path.GetFileName(path));
             return;
         }
         if (path.EndsWith(ViewerProjectStore.Extension, StringComparison.OrdinalIgnoreCase))
@@ -1741,7 +1814,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         if (selectedSceneLayer is null) return;
         layerParameterClipboard = new LayerParameterClipboard(scope, selectedSceneLayer.ToDocument());
-        LastAction = $"Copied {scope.ToString().ToLowerInvariant()} layer parameters";
+        LastAction = Localized.Format("Status.CopiedLayerParameters", "Copied {0} layer parameters", ScopeText(scope));
         RefreshCommands();
     }
 
@@ -1749,7 +1822,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         if (selectedSceneLayer is null || layerParameterClipboard is null) return;
         selectedSceneLayer.ApplyParameters(layerParameterClipboard.Document, layerParameterClipboard.Scope);
-        LastAction = $"Pasted {layerParameterClipboard.Scope.ToString().ToLowerInvariant()} layer parameters";
+        LastAction = Localized.Format("Status.PastedLayerParameters", "Pasted {0} layer parameters", ScopeText(layerParameterClipboard.Scope));
     }
 
     private async Task AddLayersAsync(IReadOnlyList<string> paths)
@@ -1791,13 +1864,15 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 else QueueSlotMetadata();
             }
             LastAction = added == 0
-                ? paths.Count == 1 ? "Layer add failed" : "No additional layers added"
-                : $"Added {added} layer{(added == 1 ? "" : "s")}";
+                ? paths.Count == 1
+                    ? Localized.Text("Status.LayerAddFailed", "Layer add failed")
+                    : Localized.Text("Status.NoAdditionalLayersAdded", "No additional layers added")
+                : Count("Status.AddedLayer", "Added {0} layer", "Status.AddedLayers", "Added {0} layers", added);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             SetDiagnostics([new Diagnostic("error", "LAYER_OPEN_FAILED", exception.Message, paths[0])]);
-            LastAction = "Layer add failed";
+            LastAction = Localized.Text("Status.LayerAddFailed", "Layer add failed");
         }
         finally
         {
@@ -1811,7 +1886,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         if (sceneLayers.Count < 2) return;
         ArrangeSceneLayers();
         MarkSceneEditWithoutUndo();
-        LastAction = "Scene layers arranged";
+        LastAction = Localized.Text("Status.SceneLayersArranged", "Scene layers arranged");
     }
 
     private void ArrangeSceneLayers()
@@ -1877,7 +1952,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         Changed(nameof(HasRenderedPreview));
         Changed(nameof(PreviewResolutionLabel));
         MarkSceneEditWithoutUndo();
-        LastAction = $"Removed layer {layer.DisplayName}";
+        LastAction = Localized.Format("Status.RemovedLayer", "Removed layer {0}", layer.DisplayName);
     }
 
     private void MoveSelectedLayer(int delta)
@@ -2060,7 +2135,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 var results = await Task.Run(
                     () => assetService!.ExportBatch(batch, output, options, cancellation.Token, progress),
                     cancellation.Token);
-                LastAction = $"Exported {results.Count} animations ({results.Sum(item => item.FrameCount)} frames)";
+                LastAction = Localized.Format("Status.ExportedAnimationsFrames", "Exported {0} animations ({1} frames)", results.Count, results.Sum(item => item.FrameCount));
                 LastExportSize = string.Join(", ", results
                     .Where(item => item.Width > 0 && item.Height > 0)
                     .Select(item => $"{item.Width} × {item.Height}")
@@ -2073,7 +2148,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 var encoded = await Task.Run(
                     () => assetService!.ExportEncoded(request, options, output, true, cancellation.Token, progress),
                     cancellation.Token);
-                LastAction = $"Exported {encoded.FrameCount} frames to {Path.GetFileName(encoded.OutputPath)}";
+                LastAction = Localized.Format("Status.ExportedFramesTo", "Exported {0} frames to {1}", encoded.FrameCount, Path.GetFileName(encoded.OutputPath));
                 LastExportSize = $"{encoded.Width} × {encoded.Height}";
             }
             else
@@ -2081,19 +2156,19 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 var result = await Task.Run(
                     () => assetService!.Export(request, cancellation.Token, progress),
                     cancellation.Token);
-                LastAction = $"Exported {result.FrameCount} frames";
+                LastAction = Localized.Format("Status.ExportedFrames", "Exported {0} frames", result.FrameCount);
                 if (result.Width > 0 && result.Height > 0)
                     LastExportSize = $"{result.Width} × {result.Height}";
             }
         }
         catch (OperationCanceledException)
         {
-            LastAction = "Export canceled";
+            LastAction = Localized.Text("Status.ExportCanceled", "Export canceled");
         }
         catch (Exception exception)
         {
             SetDiagnostics([new Diagnostic("error", "EXPORT_FAILED", exception.Message, target)]);
-            LastAction = "Export failed";
+            LastAction = Localized.Text("Status.ExportFailed", "Export failed");
         }
         finally
         {
@@ -2132,8 +2207,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         var loadId = Interlocked.Increment(ref loadGeneration);
 
         State = WorkspaceState.Loading;
-        stateTitleOverride = $"Opening {Path.GetFileName(path)}";
-        stateDetailOverride = "Resolving atlas, textures, and Runtime…";
+        stateTitleOverride = Localized.Format("Status.Opening", "Opening {0}", Path.GetFileName(path));
+        stateDetailOverride = Localized.Text("Status.ResolvingAtlasTexturesAndRuntime", "Resolving atlas, textures, and Runtime…");
         Changed(nameof(StateTitle));
         Changed(nameof(StateDetail));
 
@@ -2171,7 +2246,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             SetDiagnostics([new Diagnostic("error", "UNSUPPORTED_ASSET", exception.Message, path)]);
             State = WorkspaceState.Unsupported;
             stateDetailOverride = exception.Message;
-            LastAction = "Asset is not supported";
+            LastAction = Localized.Text("Status.AssetIsNotSupported", "Asset is not supported");
             Changed(nameof(StateDetail));
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
@@ -2180,7 +2255,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             SetDiagnostics([new Diagnostic("error", "OPEN_FAILED", exception.Message, path)]);
             State = WorkspaceState.Failed;
             stateDetailOverride = exception.Message;
-            LastAction = "Asset open failed";
+            LastAction = Localized.Text("Status.AssetOpenFailed", "Asset open failed");
             Changed(nameof(StateDetail));
         }
     }
@@ -2198,7 +2273,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         if (Volatile.Read(ref screenshotInProgress) != 0) return;
         if (assetService is null)
         {
-            LastAction = "Project open requires a Runtime adapter";
+            LastAction = Localized.Text("Status.ProjectOpenRequiresARuntimeAdapter", "Project open requires a Runtime adapter");
             return;
         }
 
@@ -2209,8 +2284,8 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
         var previousState = State;
         State = WorkspaceState.Loading;
-        stateTitleOverride = $"Opening {Path.GetFileName(path)}";
-        stateDetailOverride = "Loading Viewer project and rendering scene layers…";
+        stateTitleOverride = Localized.Format("Status.Opening", "Opening {0}", Path.GetFileName(path));
+        stateDetailOverride = Localized.Text("Status.LoadingViewerProjectAndRenderingScene", "Loading Viewer project and rendering scene layers…");
         Changed(nameof(StateTitle));
         Changed(nameof(StateDetail));
 
@@ -2232,7 +2307,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             SetDiagnostics([new Diagnostic("error", "PROJECT_OPEN_FAILED", exception.Message, path)]);
             State = previousState;
             stateDetailOverride = exception.Message;
-            LastAction = "Project open failed";
+            LastAction = Localized.Text("Status.ProjectOpenFailed", "Project open failed");
             Changed(nameof(StateDetail));
         }
     }
@@ -2368,7 +2443,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         savedSnapshot = Capture();
         SetDiagnostics(loaded.SelectMany(item => item.Inspection.Diagnostics).ToArray());
         State = diagnostics.Count == 0 ? WorkspaceState.Ready : WorkspaceState.ReadyWithWarnings;
-        LastAction = $"Opened {Path.GetFileName(projectPath)}";
+        LastAction = Localized.Format("Status.Opened", "Opened {0}", Path.GetFileName(projectPath));
         Changed(nameof(SceneLayers));
         Changed(nameof(PreviewFrame));
         Changed(nameof(HasRenderedPreview));
@@ -2394,7 +2469,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         selectedSkin = skinNames[0];
         ResetEditor();
         State = WorkspaceState.Ready;
-        LastAction = "Workspace opened in 1 interaction";
+        LastAction = Localized.Text("Status.WorkspaceOpenedInInteraction", "Workspace opened in 1 interaction");
         Changed(string.Empty);
         RefreshCommands();
     }
@@ -2478,7 +2553,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
             stateDetailOverride = renderError;
             Changed(nameof(StateDetail));
         }
-        LastAction = renderError is null ? $"Rendered {SkeletonFileName}" : $"Opened metadata for {SkeletonFileName}";
+        LastAction = renderError is null ? Localized.Format("Status.Rendered", "Rendered {0}", SkeletonFileName) : Localized.Format("Status.OpenedMetadataFor", "Opened metadata for {0}", SkeletonFileName);
         Changed(string.Empty);
         if (UseGpuPreview) QueuePreviewRender();
         else QueueSlotMetadata();
@@ -2786,7 +2861,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         var fps = previewMetricPublishedFrames / window.TotalSeconds;
         var averageMilliseconds = previewMetricWorkMilliseconds / Math.Max(1, previewMetricPublishedFrames);
         var coalesced = Interlocked.Exchange(ref previewMetricCoalescedFrames, 0);
-        previewPerformanceLabel = $"{fps:0.0} FPS · {averageMilliseconds:0.0} ms work · {coalesced} coalesced";
+        previewPerformanceLabel = Localized.Format("Status.PreviewMetrics", "{0:0.0} FPS · {1:0.0} ms work · {2} coalesced", fps, averageMilliseconds, coalesced);
         previewMetricWindowStarted = Stopwatch.GetTimestamp();
         previewMetricPublishedFrames = 0;
         previewMetricWorkMilliseconds = 0;
@@ -2799,7 +2874,9 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         previewMetricPublishedFrames = 0;
         previewMetricWorkMilliseconds = 0;
         Interlocked.Exchange(ref previewMetricCoalescedFrames, 0);
-        previewPerformanceLabel = IsPlaying ? "Measuring preview…" : "Paused";
+        previewPerformanceLabel = IsPlaying
+            ? Localized.Text("Status.MeasuringPreview", "Measuring preview…")
+            : Localized.Text("Status.Paused", "Paused");
         Changed(nameof(PreviewPerformanceLabel));
     }
 
@@ -2814,6 +2891,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
     {
         if (disposed) return;
         disposed = true;
+        AssetBrowser.Dispose();
         Interlocked.Increment(ref loadGeneration);
         playbackTimer.Stop();
         exportCancellation?.Cancel();
@@ -2872,7 +2950,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
                 IsCustomBackground ? backgroundColor : null));
             savedSnapshot = Capture();
             sceneDirty = false;
-            LastAction = $"Saved {Path.GetFileName(projectPath)}";
+            LastAction = Localized.Format("Status.Saved", "Saved {0}", Path.GetFileName(projectPath));
             Changed(nameof(ProjectPath));
             Changed(nameof(ProjectPathLabel));
             Changed(nameof(IsDirty));
@@ -2883,7 +2961,7 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or InvalidDataException)
         {
-            LastAction = $"Save failed: {exception.Message}";
+            LastAction = Localized.Format("Status.SaveFailed", "Save failed: {0}", exception.Message);
             return false;
         }
     }
@@ -3035,10 +3113,27 @@ internal sealed class RelayCommand(Action execute, Func<bool>? canExecute = null
     public void Refresh() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 }
 
-internal sealed class ParameterCommand(Action<object?> execute, Func<bool>? canExecute = null) : ICommand
+// A command whose availability may depend on its parameter. It re-queries on
+// WPF's CommandManager signal (TASK-068) and on an explicit Refresh (TASK-073).
+internal sealed class ParameterCommand(Action<object?> execute, Func<object?, bool>? canExecute = null) : ICommand
 {
-    public event EventHandler? CanExecuteChanged;
-    public bool CanExecute(object? parameter) => canExecute?.Invoke() ?? true;
+    private EventHandler? refreshed;
+
+    public event EventHandler? CanExecuteChanged
+    {
+        add
+        {
+            refreshed += value;
+            CommandManager.RequerySuggested += value;
+        }
+        remove
+        {
+            refreshed -= value;
+            CommandManager.RequerySuggested -= value;
+        }
+    }
+
+    public bool CanExecute(object? parameter) => canExecute?.Invoke(parameter) ?? true;
     public void Execute(object? parameter) => execute(parameter);
-    public void Refresh() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+    public void Refresh() => refreshed?.Invoke(this, EventArgs.Empty);
 }

@@ -178,6 +178,9 @@ public sealed class AssetService
         if (this.runtimes.Count == 0) throw new ArgumentException("At least one Runtime adapter is required.", nameof(runtimes));
     }
 
+    // TASK-076: the Runtime lines this service can load, in registration order.
+    public IReadOnlyList<string> RuntimeLines => runtimes.Select(runtime => runtime.RuntimeLine).ToArray();
+
     public InspectResult Inspect(
         string skeletonPath,
         string? atlasPath,
