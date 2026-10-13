@@ -33,6 +33,8 @@ multiple historical Runtime versions.
   viewport (never written to output).
 - Crossfades animation switches during playback (optional Mix duration) and
   shows Spine event keys on the timeline and as playback passes them.
+- Browses a remembered folder of Spine skeletons (optionally with subfolders),
+  filters by name, and adds selected files to the scene or opens one.
 - Reloads layers automatically when their skeleton, atlas, or textures change on
   disk, and remembers recent files.
 - Copies screenshots to the clipboard and supports a custom viewport background
