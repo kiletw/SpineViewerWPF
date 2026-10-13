@@ -53,11 +53,12 @@ internal static class SetupPoseSmoke
                 "Static asset did not reach Ready with empty animation UI.");
             Check(!shell.IsPlaying && !shell.TogglePlayCommand.CanExecute(null) && shell.SceneLayers.Count == 1,
                 "Static asset playback/layer state is invalid.");
-            var initial = shell.PreviewFrame!.Bgra32.ToArray();
+            // TASK-071: opening fits the view and re-renders; capture only settled frames.
+            var initial = await Settled(shell);
             Check(Visible(shell.PreviewFrame), "WPF setup preview is blank.");
             shell.SelectedSceneLayer!.SelectedSkin = "faded";
             await Until(() => !initial.SequenceEqual(shell.PreviewFrame!.Bgra32), "Static skin edit did not change pixels.");
-            var faded = shell.PreviewFrame!.Bgra32.ToArray();
+            var faded = await Settled(shell);
             Check(shell.TrySave(), "Static sidecar save failed.");
             var saved = store.Load(projectPath);
             Check(saved.SceneLayers![0].Animation == "" && saved.SceneLayers[0].SelectedSkin == "faded",
@@ -190,6 +191,23 @@ internal static class SetupPoseSmoke
     private static void Check(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);
+    }
+
+    // The preview frame once it has not changed for 300 ms.
+    private static async Task<byte[]> Settled(ShellViewModel shell)
+    {
+        var timeout = DateTime.UtcNow.AddSeconds(20);
+        var last = shell.PreviewFrame!.Bgra32.ToArray();
+        var stableSince = DateTime.UtcNow;
+        while (DateTime.UtcNow < timeout && DateTime.UtcNow - stableSince < TimeSpan.FromMilliseconds(300))
+        {
+            await Task.Delay(10);
+            var current = shell.PreviewFrame!.Bgra32;
+            if (current.SequenceEqual(last)) continue;
+            last = current.ToArray();
+            stableSince = DateTime.UtcNow;
+        }
+        return last;
     }
 
     private static async Task Until(Func<bool> condition, string message)

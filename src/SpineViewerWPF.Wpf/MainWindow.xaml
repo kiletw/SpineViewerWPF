@@ -867,6 +867,8 @@
             </MenuItem>
             <MenuItem Header="{DynamicResource Text.Help}" AutomationProperties.AutomationId="Main.Menu.Help">
                 <MenuItem Header="{DynamicResource Text.Diagnostics}" InputGestureText="Ctrl+D" Command="{Binding DiagnosticsCommand}" />
+                <Separator />
+                <MenuItem Header="{DynamicResource Text.About}" Click="ShowAbout" AutomationProperties.AutomationId="Main.Menu.Help.About" />
             </MenuItem>
         </Menu>
 

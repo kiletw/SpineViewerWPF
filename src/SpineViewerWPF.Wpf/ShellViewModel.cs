@@ -1649,6 +1649,13 @@ public sealed class ShellViewModel : INotifyPropertyChanged, IDisposable
 
     public bool IsExportFrameVisible => ShowExportFrame && IsExportFixedSize;
 
+    // TASK-076: facts for Help > About.
+    public AboutInfo CreateAboutInfo() => AboutInfo.Create(
+        typeof(ShellViewModel).Assembly,
+        assetService?.RuntimeLines ?? [],
+        PreviewBackendLabel,
+        FfmpegStatus);
+
     private void RefreshSourceWatch()
     {
         if (disposed) return;

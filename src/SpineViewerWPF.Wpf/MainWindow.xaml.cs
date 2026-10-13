@@ -190,6 +190,13 @@ public partial class MainWindow : Window
         if (inspectorPanelWindow is not null) ApplyNativeTitleBar(inspectorPanelWindow);
     }
 
+    // TASK-076: Help > About.
+    private void ShowAbout(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not ShellViewModel viewModel) return;
+        new AboutWindow(this, viewModel.CreateAboutInfo(), ApplyNativeTitleBar).ShowDialog();
+    }
+
     // TASK-060: keep the native caption but match it to the active theme.
     private void ApplyNativeTitleBar(Window window)
     {
