@@ -511,6 +511,9 @@ public partial class MainWindow : Window
             case "Theme":
                 viewModel.ThemeMode = value;
                 break;
+            case "Language":
+                viewModel.UiLanguageSetting = value;
+                break;
         }
     }
 

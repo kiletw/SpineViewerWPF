@@ -35,6 +35,8 @@ Runtime 版本匯出的檔案。
   檔案加入場景或直接開啟。
 - Skeleton、atlas 或貼圖在磁碟上變更時自動重新載入圖層，並記住最近開啟的檔案。
 - 可將截圖複製到剪貼簿，並支援自訂 Viewport 背景色。
+- 介面提供英文與繁體中文（View > Language，下次啟動生效），並可從 Help > About
+  查看版本與授權資訊。
 
 支援的 Runtime 選項：
 
@@ -143,7 +145,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/publish-release.ps1 
   縮小，請調整圖層位置把角色放進框內（View > Show Export Frame 會顯示範圍）。
   Auto fit 不受影響。
 - 動畫過渡只用於播放中切換動畫的預覽；匯出永遠不會混合，也不播放事件音效。
-- 多 Track 動畫疊加、Attachment 製作、完整 Adobe 式拖曳 Dock、執行期間語言
-  切換及 MCP 工具仍為 deferred。
+- 多 Track 動畫疊加、Attachment 製作、完整 Adobe 式拖曳 Dock、即時語言切換
+  （目前需重新啟動才生效）及 MCP 工具仍為 deferred。
 
 官方 Spine Runtime 原始碼的授權與 commit metadata 保留在 `runtimes/`。

@@ -47,7 +47,7 @@ to the quick-browse and export workflow; each item still needs its own task.
 | 6 | Folder browser with thumbnails, filtering, and batch import | TASK-068 (thumbnails deferred) |
 | later | Debug geometry (bounds, bones first), multi-track animation, skin combinations | needs Runtime-neutral contracts across all adapters |
 | later | Direct viewport selection and layer dragging | needs a tool mode; left-drag currently pans |
-| later | Non-PNG textures, nearest filtering, PSD layers, UI language switching, file association | separate compatibility/product tasks |
+| later | Non-PNG textures, nearest filtering, PSD layers, file association (UI language: TASK-077, English and Traditional Chinese, applied at restart) | separate compatibility/product tasks |
 | no | Desktop wallpaper, tray residency, auto-start, WorkerW debugging, hit-slot logging | outside the viewer product scope |
 
 ## Adoption Roadmap, Round 2 (2026-10-07 review)

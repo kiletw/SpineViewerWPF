@@ -55,7 +55,7 @@ internal static class SetupPoseSmoke
                 "Static asset playback/layer state is invalid.");
             // TASK-071: opening fits the view and re-renders; capture only settled frames.
             var initial = await Settled(shell);
-            Check(Visible(shell.PreviewFrame), "WPF setup preview is blank.");
+            Check(Visible(shell.PreviewFrame!), "WPF setup preview is blank.");
             shell.SelectedSceneLayer!.SelectedSkin = "faded";
             await Until(() => !initial.SequenceEqual(shell.PreviewFrame!.Bgra32), "Static skin edit did not change pixels.");
             var faded = await Settled(shell);

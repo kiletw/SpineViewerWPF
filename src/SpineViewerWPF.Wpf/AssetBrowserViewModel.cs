@@ -40,7 +40,7 @@ public sealed class AssetBrowserViewModel : INotifyPropertyChanged, IDisposable
         this.openAsset = openAsset;
         folder = settings.BrowserFolder;
         includeSubfolders = settings.BrowserIncludeSubfolders;
-        status = folder is null ? "Choose a folder to list Spine skeletons." : "";
+        status = folder is null ? Localized.Text("Status.ChooseAFolderToListSpine", "Choose a folder to list Spine skeletons.") : "";
         ChooseFolderCommand = new RelayCommand(ChooseFolder);
         RefreshCommand = new RelayCommand(() => _ = ScanAsync(), () => folder is not null && !isScanning);
         AddToSceneCommand = new ParameterCommand(parameter => _ = AddToSceneAsync(Paths(parameter)), parameter => Paths(parameter).Count > 0);
@@ -56,7 +56,7 @@ public sealed class AssetBrowserViewModel : INotifyPropertyChanged, IDisposable
     public List<AssetBrowserItem> Items { get; private set; } = [];
 
     public string? Folder => folder;
-    public string FolderLabel => folder ?? "No folder";
+    public string FolderLabel => folder ?? Localized.Text("Browser.NoFolder", "No folder");
     public bool IsScanning => isScanning;
     public string Status
     {
@@ -103,8 +103,10 @@ public sealed class AssetBrowserViewModel : INotifyPropertyChanged, IDisposable
         .ToArray();
 
     public string CountLabel => FilteredItems.Count == Items.Count
-        ? $"{Items.Count} skeleton{(Items.Count == 1 ? "" : "s")}"
-        : $"{FilteredItems.Count} of {Items.Count}";
+        ? Items.Count == 1
+            ? Localized.Format("Browser.Skeleton", "{0} skeleton", Items.Count)
+            : Localized.Format("Browser.Skeletons", "{0} skeletons", Items.Count)
+        : Localized.Format("Browser.FilteredCount", "{0} of {1}", FilteredItems.Count, Items.Count);
 
     // Scans the remembered folder the first time the browser is shown.
     public void EnsureLoaded()
@@ -133,7 +135,7 @@ public sealed class AssetBrowserViewModel : INotifyPropertyChanged, IDisposable
         var root = folder;
         var recursive = includeSubfolders;
         SetScanning(true);
-        Status = "Scanning…";
+        Status = Localized.Text("Status.Scanning", "Scanning…");
         try
         {
             var scan = await Task.Run(() => AssetBrowser.Scan(root, recursive, AssetBrowser.DefaultLimit, cancellation.Token), cancellation.Token);
@@ -143,7 +145,7 @@ public sealed class AssetBrowserViewModel : INotifyPropertyChanged, IDisposable
             Changed(nameof(Items));
             Changed(nameof(FilteredItems));
             Changed(nameof(CountLabel));
-            Status = scan.Truncated ? $"Showing the first {AssetBrowser.DefaultLimit} skeletons" : "";
+            Status = scan.Truncated ? Localized.Format("Status.ShowingTheFirstSkeletons", "Showing the first {0} skeletons", AssetBrowser.DefaultLimit) : "";
             SetScanning(false);
             DetailsTask = LoadDetailsAsync(Items, cancellation.Token);
         }
@@ -183,7 +185,11 @@ public sealed class AssetBrowserViewModel : INotifyPropertyChanged, IDisposable
                 var animations = inspection.Animations.Count;
                 item.SetDetail(
                     $"{inspection.Runtime.DetectedExportVersion ?? inspection.Runtime.SelectedLine} · " +
-                    (animations == 0 ? "setup pose" : $"{animations} animation{(animations == 1 ? "" : "s")}"),
+                    (animations == 0
+                        ? Localized.Text("Status.SetupPose", "setup pose")
+                        : animations == 1
+                            ? Localized.Format("Browser.Animation", "{0} animation", animations)
+                            : Localized.Format("Browser.Animations", "{0} animations", animations)),
                     !inspection.Success);
             }
             catch (OperationCanceledException)
