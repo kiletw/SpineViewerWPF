@@ -73,7 +73,7 @@ public sealed class LegacyRuntimeAdapter : IRuntimeAdapter
             true,
             new AssetDescriptor(skeletonPath, atlasPath, asset.TexturePaths),
             new RuntimeDescriptor(asset.Data.Version, RuntimeLine, RuntimeInfo.Commit, overridden),
-            asset.Data.Animations.Select(item => new AnimationDescriptor(item.Name, item.Duration)).ToArray(),
+            asset.Data.Animations.Select(item => new AnimationDescriptor(item.Name, item.Duration, Events(item))).ToArray(),
             asset.Data.Skins.Select(item => item.Name).ToArray(),
             Array.Empty<Diagnostic>(),
             BuildSlots(asset.Data));
@@ -106,6 +106,22 @@ public sealed class LegacyRuntimeAdapter : IRuntimeAdapter
             result.Add(new SlotDescriptor(slot.Name, slot.AttachmentName, names.OrderBy(x => x, StringComparer.Ordinal).ToArray()));
         }
         return result;
+    }
+
+    // TASK-074: Spine event keys of an animation, in time order.
+    private static IReadOnlyList<AnimationEventKey> Events(RuntimeSpine.Animation animation)
+    {
+        var keys = new List<AnimationEventKey>();
+        foreach (var timeline in animation.Timelines)
+        {
+            if (timeline is not RuntimeSpine.EventTimeline events) continue;
+            for (var index = 0; index < events.Events.Length; index++)
+            {
+                var key = events.Events[index];
+                keys.Add(new AnimationEventKey(events.Frames[index], key.Data.Name, key.Int, key.Float, key.String));
+            }
+        }
+        return keys.OrderBy(key => key.TimeSeconds).ToArray();
     }
 
     public IRuntimeRenderSession OpenSession(string skeletonPath, string atlasPath, CancellationToken cancellationToken)
@@ -155,7 +171,8 @@ public sealed class LegacyRuntimeAdapter : IRuntimeAdapter
         {
             cancellationToken.ThrowIfCancellationRequested();
             var skeleton = Pose(new FrameRenderRequest(
-                request.Animation, request.TimeSeconds, 1, 1, request.Pma, request.Skins, request.TrackAlpha, false, request.Slots));
+                request.Animation, request.TimeSeconds, 1, 1, request.Pma, request.Skins, request.TrackAlpha, false, request.Slots,
+                Mix: request.Mix));
             return CpuRenderer.BuildPreviewScene(skeleton, request.Pma);
         }
 
@@ -178,18 +195,53 @@ public sealed class LegacyRuntimeAdapter : IRuntimeAdapter
             if (animation is not null)
             {
                 var state = new RuntimeSpine.AnimationState(stateData);
+                // TASK-074: pose the previous animation, then mix into this one.
+                var from = MixSource(loaded, request.Mix);
+                if (from is not null)
+                {
+                    SetAlpha(state.SetAnimation(0, from, true), request.TrackAlpha);
+                    state.Update(request.Mix.FromTimeSeconds);
+                    state.Apply(skeleton);
+                    skeleton.SetToSetupPose();
+                    stateData.DefaultMix = request.Mix.DurationSeconds;
+                }
                 var entry = state.SetAnimation(0, animation, false);
-#if SPINE_RUNTIME_2108 || SPINE_RUNTIME_2125 || SPINE_RUNTIME_3107 || SPINE_RUNTIME_32XX || SPINE_RUNTIME_3402
-                entry.Mix = request.TrackAlpha;
-#else
-                entry.Alpha = request.TrackAlpha;
-#endif
-                state.Update(request.TimeSeconds);
+                stateData.DefaultMix = 0;
+                SetAlpha(entry, request.TrackAlpha);
+                if (from is not null)
+                {
+                    SetTrackTime(entry, Math.Max(0, request.TimeSeconds - request.Mix.ElapsedSeconds));
+                    state.Update(request.Mix.ElapsedSeconds);
+                }
+                else
+                    state.Update(request.TimeSeconds);
                 state.Apply(skeleton);
             }
             ApplySlotDisplaySettings(skeleton, request.Slots);
             skeleton.UpdateWorldTransform();
             return skeleton;
+        }
+
+        // TASK-074: the animation to mix from, or null when there is no usable mix.
+        private static RuntimeSpine.Animation MixSource(LoadedAsset loaded, AnimationMix mix) =>
+            mix is null || string.IsNullOrEmpty(mix.FromAnimation) || !(mix.DurationSeconds > 0) ? null : loaded.Data.FindAnimation(mix.FromAnimation);
+
+        private static void SetTrackTime(RuntimeSpine.TrackEntry entry, float time)
+        {
+#if SPINE_RUNTIME_2108 || SPINE_RUNTIME_2125 || SPINE_RUNTIME_3107 || SPINE_RUNTIME_32XX || SPINE_RUNTIME_3402
+            entry.Time = time;
+#else
+            entry.TrackTime = time;
+#endif
+        }
+
+        private static void SetAlpha(RuntimeSpine.TrackEntry entry, float alpha)
+        {
+#if SPINE_RUNTIME_2108 || SPINE_RUNTIME_2125 || SPINE_RUNTIME_3107 || SPINE_RUNTIME_32XX || SPINE_RUNTIME_3402
+            entry.Mix = alpha;
+#else
+            entry.Alpha = alpha;
+#endif
         }
 
         private static void ApplySlotDisplaySettings(RuntimeSpine.Skeleton skeleton, IReadOnlyList<SlotDisplayDocument> settings)

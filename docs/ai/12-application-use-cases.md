@@ -60,7 +60,7 @@ TASK-066 / ADR-010: `AssetService.ExportEncoded` renders the same frame request 
 
 ### `LoadViewerProject`, `SaveViewerProject`
 
-Loads and saves project-owned viewer settings through a versioned `*.spineviewer.json` sidecar. Schema version 1 stores source references, selected animation and skin, model transform, playback settings, background mode, optional per-layer Track 0 Alpha/PMA fields, and slot visibility/opacity plus optional named attachment settings. Missing per-layer Alpha falls back to the prior top-level primary-layer value; a missing attachment setting retains animation/setup behavior. It never writes Spine JSON, binary, atlas, or texture sources.
+Loads and saves project-owned viewer settings through a versioned `*.spineviewer.json` sidecar. Schema version 1 stores source references, selected animation and skin, model transform, playback settings, background mode (Checkerboard, Dark, Light, or Custom with a required `#RRGGBB` background color, TASK-075), optional per-layer Track 0 Alpha/PMA fields, and slot visibility/opacity plus optional named attachment settings. Missing per-layer Alpha falls back to the prior top-level primary-layer value; a missing attachment setting retains animation/setup behavior. It never writes Spine JSON, binary, atlas, or texture sources.
 
 ## Error Model
 

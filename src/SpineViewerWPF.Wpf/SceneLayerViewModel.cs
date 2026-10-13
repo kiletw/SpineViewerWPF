@@ -28,6 +28,7 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
     private readonly Action? changed;
     private readonly Action? changing;
     private readonly IReadOnlyDictionary<string, double> animationDurations;
+    private readonly IReadOnlyDictionary<string, IReadOnlyList<AnimationEventKey>> animationEvents;
     private string animation;
     private string selectedSkin;
     private RenderedFrame? previewFrame;
@@ -64,6 +65,10 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
         Animations = inspection.Animations.Select(item => item.Name).ToArray();
         Skins = inspection.Skins.Count == 0 ? ["default"] : inspection.Skins.ToArray();
         animationDurations = inspection.Animations.ToDictionary(item => item.Name, item => (double)item.DurationSeconds, StringComparer.Ordinal);
+        animationEvents = inspection.Animations.ToDictionary(
+            item => item.Name,
+            item => item.Events ?? (IReadOnlyList<AnimationEventKey>)[],
+            StringComparer.Ordinal);
         this.animation = animation;
         this.selectedSkin = selectedSkin;
         this.previewFrame = previewFrame;
@@ -89,9 +94,11 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
         {
             if (string.IsNullOrWhiteSpace(value) || !animationDurations.ContainsKey(value) || animation == value) return;
             changing?.Invoke();
+            SwitchedFromAnimation = animation;
             animation = value;
             Changed(nameof(Animation));
             Changed(nameof(Duration));
+            Changed(nameof(AnimationEvents));
             changed?.Invoke();
         }
     }
@@ -110,6 +117,16 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
     }
 
     public double Duration => animationDurations.TryGetValue(Animation, out var duration) ? duration : 0;
+
+    // TASK-074: Spine event keys of the current animation, in time order.
+    public IReadOnlyList<AnimationEventKey> AnimationEvents =>
+        animationEvents.TryGetValue(Animation, out var events) ? events : [];
+
+    // TASK-074: the animation shown before the last Animation change, until the
+    // Shell consumes it to start a mix.
+    internal string? SwitchedFromAnimation { get; set; }
+
+    internal double DurationOf(string name) => animationDurations.TryGetValue(name, out var duration) ? duration : 0;
     public string DisplayName => Path.GetFileName(SkeletonPath);
     public RenderedFrame? PreviewFrame => previewFrame;
     public PreviewSceneFrame? PreviewScene => previewScene;
@@ -219,6 +236,7 @@ public sealed class SceneLayerViewModel : INotifyPropertyChanged, IDisposable
         Changed(nameof(Animation));
         Changed(nameof(SelectedSkin));
         Changed(nameof(Duration));
+        Changed(nameof(AnimationEvents));
     }
 
     internal void SetTransform(double x, double y, double scale, double rotation, bool flipX, bool flipY)

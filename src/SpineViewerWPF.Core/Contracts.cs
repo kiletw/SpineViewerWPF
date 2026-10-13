@@ -2,7 +2,18 @@ namespace SpineViewerWPF.Core;
 
 public sealed record Diagnostic(string Severity, string Code, string Message, string? Path = null);
 
-public sealed record AnimationDescriptor(string Name, float DurationSeconds);
+// TASK-074: Events lists the animation's Spine event keys in time order; null
+// means the adapter did not report events.
+public sealed record AnimationDescriptor(string Name, float DurationSeconds, IReadOnlyList<AnimationEventKey>? Events = null);
+
+public sealed record AnimationEventKey(float TimeSeconds, string Name, int Int, float Float, string? String);
+
+// TASK-074: crossfade into the requested animation from FromAnimation, which was
+// at FromTimeSeconds when the switch happened ElapsedSeconds ago. The requested
+// animation stays at the request time and mixes in over DurationSeconds while the
+// source keeps playing; a mix that has finished, or names an unknown or empty
+// FromAnimation, is ignored.
+public sealed record AnimationMix(string FromAnimation, float FromTimeSeconds, float DurationSeconds, float ElapsedSeconds);
 
 public sealed record SlotDescriptor(
     string Name,
@@ -40,13 +51,17 @@ public sealed record RenderRequest(
     bool Pma,
     IReadOnlyList<string> Skins,
     float TrackAlpha = 1,
-    IReadOnlyList<SlotDisplayDocument>? Slots = null);
+    IReadOnlyList<SlotDisplayDocument>? Slots = null,
+    int PhysicsWarmupLoops = 0);
 
 // Fixed framing for one rendered frame: the skeleton-space point drawn at the
 // frame center and the output pixels per skeleton unit. Null keeps the renderer's
 // automatic bounds fit.
 public sealed record RenderCamera(float CenterX, float CenterY, float Scale);
 
+// PhysicsWarmupLoops (TASK-072): Runtimes with Physics first play the animation
+// looped this many times so physics settles, then pose TimeSeconds from a restart
+// with that physics state; Runtimes without Physics ignore it.
 public sealed record FrameRenderRequest(
     string Animation,
     float TimeSeconds,
@@ -57,7 +72,9 @@ public sealed record FrameRenderRequest(
     float TrackAlpha = 1,
     bool LinearFiltering = true,
     IReadOnlyList<SlotDisplayDocument>? Slots = null,
-    RenderCamera? Camera = null);
+    RenderCamera? Camera = null,
+    int PhysicsWarmupLoops = 0,
+    AnimationMix? Mix = null);
 
 public sealed record RenderedFrame(int Width, int Height, byte[] Bgra32);
 
@@ -98,7 +115,9 @@ public sealed record PreviewSceneRequest(
     bool Pma,
     IReadOnlyList<string> Skins,
     float TrackAlpha = 1,
-    IReadOnlyList<SlotDisplayDocument>? Slots = null);
+    IReadOnlyList<SlotDisplayDocument>? Slots = null,
+    int PhysicsWarmupLoops = 0,
+    AnimationMix? Mix = null);
 
 public sealed record SceneLayerRenderRequest(
     string SkeletonPath,
@@ -161,7 +180,24 @@ public sealed record AnimationExportRequest(
     float TrackAlpha = 1,
     IReadOnlyList<SlotDisplayDocument>? Slots = null,
     IReadOnlyList<SceneLayerDocument>? SceneLayers = null,
-    ExportFraming? Framing = null);
+    ExportFraming? Framing = null,
+    float StartSeconds = 0,
+    int PhysicsWarmupLoops = 0);
+
+// TASK-072: one export per animation. The animation varies on the single-layer
+// request, or on SceneLayers[SceneLayerIndex] when the template is a scene; each
+// item exports that animation's full duration.
+public sealed record AnimationBatchExportRequest(
+    AnimationExportRequest Template,
+    IReadOnlyList<string> Animations,
+    int? SceneLayerIndex = null);
+
+public sealed record AnimationBatchItemResult(
+    string Animation,
+    IReadOnlyList<string> OutputPaths,
+    int FrameCount,
+    int Width,
+    int Height);
 
 // Auto-fit export framing: the output size follows the union of the visible
 // content bounds across every exported frame, rendered at Scale output pixels per
@@ -216,4 +252,6 @@ public sealed record ViewerProjectDocument(
     double PlaybackSpeed,
     double TrackAlpha,
     string BackgroundMode,
-    IReadOnlyList<SceneLayerDocument>? SceneLayers = null);
+    IReadOnlyList<SceneLayerDocument>? SceneLayers = null,
+    // TASK-075: #RRGGBB, required when BackgroundMode is "Custom".
+    string? BackgroundColor = null);

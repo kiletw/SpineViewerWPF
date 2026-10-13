@@ -63,8 +63,10 @@ internal static class SetupPoseSmoke
             Check(saved.SceneLayers![0].Animation == "" && saved.SceneLayers[0].SelectedSkin == "faded",
                 "Sidecar did not persist setup pose/skin.");
             await shell.OpenProjectAsync(projectPath);
-            Check(shell.State == WorkspaceState.Ready && shell.SceneLayers[0].Animation == ""
-                && shell.PreviewFrame!.Bgra32.SequenceEqual(faded), "Static sidecar restore changed the frame.");
+            Check(shell.State == WorkspaceState.Ready && shell.SceneLayers[0].Animation == "",
+                "Static sidecar restore did not reach Ready with the setup pose.");
+            // TASK-071: the CPU preview re-renders through the scene camera once the opened project is fitted.
+            await Until(() => shell.PreviewFrame!.Bgra32.SequenceEqual(faded), "Static sidecar restore changed the frame.");
             Check(shell.ScreenshotCommand.CanExecute(null), "Static screenshot is disabled.");
             shell.ScreenshotCommand.Execute(null);
             await Until(() => shell.LastAction == "Captured static-capture.png", "Static screenshot did not finish.");
