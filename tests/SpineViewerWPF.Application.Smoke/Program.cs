@@ -135,6 +135,8 @@ try
     });
     await SetupPoseSmoke.RunAsync(assetService, root);
     MixEventsSmoke.Run(assetService, root);
+    AboutSmoke.Run(assetService, new ViewerProjectStore());
+    LocalizationSmoke.Run();
     var discovered = assetService.Inspect(Path.Combine(fixtureDirectory, "minimal.json"), null, null);
     Assert(discovered.Asset.AtlasPath == Path.GetFullPath(Path.Combine(fixtureDirectory, "minimal.atlas")), "Same-stem atlas discovery failed.");
     using (var sceneSession = assetService.OpenRenderSession(Path.Combine(fixtureDirectory, "minimal.json"), null, "4.1").Session)
@@ -917,6 +919,7 @@ try
     await ViewportCameraSmoke.RunAsync(pngService, store, sequenceRequest, root);
     await MixEventsSmoke.RunShellAsync(pngService, store, sequenceRequest, root);
     await EncodedExportSmoke.RunShellAsync(pngService, store, pngSkeleton, root);
+    await BrowserSmoke.RunAsync(pngService, store, pngSkeleton, pngAtlas, pngTexture, root);
 
     var sceneOutputs = pngService.RenderScene(
         [

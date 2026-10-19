@@ -54,6 +54,10 @@ Returns Runtime-neutral bounds, decoded RGBA textures, clipped vertices, UVs, tr
 
 Produces a deterministic PNG sequence at an explicit bounded FPS with progress, cancellation, overwrite policy, Track 0 Alpha, PMA, slot visibility/opacity/attachment selection, and diagnostics. A multi-layer request reuses one loaded render session per visible layer and writes one composed transparent frame per timeline sample. The default single visible identity layer retains the existing Runtime PNG path and byte baselines. An optional `ExportFraming` (TASK-063) switches to auto-fit: a bounds pass unions each visible layer's pose bounds over every exported frame time, then every frame renders with one fixed `RenderCamera` per layer on a canvas sized to that union at `Scale` pixels per skeleton unit plus `Margin` pixels per side (bounded to 4096 pixels per side and the composite buffer budget, reducing scale when needed); the result reports the chosen width and height. PSD output remains deferred.
 
+### `ScanAssetFolder`
+
+TASK-068: `AssetBrowser.Scan` lists Spine skeleton files in a folder (optionally recursive) for the WPF browser: `.skel` files and `.json` files whose first 4 KB contain `"skeleton"` or `"bones"`, excluding Viewer project sidecars, hidden, system, and inaccessible entries. Results are sorted, limited to 5000 with a truncation flag, and cancellable. Per-file details reuse `Inspect`.
+
 ### `ExportEncodedAnimation`
 
 TASK-066 / ADR-010: `AssetService.ExportEncoded` renders the same frame request into a private temporary PNG sequence, encodes it with a user-installed FFmpeg into GIF (generated palette, transparency, infinite loop), animated WebP (`libwebp_anim`, alpha), APNG, or MP4 (`libx264`, `yuv420p`, composited over a `#RRGGBB` background and padded to even dimensions), and moves the result to the requested file. An existing output fails before rendering unless overwrite is explicit. Progress reports render plus encode frames; cancellation stops rendering or terminates the FFmpeg process tree. Temporary frames and partial outputs are always removed. `FfmpegLocator` resolves a remembered path when that file exists, otherwise `PATH`.
