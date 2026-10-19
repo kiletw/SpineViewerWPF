@@ -110,7 +110,8 @@ TASK-007 keeps the prior rendered frame until replacement succeeds. Verified PPM
   through Add layer (an empty workspace opens the first file); Open replaces
   the workspace with one file after the usual discard confirmation. The
   folder and Include subfolders persist in the user settings file; details
-  load in the background and never dirty the project.
+  load in the background only for rows that are shown, are cached by path and
+  last write time until Refresh, and never dirty the project.
 - Slot batch actions (Show all, Hide all, All Auto) act on the slots shown by
   the Slots filter of the selected layer; each is one Undo step and a no-op is
   reported without dirtying.

@@ -26,25 +26,52 @@ public static class AssetBrowser
         var root = Path.GetFullPath(folder);
         if (!Directory.Exists(root)) throw new DirectoryNotFoundException($"Folder not found: {root}");
 
-        var options = new EnumerationOptions
+        var files = new EnumerationOptions
         {
-            RecurseSubdirectories = includeSubfolders,
             IgnoreInaccessible = true,
             MatchCasing = MatchCasing.CaseInsensitive,
             AttributesToSkip = FileAttributes.Hidden | FileAttributes.System
         };
+        // Subfolders are walked here rather than with RecurseSubdirectories so that
+        // junctions and directory symbolic links are not followed (a link back to
+        // an ancestor would otherwise recurse until paths become too long).
+        // Linked skeleton files themselves are still listed.
+        var folders = new EnumerationOptions
+        {
+            IgnoreInaccessible = true,
+            AttributesToSkip = FileAttributes.Hidden | FileAttributes.System | FileAttributes.ReparsePoint
+        };
         var found = new List<string>();
         var truncated = false;
-        foreach (var path in Directory.EnumerateFiles(root, "*", options))
+        var pending = new Stack<string>();
+        pending.Push(root);
+        while (pending.Count > 0 && !truncated)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!IsSkeletonFile(path)) continue;
-            if (found.Count == limit)
+            var current = pending.Pop();
+            try
             {
-                truncated = true;
-                break;
+                foreach (var path in Directory.EnumerateFiles(current, "*", files))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!IsSkeletonFile(path)) continue;
+                    if (found.Count == limit)
+                    {
+                        truncated = true;
+                        break;
+                    }
+                    found.Add(path);
+                }
+                if (!includeSubfolders || truncated) continue;
+                foreach (var subfolder in Directory.EnumerateDirectories(current, "*", folders))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    pending.Push(subfolder);
+                }
             }
-            found.Add(path);
+            catch (DirectoryNotFoundException) when (!ReferenceEquals(current, root))
+            {
+                // A subfolder removed during the scan is skipped.
+            }
         }
         found.Sort(StringComparer.OrdinalIgnoreCase);
         return new AssetBrowserScan(root, found, truncated);

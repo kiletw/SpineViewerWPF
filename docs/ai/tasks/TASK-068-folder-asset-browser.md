@@ -40,16 +40,18 @@ the user settings store.
 
 - `AssetBrowser.Scan` lists `.skel` files and `.json` files whose first 4 KB
   contain `"skeleton"` or `"bones"`, excluding `*.spineviewer.json`; skips
-  hidden, system, and inaccessible entries; sorts paths; stops at 5000 files
-  and reports truncation; honors cancellation.
+  hidden, system, and inaccessible entries; does not follow junctions or
+  directory symbolic links when including subfolders; sorts paths; stops at
+  5000 files and reports truncation; honors cancellation.
 - The activity rail gains Browser. Layers and Browser share the left panel
   (and float together); pressing the active view's button closes the panel,
   the other button switches views.
 - The Browser view shows the folder, a Folder… chooser, Refresh, a name filter,
   Include subfolders, and a multi-select list of name, details, and relative
   location. Details (`<export version> · N animations` or `setup pose`, or the
-  inspection error in italics) load in the background one file at a time and
-  stop when the list is rescanned.
+  inspection error in italics) load in the background one file at a time, only
+  for rows the list shows, are cached by path and last write time across
+  rescans (Refresh clears the cache), and stop when the list is rescanned.
 - Double-click adds the file as a layer. Add to scene adds the selection in
   order through the existing Add layer path (an empty workspace opens the
   first file; the eight-layer limit applies). Open (single selection) opens
@@ -112,8 +114,8 @@ git diff --check
 - Choosing a folder in the real dialog was not completed manually (the
   automation tool blocks typing in folder pickers); `SetFolderAsync`, which the
   dialog result calls, is covered by the smoke test.
-- Details call the full Runtime inspection per file; very large folders fill
-  details gradually.
+- Details call the full Runtime inspection per file; only shown rows are
+  inspected (see Review Fix below).
 - Thumbnails remain deferred.
 
 ### Integration (2026-10-14)
@@ -125,3 +127,37 @@ git diff --check
   parameter-aware `canExecute` and re-queries on both `CommandManager` and `Refresh()`.
 - Re-validated: Release build, Application.Smoke (including TASK-068),
   `scripts/test-v3.ps1`, `scripts/test-ui-shell.ps1` (115 AutomationIds), `git diff --check`.
+
+### Review Fix (2026-10-20)
+
+Review of kiletw/SpineViewerWPF#61, findings 1 and 2:
+
+1. Details were inspected for every listed file (up to 5000) right after each
+   scan, and again on every rescan. `AssetBrowserItem.Detail` now queues its
+   file the first time a row reads it (the list virtualizes rows with
+   recycling), the queue runs one file at a time, the text is formatted on the
+   UI thread, and results are cached by path and last write time; rescans and
+   the subfolder toggle reuse them and Refresh clears them. `HasDetail` reports
+   loaded details without requesting them.
+2. The recursive scan followed junctions and directory symbolic links. The scan
+   now walks subfolders itself and skips reparse-point directories (linked
+   skeleton files are still listed); a subfolder removed mid-scan is skipped.
+
+Validation (2026-10-20, Windows, local): Release build 0 warnings / 0 errors;
+Application.Smoke passed with new checks (a junction from a subfolder back to
+the scanned folder still yields exactly the 4 skeletons, while the previous scan
+recursed through `sub\loop\sub\loop\...` until `PathTooLongException`; no
+details load until a row reads `Detail`; unread rows stay unloaded; rescans
+reuse the cache; a newer last write time and Refresh invalidate it);
+`scripts/test-ui-shell.ps1` passed (115 AutomationIds); `git diff --check` passed.
+Manual (built app, `--settings=` scratch file, repository root with subfolders,
+243 skeletons): 8 rows were realized and only those requested details, shown
+localized in Traditional Chinese.
+
+Found during the manual check (pre-existing, not changed here): inspecting
+`artifacts/official-v38/spineboy/spineboy-pro.skel` without a Runtime override
+does not finish (the CLI `inspect` was still running after 60 s; the official
+v38 script always passes `3.8.95`). Because details load one file at a time,
+such a file keeps the background busy and leaves later rows at `…`. TBD:
+root cause in Runtime auto-detection for binary skeletons, and a per-file
+time limit in the browser.

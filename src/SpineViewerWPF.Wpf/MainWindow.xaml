@@ -1288,6 +1288,8 @@
                                      ItemsSource="{Binding FilteredItems}"
                                      SelectionMode="Extended"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     VirtualizingPanel.IsVirtualizing="True"
+                                     VirtualizingPanel.VirtualizationMode="Recycling"
                                      MouseDoubleClick="AssetBrowserListMouseDoubleClick"
                                      AutomationProperties.AutomationId="Main.Browser.List">
                                 <ListBox.ItemContainerStyle>

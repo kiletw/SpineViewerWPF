@@ -43,6 +43,26 @@ static class BrowserSmoke
             Expect<OperationCanceledException>(() => AssetBrowser.Scan(folder, true, cancellationToken: canceled.Token));
         }
 
+        // A junction back to the scanned folder must not be followed.
+        var loop = Path.Combine(sub, "loop");
+        if (CreateJunction(loop, folder))
+        {
+            try
+            {
+                var looped = AssetBrowser.Scan(folder, true);
+                Check(looped.Files.Count == 4 && !looped.Truncated,
+                    $"Browser scan followed a junction: {looped.Files.Count} files.");
+            }
+            finally
+            {
+                Directory.Delete(loop);
+            }
+        }
+        else
+        {
+            Console.WriteLine("TASK-068: could not create a junction; the junction check was skipped.");
+        }
+
         var settingsPath = Path.Combine(temporaryRoot, "browser-settings", "settings.json");
         var settings = UserSettingsStore.Load(settingsPath);
         settings.SetFfmpegPath(@"C:\tools\ffmpeg.exe");
@@ -63,9 +83,15 @@ static class BrowserSmoke
 
         await browser.SetFolderAsync(folder);
         var listedBeforeDetails = browser.FilteredItems;
-        await browser.DetailsTask;
-        Check(ReferenceEquals(listedBeforeDetails, browser.FilteredItems), "Detail updates rebuilt the browser list.");
         Check(browser.Items.Select(item => item.Name).SequenceEqual(["a.json", "b.json", "d.skel"]), "Browser items did not follow the scan.");
+        // Details load only for rows that are shown (their Detail is read).
+        await Task.Delay(200);
+        Check(browser.Items.All(item => !item.HasDetail), "Browser details were loaded before any row was shown.");
+        _ = browser.Items[0].Detail;
+        _ = browser.Items[2].Detail;
+        await DetailsOf(browser.Items[0], browser.Items[2]);
+        Check(!browser.Items[1].HasDetail, "Browser details were loaded for a row that was not shown.");
+        Check(ReferenceEquals(listedBeforeDetails, browser.FilteredItems), "Detail updates rebuilt the browser list.");
         var a = browser.Items[0];
         Check(a.Detail.StartsWith("4.1", StringComparison.Ordinal) && a.Detail.EndsWith(" · 1 animation", StringComparison.Ordinal) && !a.HasProblem,
             $"Browser details were not filled in: {a.Detail}");
@@ -79,8 +105,19 @@ static class BrowserSmoke
 
         browser.IncludeSubfolders = true;
         await browser.ScanAsync();
-        await browser.DetailsTask;
         Check(browser.Items.Count == 4 && browser.Items[3].Location == "sub", "Including subfolders did not rescan with relative locations.");
+        Check(browser.Items[0].HasDetail && browser.Items[2].HasDetail && !browser.Items[1].HasDetail && !browser.Items[3].HasDetail,
+            "A rescan did not reuse cached details.");
+        File.SetLastWriteTimeUtc(browser.Items[0].Path, DateTime.UtcNow.AddMinutes(1));
+        await browser.ScanAsync();
+        Check(!browser.Items[0].HasDetail && browser.Items[2].HasDetail, "A changed file reused stale cached details.");
+        _ = browser.Items[0].Detail;
+        await DetailsOf(browser.Items[0]);
+        var beforeRefresh = browser.Items;
+        browser.RefreshCommand.Execute(null);
+        for (var attempt = 0; attempt < 300 && (ReferenceEquals(beforeRefresh, browser.Items) || browser.IsScanning); attempt++)
+            await Task.Delay(10);
+        Check(browser.Items.Count == 4 && browser.Items.All(item => !item.HasDetail), "Refresh did not clear cached details.");
 
         var reloaded = UserSettingsStore.Load(settingsPath);
         Check(reloaded.BrowserFolder == Path.GetFullPath(folder) && reloaded.BrowserIncludeSubfolders
@@ -112,6 +149,35 @@ static class BrowserSmoke
             await Task.Delay(10);
         Check(restarted.AssetBrowser.Items.Count == 4, "Showing the browser did not scan the remembered folder.");
         Console.WriteLine("TASK-068: folder asset browser passed.");
+    }
+
+    // Waits until each item has details (requested earlier by reading Detail).
+    private static async Task DetailsOf(params AssetBrowserItem[] items)
+    {
+        for (var attempt = 0; attempt < 1000 && !items.All(item => item.HasDetail); attempt++)
+            await Task.Delay(10);
+        Check(items.All(item => item.HasDetail), "Requested browser details did not load.");
+    }
+
+    private static bool CreateJunction(string link, string target)
+    {
+        try
+        {
+            using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe")
+            {
+                ArgumentList = { "/c", "mklink", "/J", link, target },
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            })!;
+            process.WaitForExit(10000);
+            return process.ExitCode == 0 && Directory.Exists(link);
+        }
+        catch (Exception exception) when (exception is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            return false;
+        }
     }
 
     private static void Check(bool condition, string message)

@@ -8,8 +8,11 @@ using SpineViewerWPF.Application;
 namespace SpineViewerWPF.Wpf;
 
 // TASK-068: folder browser for the left panel. Lists skeleton files, filters by
-// name, and fills in Runtime and animation details in the background, one file
-// at a time. Adding to the scene goes through the Shell's Add layer path.
+// name, and fills in Runtime and animation details in the background. Details
+// load only for rows the list actually shows (the first read of an item's
+// Detail queues it), one file at a time, and are cached by path and last write
+// time so rescans and the subfolder toggle reuse them; Refresh clears the cache.
+// Adding to the scene goes through the Shell's Add layer path.
 public sealed class AssetBrowserViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly AssetService? assetService;
@@ -25,6 +28,11 @@ public sealed class AssetBrowserViewModel : INotifyPropertyChanged, IDisposable
     private bool isScanning;
     private bool loaded;
     private IReadOnlyList<AssetBrowserItem>? filteredItems;
+    private readonly Dictionary<string, CachedDetail> detailCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Queue<AssetBrowserItem> pendingDetails = new();
+    private readonly object detailGate = new();
+    private int scanGeneration;
+    private bool detailsRunning;
 
     internal AssetBrowserViewModel(
         AssetService? assetService,
@@ -42,7 +50,7 @@ public sealed class AssetBrowserViewModel : INotifyPropertyChanged, IDisposable
         includeSubfolders = settings.BrowserIncludeSubfolders;
         status = folder is null ? Localized.Text("Status.ChooseAFolderToListSpine", "Choose a folder to list Spine skeletons.") : "";
         ChooseFolderCommand = new RelayCommand(ChooseFolder);
-        RefreshCommand = new RelayCommand(() => _ = ScanAsync(), () => folder is not null && !isScanning);
+        RefreshCommand = new RelayCommand(Refresh, () => folder is not null && !isScanning);
         AddToSceneCommand = new ParameterCommand(parameter => _ = AddToSceneAsync(Paths(parameter)), parameter => Paths(parameter).Count > 0);
         OpenCommand = new ParameterCommand(parameter => _ = OpenAsync(Paths(parameter)), parameter => Paths(parameter).Count == 1);
     }
@@ -132,22 +140,33 @@ public sealed class AssetBrowserViewModel : INotifyPropertyChanged, IDisposable
         scanCancellation?.Cancel();
         var cancellation = new CancellationTokenSource();
         scanCancellation = cancellation;
+        int generation;
+        lock (detailGate)
+        {
+            generation = ++scanGeneration;
+            pendingDetails.Clear();
+        }
         var root = folder;
         var recursive = includeSubfolders;
         SetScanning(true);
         Status = Localized.Text("Status.Scanning", "Scanning…");
         try
         {
-            var scan = await Task.Run(() => AssetBrowser.Scan(root, recursive, AssetBrowser.DefaultLimit, cancellation.Token), cancellation.Token);
+            // Last write times are read with the scan so cached details can be
+            // matched without touching each file again on the UI thread.
+            var (scan, stamps) = await Task.Run(() =>
+            {
+                var result = AssetBrowser.Scan(root, recursive, AssetBrowser.DefaultLimit, cancellation.Token);
+                return (result, result.Files.Select(LastWrite).ToArray());
+            }, cancellation.Token);
             if (cancellation.IsCancellationRequested) return;
-            Items = scan.Files.Select(path => new AssetBrowserItem(path, scan.Folder)).ToList();
+            Items = scan.Files.Select((path, index) => CreateItem(path, scan.Folder, stamps[index], generation)).ToList();
             filteredItems = null;
             Changed(nameof(Items));
             Changed(nameof(FilteredItems));
             Changed(nameof(CountLabel));
             Status = scan.Truncated ? Localized.Format("Status.ShowingTheFirstSkeletons", "Showing the first {0} skeletons", AssetBrowser.DefaultLimit) : "";
             SetScanning(false);
-            DetailsTask = LoadDetailsAsync(Items, cancellation.Token);
         }
         catch (OperationCanceledException)
         {
@@ -168,38 +187,97 @@ public sealed class AssetBrowserViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    // Background Runtime/animation details for the current list (tests await it).
+    // Background Runtime/animation details for requested rows (tests await it).
     public Task DetailsTask { get; private set; } = Task.CompletedTask;
 
     public void Dispose() => scanCancellation?.Cancel();
 
-    private async Task LoadDetailsAsync(IReadOnlyList<AssetBrowserItem> items, CancellationToken cancellationToken)
+    private void Refresh()
+    {
+        lock (detailGate) detailCache.Clear();
+        _ = ScanAsync();
+    }
+
+    private static DateTime LastWrite(string path)
+    {
+        try
+        {
+            return File.GetLastWriteTimeUtc(path);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return DateTime.MinValue;
+        }
+    }
+
+    private AssetBrowserItem CreateItem(string path, string root, DateTime lastWrite, int generation)
+    {
+        var item = new AssetBrowserItem(path, root, lastWrite, RequestDetail, generation);
+        lock (detailGate)
+        {
+            if (detailCache.TryGetValue(path, out var cached) && cached.LastWrite == lastWrite)
+                item.SetDetail(cached.Detail, cached.HasProblem);
+        }
+        return item;
+    }
+
+    // Called from AssetBrowserItem.Detail the first time a row reads it.
+    private void RequestDetail(AssetBrowserItem item)
     {
         if (assetService is null) return;
-        foreach (var item in items)
+        lock (detailGate)
         {
-            if (cancellationToken.IsCancellationRequested) return;
+            if (item.Generation != scanGeneration) return;
+            pendingDetails.Enqueue(item);
+            if (detailsRunning) return;
+            detailsRunning = true;
+        }
+        DetailsTask = LoadDetailsAsync(item.Generation, scanCancellation?.Token ?? CancellationToken.None);
+    }
+
+    private async Task LoadDetailsAsync(int generation, CancellationToken cancellationToken)
+    {
+        // Leave the property getter that requested the first item before working.
+        await Task.Yield();
+        while (true)
+        {
+            AssetBrowserItem item;
+            lock (detailGate)
+            {
+                if (generation != scanGeneration || cancellationToken.IsCancellationRequested || pendingDetails.Count == 0)
+                {
+                    detailsRunning = false;
+                    return;
+                }
+                item = pendingDetails.Dequeue();
+            }
+            string detail;
+            bool problem;
             try
             {
-                var inspection = await Task.Run(() => assetService.Inspect(item.Path, null, null, cancellationToken), cancellationToken);
+                var inspection = await Task.Run(() => assetService!.Inspect(item.Path, null, null, cancellationToken), cancellationToken);
                 var animations = inspection.Animations.Count;
-                item.SetDetail(
-                    $"{inspection.Runtime.DetectedExportVersion ?? inspection.Runtime.SelectedLine} · " +
+                // Formatted after the await so localized text is read on the UI thread.
+                detail = $"{inspection.Runtime.DetectedExportVersion ?? inspection.Runtime.SelectedLine} · " +
                     (animations == 0
                         ? Localized.Text("Status.SetupPose", "setup pose")
                         : animations == 1
                             ? Localized.Format("Browser.Animation", "{0} animation", animations)
-                            : Localized.Format("Browser.Animations", "{0} animations", animations)),
-                    !inspection.Success);
+                            : Localized.Format("Browser.Animations", "{0} animations", animations));
+                problem = !inspection.Success;
             }
             catch (OperationCanceledException)
             {
+                lock (detailGate) detailsRunning = false;
                 return;
             }
             catch (Exception exception)
             {
-                item.SetDetail(exception.Message, true);
+                detail = exception.Message;
+                problem = true;
             }
+            lock (detailGate) detailCache[item.Path] = new CachedDetail(item.LastWrite, detail, problem);
+            item.SetDetail(detail, problem);
         }
     }
 
@@ -235,11 +313,17 @@ public sealed class AssetBrowserViewModel : INotifyPropertyChanged, IDisposable
 
 public sealed class AssetBrowserItem : INotifyPropertyChanged
 {
+    private readonly Action<AssetBrowserItem>? requestDetail;
     private string detail = "…";
     private bool hasProblem;
+    private bool hasDetail;
+    private bool requested;
 
-    internal AssetBrowserItem(string path, string root)
+    internal AssetBrowserItem(string path, string root, DateTime lastWrite, Action<AssetBrowserItem>? requestDetail, int generation)
     {
+        this.requestDetail = requestDetail;
+        LastWrite = lastWrite;
+        Generation = generation;
         Path = path;
         Name = System.IO.Path.GetFileName(path);
         var relative = System.IO.Path.GetRelativePath(root, System.IO.Path.GetDirectoryName(path) ?? root);
@@ -251,16 +335,39 @@ public sealed class AssetBrowserItem : INotifyPropertyChanged
     public string Path { get; }
     public string Name { get; }
     public string Location { get; }
-    public string Detail => detail;
+    internal DateTime LastWrite { get; }
+    internal int Generation { get; }
+
+    // The first read (a row being shown) queues the background inspection.
+    public string Detail
+    {
+        get
+        {
+            if (!hasDetail && !requested)
+            {
+                requested = true;
+                requestDetail?.Invoke(this);
+            }
+            return detail;
+        }
+    }
+
     public bool HasProblem => hasProblem;
+
+    // True once details are known; reading it does not request them.
+    public bool HasDetail => hasDetail;
 
     internal void SetDetail(string value, bool problem)
     {
         detail = value;
         hasProblem = problem;
+        hasDetail = true;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Detail)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasProblem)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasDetail)));
     }
 
     public override string ToString() => Name;
 }
+
+internal sealed record CachedDetail(DateTime LastWrite, string Detail, bool HasProblem);
