@@ -975,6 +975,19 @@ public sealed class AssetService
         if (candidates.Length == 0)
             throw new NotSupportedException($"Runtime '{runtimeOverride}' is not supported.");
 
+        // TASK-078: try only adapters for the export's major.minor version when it
+        // can be read cheaply; other adapters would reject the file after a full
+        // parse, and some older parsers never finish on newer data.
+        if (runtimeOverride is null
+            && SkeletonVersionProbe.Read(paths.Skeleton) is { } exportVersion
+            && SkeletonVersionProbe.Line(exportVersion) is { } exportLine)
+        {
+            var matching = candidates
+                .Where(item => SkeletonVersionProbe.Line(item.RuntimeLine) == exportLine)
+                .ToArray();
+            if (matching.Length > 0) candidates = matching;
+        }
+
         Exception? last = null;
         foreach (var candidate in candidates)
         {

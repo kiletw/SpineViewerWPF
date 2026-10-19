@@ -118,6 +118,7 @@ Fixture status and expected non-redistributable locations are tracked in [`fixtu
 - Verified export: `3.8.55` JSON and binary spineboy example accepted by the 3.8.95 adapter.
 - Verified assets: normal atlas/PNG, PMA atlas/PNG, and the accompanying license file through `scripts/test-official-v38.ps1 -Offline`.
 - Verified behavior: explicit and automatic selection, 11 animations, `default` skin, deterministic 512 by 512 JSON/binary/PMA renders.
+- TASK-078: automatic selection on the binary export previously never finished, because the vendored 2.1.25 binary parser loops on 3.8 data before the 3.8.95 adapter is reached. Automatic selection now tries only adapters matching the export's major.minor version (see `12-application-use-cases.md`), and the script checks automatic selection on both JSON and binary.
 - Known boundary: the shared CPU bridge now consumes clipping attachments and maps normal/additive/multiply/screen slots; this remains a bounded deterministic path, not a full visual-parity claim.
 
 ## v3 Historical Compatibility Slice
