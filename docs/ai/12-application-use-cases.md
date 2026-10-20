@@ -20,6 +20,13 @@ Input: skeleton path or readable content. Output: detected version string, confi
 
 Input: skeleton, optional atlas, optional Runtime override. Output: identity, selected Runtime, textures, animations, skins, duration metadata, diagnostics.
 
+Without an override, TASK-078 first reads the export version cheaply (the JSON
+`"spine"` value in the first 4 KB, or the binary header: hash and version
+strings for 2.x/3.x, an 8-byte hash and version string for 4.x) and tries only
+the adapters with that major.minor line, in registration order. When no
+version is readable or no adapter has that line, every adapter is tried as
+before. Adapters still verify the parsed version themselves.
+
 ### `ValidateSpineAsset`
 
 Checks files, version support, atlas/textures, parse result, and blocking/non-blocking diagnostics without opening UI.

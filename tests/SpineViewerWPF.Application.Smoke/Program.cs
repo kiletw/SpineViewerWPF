@@ -135,6 +135,7 @@ try
     });
     await SetupPoseSmoke.RunAsync(assetService, root);
     MixEventsSmoke.Run(assetService, root);
+    RuntimeDetectionSmoke.Run(assetService, root);
     var discovered = assetService.Inspect(Path.Combine(fixtureDirectory, "minimal.json"), null, null);
     Assert(discovered.Asset.AtlasPath == Path.GetFullPath(Path.Combine(fixtureDirectory, "minimal.atlas")), "Same-stem atlas discovery failed.");
     using (var sceneSession = assetService.OpenRenderSession(Path.Combine(fixtureDirectory, "minimal.json"), null, "4.1").Session)

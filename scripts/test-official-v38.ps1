@@ -86,7 +86,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 $inspections = @(
     (Invoke-Inspect $json $atlas '3.8.95'),
     (Invoke-Inspect $skel $atlas '3.8.95'),
-    (Invoke-Inspect $json $atlas $null)
+    (Invoke-Inspect $json $atlas $null),
+    (Invoke-Inspect $skel $atlas $null)
 )
 foreach ($inspect in $inspections) {
     if (-not $inspect.success -or $inspect.runtime.selectedLine -ne '3.8.95' -or
@@ -116,7 +117,7 @@ foreach ($case in $outputs) {
     Assets = 'official spineboy 3.8 export'
     JsonInspect = "passed ($($inspections[0].runtime.detectedExportVersion), $($inspections[0].animations.Count) animations)"
     BinaryInspect = "passed ($($inspections[1].runtime.detectedExportVersion), $($inspections[1].animations.Count) animations)"
-    AutomaticSelection = 'passed'
+    AutomaticSelection = 'passed (JSON and binary)'
     JsonRender = 'passed'
     BinaryRender = 'passed'
     PmaRender = 'passed'
